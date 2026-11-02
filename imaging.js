@@ -32,7 +32,7 @@
   function ecgSVG(spec, eng) {
     const p = eng ? eng.p : { rhythm: 'sinus', hrTrue: 80, ecg: {} };
     const rhythm = spec.rhythm || p.rhythm, rate = spec.rate || Math.max(20, Math.round(p.hrTrue || 80));
-    const base = Object.assign({}, p.ecg || {}, spec.morph || {});
+    const auto = S.ecgMorph && eng ? S.ecgMorph(p) : {}; const base = Object.assign({}, p.ecg || {}, auto, spec.morph || {});
     const W = 1000, H = 470, colW = 250, rowH = 100;
     const o = [`<svg viewBox="0 0 ${W} ${H}" class="img-svg ecg-svg"><defs><pattern id="sm" width="3.84" height="3.84" patternUnits="userSpaceOnUse"><path d="M3.84 0H0V3.84" fill="none" stroke="#f6c6c6" stroke-width=".4"/></pattern><pattern id="lg" width="19.2" height="19.2" patternUnits="userSpaceOnUse"><rect width="19.2" height="19.2" fill="url(#sm)"/><path d="M19.2 0H0V19.2" fill="none" stroke="#eaa" stroke-width=".8"/></pattern></defs><rect width="${W}" height="${H}" fill="#fff8f8"/><rect width="${W}" height="${H}" fill="url(#lg)"/>`];
     const pxPerSec = 96, mv = 38.4;
@@ -46,14 +46,15 @@
       for (let i = beats.length - 1; i >= 0; i--) if (beats[i] <= t) { b = beats[i]; nb = beats[i + 1]; bi = i; break; }
       let v = 0;
       if (b != null) {
-        const st = (spec.st && spec.st[lead]) || 0;
+        const dst = (auto.st || 0) - ((p.ecg && p.ecg.st) || 0);
+        const st = ((spec.st && spec.st[lead]) || 0) + (lead === 'aVR' ? -dst : dst);
         const tinv = spec.tinv && spec.tinv.includes(lead) ? -1 : 1;
         const m = Object.assign({}, base, { rAmp: L.r * (base.rAmp || 1), sAmp: L.s / 0.22 * 0.22 * (base.sAmp || 1) * 4.5, st: st, tPeak: (base.tPeak || 1) * (L.t || 1) * tinv });
         if (spec.s1q3t3) { if (lead === 'I') m.sAmp *= 3; if (lead === 'III') { m.tPeak = -1; m.qAmp = 1; } }
         v = S.ecgBeat(t - b, (nb || b + 60 / rate) - b, m, rhythm);
         if (spec.s1q3t3 && lead === 'III') v -= 0.25 * Math.exp(-Math.pow(t - b - 0.168, 2) / (2 * 0.008 * 0.008));
         if (spec.lowVolt) v *= 0.45;
-        if (spec.alternans && bi % 2) v *= 0.6;
+        if ((spec.alternans || base.alt) && bi % 2) v *= 0.6;
       }
       if (rhythm === 'chb') { for (let i = pbeats.length - 1; i >= 0; i--) if (pbeats[i] <= t) { v += 0.13 * Math.exp(-Math.pow(t - pbeats[i] - 0.08, 2) / (2 * 0.022 * 0.022)); break; } }
       if (rhythm === 'af') v += 0.03 * Math.sin(t * 37 + lead.length) + 0.02 * Math.sin(t * 53);

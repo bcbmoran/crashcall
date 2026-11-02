@@ -282,6 +282,9 @@
       e.after(20, () => { const rows = inv.bloods ? inv.bloods(e) : S.labs(e); const r = { name: 'Lab bloods', kind: 'labs', rows, extra: inv.extra || [] }; addResult(r); toast('Lab results are back', 'good'); });
     } else if (kind === 'ecg') {
       const spec = Object.assign({}, val(inv.ecg, e) || { desc: 'Sinus rhythm.' });
+      const fx = S.ecgMorph ? S.ecgMorph(e.p).findings : [];
+      const extra = fx.filter((x) => !(spec.desc || '').toLowerCase().includes(x.split(' ')[0].toLowerCase()));
+      if (extra.length && !['vf', 'asystole'].includes(e.p.rhythm)) spec.desc = (spec.desc || '') + ' Also: ' + extra.join('; ') + '.';
       spec.kind = 'ecg'; spec.rhythm = e.p.rhythm; spec.rate = Math.round(e.p.hrTrue); spec.morph = Object.assign({}, e.p.ecg);
       const r = { name: '12-lead ECG', kind: 'img', spec, report: spec.desc }; addResult(r); showResult(r);
     } else if (kind === 'cxr') {

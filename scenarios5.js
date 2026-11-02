@@ -102,7 +102,7 @@
   add({
     id: 'em-torsades', title: 'Recurrent syncope with a long QT', field: 'EM', shock: 'Cardiogenic (arrhythmic)', difficulty: 2, setting: 'ed',
     stem: '56-year-old woman on citalopram, started clarithromycin and ondansetron for a chest infection with vomiting. Three collapses today. On the monitor: sinus 54/min with very long QT — then a run of polymorphic VT.',
-    patient: { age: 56, sex: 'F', weight: 64, hrBase: 54, k: 2.9, lactate: 1.8, look: {} },
+    patient: { age: 56, sex: 'F', weight: 64, hrBase: 54, k: 2.9, lactate: 1.8, ecg: { qt: 1.8, ectopy: 0.12 }, look: {} },
     tick(e, dt) {
       const p = e.p, f = e.flags;
       const supp = e.did('magnesium') && (e.E('magnesium') > 0.02 || f.mgT) ? 1 : 0;
@@ -112,6 +112,8 @@
       if (p.rhythm === 'vt') { if (f.t > 8) { p.rhythm = 'sinus'; f.t = 0; e.say('Torsades self-terminates. Patient comes round.', 'warn'); } }
       else if (!supp && !over && f.t > (f.n ? 28 : 12)) { f.n = (f.n || 0) + 1; f.t = 0; if (f.n >= 5) { p.rhythm = 'vf'; e.say('Torsades degenerates into VF!', 'bad'); } else { p.rhythm = 'vt'; p.fixedRate = 240; e.say('TORSADES DE POINTES — patient unresponsive.', 'bad'); } }
       if (e.did('iv_potassium')) p.k = toward(p.k, 4.2, 0.004, dt);
+      if (e.did('stop_trigger')) p.ecg.qt = toward(p.ecg.qt, 1.35, 0.003, dt);
+      p.ecg.ectopy = f.mgT ? 0.02 : 0.12;
     },
     extraActions: [{ id: 'iv_potassium', name: 'IV potassium replacement (via pump)' }],
     onEvent(e, ev) {
