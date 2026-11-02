@@ -1,17 +1,24 @@
-# ResusSim — shock & critical events simulator
+# CrashCall
 
-A free, browser-based simulator for **emergency medicine, critical care and anaesthesia**. Manage a deteriorating patient against the clock with a live monitor, titratable drugs, fluids and blood, investigations and a physiology hint.
+A free, browser-based simulator for **emergency medicine, critical care, anaesthesia and paediatrics**, guided by UK and Irish guidance (RCUK, NICE, BTS/SIGN, APLS, BSPED, DAS, RCOG, HSE National Clinical Guidelines) and the Association of Anaesthetists Quick Reference Handbook. Manage a deteriorating patient against the clock with a live monitor, titratable drugs, fluids and blood, investigations and a physiology hint.
 
 **Play:** open `index.html`, or the GitHub Pages site for this repository.
 
 ## Features
-- **24 scenarios** across EM, ICU and anaesthesia, covering every class of shock:
+- **80 scenarios + a tutorial** across EM, ICU, anaesthesia and paediatrics, covering every class of shock:
   - *Hypovolaemic* — pelvic fracture haemorrhage, variceal bleed, major obstetric haemorrhage
   - *Distributive* — septic (ED and refractory ICU), anaphylaxis (ED and on induction), neurogenic, adrenal crisis, high spinal
   - *Cardiogenic* — anterior STEMI, β-blocker overdose, hyperkalaemia, unstable SVT, LAST, vagal bradycardia
   - *Obstructive* — tension pneumothorax (ED and ventilated), massive PE, post-cardiac-surgery tamponade
   - plus life-threatening asthma, bronchospasm, malignant hyperthermia and CICO
-- **Pick a specific scenario, practise a field (EM / Critical care / Anaesthesia) or get a random one.**
+  - **AoA QRH crises** — key basic plan, VF arrest under anaesthesia, endobronchial tube, blocked tube, hypotension, hypertension (empty vaporiser), fast AF, serotonin toxicity/hyperthermia, gas embolism, laryngospasm, patient fire, post-ROSC neuroprotection, oxygen failure, power failure, theatre evacuation
+  - **More EM / ICU** — complete heart block, digoxin toxicity, torsades, electrical storm, flash pulmonary oedema, inferior STEMI with RV infarct, aortic dissection, hypertensive emergency, autonomic dysreflexia, adult DKA, alcohol withdrawal seizure, neutropenic sepsis, Crohn’s perforation on steroids, toxic shock, severe CAP, ACE-inhibitor angioedema, PEA arrest, stroke thrombolysis, severe TBI, subdural on a DOAC, elderly trauma on a β-blocker, stab wounds (haemothorax, tamponade), ruptured ectopic, peptic ulcer bleed, major burns, hydrofluoric acid burn, organophosphate poisoning and adder bite
+  - **Paediatrics** — infant septic shock, asthma, anaphylaxis, infant SVT, status epilepticus, trauma haemorrhage, laryngospasm, croup, DKA, bronchiolitis, paediatric arrest (PLS) and newborn life support (NLS), all with weight-based dosing
+- **Pick a specific scenario, practise a field (EM / Critical care / Anaesthesia / Paediatrics) or get a random one.**
+- **Grade-based difficulty**: *Junior trainee* (slower deterioration, more margin, a nurse prompts you if you stall), *Senior trainee* (standard) or *Consultant* (faster deterioration, hidden targets, longer stability required and an unannounced second problem such as a tissued cannula or displaced tube). Separate leaderboards per grade.
+- **Consequences**: wrong actions are logged as harms (+30 s on the leaderboard) and many cause real deterioration (e.g. propofol RSI in shock, decompressing a normal chest, 1 mg IV adrenaline with a pulse → VT, unsynchronised shock → VF).
+- **AoA QRH library** (📕 button) with the relevant guidelines for each case linked to the official PDF.
+- Blind mode and a shared online leaderboard (Google Sheets).
 - Live bedside monitor (ECG, invasive/non-invasive BP, SpO₂ pleth, capnography, temperature, CVP) with sweep waveforms, pulse-pressure variation, pulsus paradoxus and optional pulse-oximeter tone.
 - Patient view showing relevant equipment: ventilator / anaesthetic machine, infusion pumps, airway devices, lines, chest drain, pelvic binder, blood products, defib/pacer.
 - Vasopressors, inotropes and chronotropes as **boluses or titratable infusions**; crystalloid and blood products; airway, breathing and circulation procedures; ventilator FiO₂/PEEP/rate.
@@ -40,6 +47,9 @@ js/scenarios*.js    scenario library
 js/app.js           UI controller
 ```
 Adding a scenario = adding an object to `js/scenarios*.js` (patient parameters, dynamics, examination, investigations, critical actions, hint and debrief).
+
+## QRH acknowledgement
+Summaries of the Association of Anaesthetists *Quick Reference Handbook* (June 2023) are brief paraphrases for orientation only, with links to the official document. The QRH is © Association of Anaesthetists and licensed under CC BY-NC-SA 4.0. Always use the current official version: https://anaesthetists.org/Quick-Reference-Handbook
 
 ## Image credits
 All X-ray, CT and ultrasound media are hot-linked from Wikimedia Commons under their original licences (CC0, CC BY, CC BY-SA). Authors include Hellerhoff, James Heilman MD, Mikael Häggström, Nevit Dilmen, Ben Smith, CardioNetworks/ECHOpedia, Gargani L (Cardiovasc Ultrasound 2011), Gillman L et al. (Scand J Trauma Resusc Emerg Med 2009), Shafiq Q et al., Hansen KL et al., and others — full attribution is shown alongside each image in the app and listed in `js/media.js`.

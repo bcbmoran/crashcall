@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ResusSim — Shock & Critical Events Simulator</title>
+  <title>CrashCall</title>
   <meta name="description" content="Free interactive simulator for emergency medicine, critical care and anaesthesia: shock, airway and anaesthetic emergencies with live monitoring, drugs, imaging and physiology hints.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b5cad'/%3E%3Cpath d='M8 34h12l5-12 8 24 6-16 4 4h13' stroke='%23fff' stroke-width='5' fill='none' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="style.css">
@@ -12,13 +12,14 @@
   <!-- ================= HOME ================= -->
   <section id="home" class="screen active">
     <header class="home-head">
-      <div class="brand"><svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--accent)"/><path d="M8 34h12l5-12 8 24 6-16 4 4h13" stroke="#fff" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round"/></svg><span>ResusSim</span></div>
-      <div class="row-btns"><button class="btn" id="lbBtn">🏆 Leaderboard</button><button class="btn ghost" id="themeBtn" aria-label="Toggle dark mode">Light / dark</button></div>
+      <div class="brand"><svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true"><rect width="64" height="64" rx="14" fill="var(--accent)"/><path d="M8 34h12l5-12 8 24 6-16 4 4h13" stroke="#fff" stroke-width="5" fill="none" stroke-linejoin="round" stroke-linecap="round"/></svg><span>CrashCall</span></div>
+      <div class="row-btns"><button class="btn" id="qrhHome">📕 QRH</button><button class="btn" id="lbBtn">🏆 Leaderboard</button><button class="btn ghost" id="themeBtn" aria-label="Toggle dark mode">Light / dark</button></div>
     </header>
     <div class="hero">
-      <h1>Shock &amp; critical events simulator</h1>
-      <p>Manage deteriorating patients across emergency medicine, critical care and anaesthesia. Live monitoring, titratable vasopressors, inotropes and fluids, bloods, gases, ECGs, CXR, CT and POCUS — and a physiology hint when you need it. The stopwatch is running.</p>
+      <h1>CrashCall</h1>
+      <p>Manage deteriorating patients across emergency medicine, critical care, anaesthesia and paediatrics — guided by UK and Irish guidelines and the AoA Quick Reference Handbook. Live monitoring, titratable vasopressors, inotropes and fluids, bloods, gases, ECGs, CXR, CT and POCUS — and a physiology hint when you need it. The stopwatch is running.</p>
     </div>
+    <div class="level-row"><span class="lv-lab">Your grade</span><div class="seg" id="levelSeg" role="radiogroup" aria-label="Difficulty by grade"></div><p class="muted small" id="levelBlurb"></p></div>
     <div class="blind-row"><label class="switch"><input type="checkbox" id="blindToggle"> <span>Blind mode: hide scenario names and shock types until the debrief</span></label></div>
     <div class="modes">
       <div class="mode-card tut">
@@ -38,6 +39,7 @@
           <button class="btn" data-field="EM">Emergency medicine</button>
           <button class="btn" data-field="ICU">Critical care</button>
           <button class="btn" data-field="Anaes">Anaesthesia</button>
+          <button class="btn" data-field="Paeds">Paediatrics</button>
         </div>
       </div>
       <div class="mode-card">
@@ -65,11 +67,12 @@
   <section id="sim" class="screen">
     <header class="topbar">
       <button class="btn ghost" id="backBtn" title="Back to menu">← Menu</button>
-      <div class="tb-title"><span id="scnField" class="tag"></span><span id="scnTitle"></span></div>
+      <div class="tb-title"><span id="scnField" class="tag"></span><span id="scnLevel" class="tag lvl"></span><span id="scnTitle"></span></div>
       <div class="tb-right">
         <div class="stopwatch" id="stopwatch" aria-live="off">00:00.0</div>
         <button class="btn ghost" id="pauseBtn" title="Pause / resume">❚❚</button>
         <button class="btn ghost" id="soundBtn" title="Pulse-oximeter tone">🔇</button>
+        <button class="btn" id="qrhBtn" title="AoA Quick Reference Handbook">📕 QRH</button>
         <button class="btn hint" id="hintBtn">💡 Hint</button>
         <button class="btn danger" id="endBtn">End</button>
       </div>
@@ -131,8 +134,13 @@
   <script src="media.js"></script>
   <script src="imaging.js"></script>
   <script src="schematics.js"></script>
+  <script src="qrh.js"></script>
   <script src="scenarios.js"></script>
   <script src="scenarios2.js"></script>
+  <script src="scenarios3.js"></script>
+  <script src="scenarios4.js"></script>
+  <script src="scenarios5.js"></script>
+  <script src="scenarios6.js"></script>
   <script src="tutorial.js"></script>
   <script src="leaderboard.js"></script>
   <script src="app.js"></script>

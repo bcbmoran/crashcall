@@ -30,6 +30,10 @@
   LB.top = (scenario) => jsonp({ action: 'top', scenario: scenario || '', n: 10 });
   LB.add = (rec) => jsonp(Object.assign({ action: 'add' }, rec));
 
+  // Each grade has its own board. Senior keeps the plain scenario id (compatible with earlier scores).
+  const SUF = { junior: '--j', senior: '', consultant: '--c' };
+  LB.key = (id, level) => id + (SUF[level] || '');
+  const levelName = (lv) => (S.LEVELS && S.LEVELS[lv] ? S.LEVELS[lv].name : 'Senior trainee');
   const title = (id) => { const s = S.SCENARIOS.find((x) => x.id === id); return s ? s.title : id; };
 
   function scenarioTable(rows, me) {
@@ -47,12 +51,13 @@
     const score = LB.score(r.ms, r.hints, r.harms);
     const savedName = H.store.get('lbName', '');
     const canSubmit = r.outcome === 'win';
-    el.innerHTML = `<h3>🏆 Leaderboard</h3>
+    el.innerHTML = `<h3>🏆 Leaderboard — ${levelName(r.level)} grade</h3>
       ${canSubmit ? `<div class="lb-form"><label for="lbName">Your name</label><input id="lbName" maxlength="30" autocomplete="nickname" placeholder="e.g. Ben M (ST2)" value="${H.esc(savedName)}"><button class="btn primary" id="lbSubmit">Add my time</button></div>
       <p class="muted small">Your score: <b>${H.fmt(score)}</b> = time ${H.fmt(r.ms)} + 30 s × ${r.hints} hint${r.hints === 1 ? '' : 's'} + 30 s × ${r.harms} harmful action${r.harms === 1 ? '' : 's'}${r.blind ? ' · played blind 🙈' : ''}. Names are public — don't enter patient or personal details.</p>`
       : '<p class="muted small">Only stabilised patients can go on the leaderboard. Try again!</p>'}
       <div id="lbTable"><p class="muted small">Loading leaderboard…</p></div>`;
-    const showTop = (me) => LB.top(r.scn.id).then((d) => { const t = el.querySelector('#lbTable'); if (t) t.innerHTML = d.ok ? scenarioTable(d.rows, me) : `<p class="muted small">${H.esc(d.error || 'Leaderboard unavailable')}</p>`; }).catch((err) => { const t = el.querySelector('#lbTable'); if (t) t.innerHTML = `<p class="muted small">${H.esc(err.message)}</p>`; });
+    const key = LB.key(r.scn.id, r.level || 'senior');
+    const showTop = (me) => LB.top(key).then((d) => { const t = el.querySelector('#lbTable'); if (t) t.innerHTML = d.ok ? scenarioTable(d.rows, me) : `<p class="muted small">${H.esc(d.error || 'Leaderboard unavailable')}</p>`; }).catch((err) => { const t = el.querySelector('#lbTable'); if (t) t.innerHTML = `<p class="muted small">${H.esc(err.message)}</p>`; });
     showTop(savedName);
     const btn = el.querySelector('#lbSubmit');
     if (btn) btn.onclick = () => {
@@ -60,7 +65,7 @@
       if (!name) { el.querySelector('#lbName').focus(); return; }
       H.store.set('lbName', name);
       btn.disabled = true; btn.textContent = 'Saving…';
-      LB.add({ name, scenario: r.scn.id, ms: Math.round(r.ms), hints: r.hints, harms: r.harms, blind: r.blind ? 1 : 0 })
+      LB.add({ name, scenario: key, ms: Math.round(r.ms), hints: r.hints, harms: r.harms, blind: r.blind ? 1 : 0 })
         .then((d) => {
           if (!d.ok) throw new Error(d.error || 'Could not save');
           btn.textContent = 'Saved ✓';
@@ -74,14 +79,15 @@
   LB.show = () => {
     if (!LB.enabled()) { H.openModal('Leaderboard', '<p>The leaderboard has not been connected yet.</p>'); return; }
     const opts = S.SCENARIOS.filter((s) => !s.tutorial).map((s) => `<option value="${s.id}">${H.esc(s.title)}</option>`).join('');
-    H.openModal('🏆 Leaderboard', `<div class="lb-form"><label for="lbSel">Show</label><select id="lbSel"><option value="">Overall — most scenarios stabilised</option>${opts}</select></div><div id="lbBody"><p class="muted small">Loading…</p></div><p class="muted small">Score = time + 30 s per hint and per potentially harmful action. Each person's best run per scenario counts. 🙈 = played in blind mode.</p>`);
-    const sel = document.getElementById('lbSel');
+    H.openModal('🏆 Leaderboard', `<div class="lb-form"><label for="lbSel">Show</label><select id="lbSel"><option value="">Overall — most scenarios stabilised</option>${opts}</select><label for="lbLv">Grade</label><select id="lbLv">${Object.entries(SUF).map(([k]) => `<option value="${k}" ${k === 'senior' ? 'selected' : ''}>${levelName(k)}</option>`).join('')}</select></div><div id="lbBody"><p class="muted small">Loading…</p></div><p class="muted small">Score = time + 30 s per hint and per potentially harmful action. Each person's best run per scenario and grade counts; the overall table counts every scenario-grade stabilised. 🙈 = played in blind mode.</p>`);
+    const sel = document.getElementById('lbSel'), lv = document.getElementById('lbLv');
     const load = () => {
-      const id = sel.value, body = document.getElementById('lbBody');
+      lv.disabled = !sel.value;
+      const id = sel.value ? LB.key(sel.value, lv.value) : '', body = document.getElementById('lbBody');
       body.innerHTML = '<p class="muted small">Loading…</p>';
       LB.top(id).then((d) => { body.innerHTML = !d.ok ? `<p>${H.esc(d.error || 'Unavailable')}</p>` : id ? scenarioTable(d.rows) : overallTable(d.overall); })
         .catch((err) => { body.innerHTML = `<p>${H.esc(err.message)}</p>`; });
     };
-    sel.onchange = load; load();
+    sel.onchange = load; lv.onchange = load; load();
   };
 })();

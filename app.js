@@ -4,7 +4,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const FIELD = { EM: 'Emergency medicine', ICU: 'Critical care', Anaes: 'Anaesthesia', Tutorial: 'Tutorial' };
+  const FIELD = { EM: 'Emergency medicine', ICU: 'Critical care', Anaes: 'Anaesthesia', Paeds: 'Paediatrics', Tutorial: 'Tutorial' };
   const SETTING = { ed: 'ED resus', icu: 'ICU', theatre: 'Theatre', ward: 'Ward' };
   const SHOCKS = ['Hypovolaemic', 'Distributive', 'Cardiogenic', 'Obstructive', 'Other'];
   const store = {
@@ -30,7 +30,7 @@
     $$('.chip', el).forEach((b) => (b.onclick = () => { filt[key] = b.dataset.v; renderHome(); }));
   }
   function renderHome() {
-    chips($('#fieldChips'), ['EM', 'ICU', 'Anaes'], 'field');
+    chips($('#fieldChips'), ['EM', 'ICU', 'Anaes', 'Paeds'], 'field');
     if (blindOn()) { filt.shock = 'All'; $('#shockChips').innerHTML = ''; } else chips($('#shockChips'), SHOCKS, 'shock');
     const best = store.get('best', {});
     const list = S.SCENARIOS.filter((s) => (filt.field === 'All' || s.field === filt.field) && (filt.shock === 'All' || shockKey(s) === filt.shock));
@@ -43,6 +43,15 @@
   const blindOn = () => !!store.get('blind', false);
   const caseCode = (id) => (S.SCENARIOS.findIndex((x) => x.id === id) * 7919 + 1013).toString(36);
   const fromCode = (c) => { const i = (parseInt(c, 36) - 1013) / 7919; return S.SCENARIOS[i] ? S.SCENARIOS[i].id : null; };
+  // ---- grade-based difficulty ----
+  const levelId = () => (S.LEVELS[store.get('level', 'senior')] ? store.get('level', 'senior') : 'senior');
+  function renderLevels() {
+    const seg = $('#levelSeg'); if (!seg) return;
+    seg.innerHTML = Object.values(S.LEVELS).map((l) => `<button role="radio" aria-checked="${l.id === levelId()}" class="${l.id === levelId() ? 'on' : ''}" data-lv="${l.id}">${l.name}<small>${l.who}</small></button>`).join('');
+    $('#levelBlurb').textContent = S.LEVELS[levelId()].blurb;
+    $$('[data-lv]', seg).forEach((b) => (b.onclick = () => { store.set('level', b.dataset.lv); renderLevels(); }));
+  }
+  renderLevels();
   const bt = $('#blindToggle'); if (bt) { bt.checked = blindOn(); bt.onchange = () => { store.set('blind', bt.checked); renderHome(); }; }
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   $('#randomAll').onclick = () => go(pick(S.SCENARIOS.filter((s) => !s.tutorial)).id);
@@ -59,14 +68,15 @@
     closeModal();
     $('#home').classList.remove('active'); $('#sim').classList.add('active');
     window.scrollTo(0, 0);
-    const eng = new S.Engine(scn);
-    Object.assign(state, { scn, eng, running: true, paused: true, elapsed: 0, acc: 0, hints: 0, results: [], tab: 'drugs', ended: false, blind: blindOn() && !scn.tutorial });
+    const eng = new S.Engine(scn, { level: scn.tutorial ? 'senior' : levelId() });
+    Object.assign(state, { scn, eng, running: true, paused: true, elapsed: 0, acc: 0, hints: 0, results: [], tab: 'drugs', ended: false, blind: blindOn() && !scn.tutorial, nudgeT: 0 });
+    const lvT = $('#scnLevel'); if (lvT) { lvT.textContent = scn.tutorial ? '' : eng.L.name; lvT.className = 'tag lvl ' + eng.level; lvT.hidden = !!scn.tutorial; }
     $('#scnTitle').textContent = state.blind ? 'Unknown case (blind mode)' : scn.title;
     $('#scnField').textContent = FIELD[scn.field]; $('#scnField').className = 'tag ' + scn.field;
     $('#stem').textContent = scn.stem;
     $('#briefField').textContent = FIELD[scn.field] + (state.blind ? '' : scn.shock ? ' · ' + scn.shock : scn.category ? ' · ' + scn.category : '');
     $('#briefField').className = 'tag ' + scn.field;
-    $('#briefTitle').textContent = state.blind ? 'Unknown case' : scn.title; $('#briefStem').textContent = scn.stem;
+    $('#briefTitle').textContent = state.blind ? 'Unknown case' : scn.title; $('#briefStem').textContent = scn.stem + (scn.tutorial ? '' : `\n\nGrade: ${eng.L.name} — ${eng.L.blurb}`);
     $('#briefing').hidden = false;
     $('#log').innerHTML = '';
     $('#toasts').innerHTML = '';
@@ -129,15 +139,28 @@
     if (e.fluidIn.crystalloid) fl.push(`${e.fluidIn.crystalloid} mL crystalloid`);
     if (e.fluidIn.rbc) fl.push(`${Math.round(e.fluidIn.rbc / 280)} RBC`);
     if (e.fluidIn.ffp) fl.push(`${Math.round(e.fluidIn.ffp / 270)} FFP`);
-    $('#ptMeta').innerHTML = `${p.age} ${p.sex} · ${p.weight} kg · ${SETTING[state.scn.setting] || ''} · ${p.ventilated ? `Ventilated FiO₂ ${p.fio2.toFixed(2)}` : p.fio2 > 0.21 ? `O₂ FiO₂ ~${p.fio2.toFixed(2)}` : 'Room air'}${fl.length ? ' · In: ' + fl.join(', ') : ''}`;
+    $('#ptMeta').innerHTML = `${p.age < 0.05 ? 'Newborn' : p.age < 1 ? Math.round(p.age * 12) + ' months' : p.age < 2 && p.paed ? p.age + ' yr' : p.age} ${p.sex} · ${p.weight} kg · ${SETTING[state.scn.setting] || ''} · ${p.ventilated ? `Ventilated FiO₂ ${p.fio2.toFixed(2)}` : p.fio2 > 0.21 ? `O₂ FiO₂ ~${p.fio2.toFixed(2)}` : 'Room air'}${fl.length ? ' · In: ' + fl.join(', ') : ''}`;
     const tg = e.targetStatus();
-    $('#targets').innerHTML = tg.map((t) => `<span class="tgt ${t.ok ? 'ok' : 'no'}">${t.k}</span>`).join('');
+    $('#targets').innerHTML = e.L.showTargets || state.scn.tutorial ? tg.map((t) => `<span class="tgt ${t.ok ? 'ok' : 'no'}">${t.k}</span>`).join('') : '<span class="tgt">Consultant grade: targets hidden — decide your own end-points</span>';
+    nudge(e);
     const cs = e.critStatus(), done = cs.filter((c) => c.done).length;
     $('#critCount').textContent = `Critical actions completed: ${done} / ${cs.length} (revealed in the debrief)`;
-    const need = state.scn.stableFor || 20;
+    const need = e.needStable();
     $('#stabBar').style.width = Math.min(100, (e.stableTime / need) * 100) + '%';
     coachTick();
     $('#stabTxt').textContent = e.stableTime > 0 ? `${Math.floor(e.stableTime)} / ${need} s stable` : 'Targets not yet held';
+    if (!e.L.showTargets && !state.scn.tutorial) { $('#stabBar').style.width = '0%'; $('#stabTxt').textContent = 'Hidden at consultant grade'; }
+  }
+
+  // Junior grade: a senior nurse prompts the next outstanding critical action when you stall.
+  function nudge(e) {
+    if (!e.L.nudge || state.paused || e.outcome || state.scn.tutorial) return;
+    const t = e.t, lastAct = e.log.filter((x) => x.kind === 'act').reduce((m, x) => Math.max(m, x.t), 0);
+    if (t - Math.max(lastAct, state.nudgeT || 0) < e.L.nudge) return;
+    const next = e.critStatus().find((c) => !c.done);
+    state.nudgeT = t;
+    if (next) e.say(`Senior nurse: "Do you want to think about this — ${next.text.replace(/\s*\(.*\)\s*$/, '').toLowerCase()}?"`, 'warn');
+    else if (!e.targetsMet()) e.say(`Senior nurse: "Everything's done — what physiological targets are we still missing? ${e.targetStatus().filter((x) => !x.ok).map((x) => x.k).join(', ')}"`, 'warn');
   }
 
   // ---------------- controls ----------------
@@ -162,7 +185,13 @@
       if (!ds.length) return '';
       return `<div class="grp"><h4>${c}</h4>${ds.map((d) => {
         const rate = e.rate(d.id);
-        const bol = d.bolus ? d.bolus.doses.map((x) => `<button class="btn sm" data-bolus="${d.id}" data-dose="${x}">${x >= 1000 && d.bolus.unit === 'mcg' ? x / 1000 + ' mg' : x + ' ' + d.bolus.unit}</button>`).join('') : '';
+        const w = e.p.weight, un = d.bolus ? d.bolus.unit : '';
+        const rnd = (v) => (v >= 100 ? Math.round(v) : v >= 10 ? Math.round(v * 10) / 10 : Math.round(v * 100) / 100);
+        const lab = (x) => (x >= 1000 && un === 'mcg' ? x / 1000 + ' mg' : x + ' ' + un);
+        let bol = '';
+        if (d.bolus && e.p.paed && d.pd) bol = d.pd.map((k) => { const x = rnd(Math.min(d.pdMax || Infinity, k * w)); return `<button class="btn sm" data-bolus="${d.id}" data-dose="${x}" title="${k} ${un}/kg">${k} ${un}/kg <span class="muted">(${lab(x)})</span></button>`; }).join('');
+        else if (d.bolus && e.p.paed && d.pdAbs) bol = d.pdAbs.map((x) => `<button class="btn sm" data-bolus="${d.id}" data-dose="${x}">${lab(x)}</button>`).join('');
+        else if (d.bolus) bol = d.bolus.doses.map((x) => `<button class="btn sm" data-bolus="${d.id}" data-dose="${x}">${lab(x)}</button>`).join('');
         const inf = d.inf ? `<span class="inf"><input type="number" min="0" max="${d.inf.max}" step="${d.inf.step}" value="${rate || d.inf.presets[0]}" data-infin="${d.id}" aria-label="${d.name} infusion rate"> ${d.inf.unit} <button class="btn sm" data-inf="${d.id}">${rate ? 'Update' : 'Infuse'}</button>${rate ? `<button class="btn sm danger" data-stop="${d.id}">Stop</button>` : ''}</span>` : '';
         return `<div class="drug ${rate ? 'running' : ''}" data-d="${d.id}"><div class="dn">${esc(d.name)} <button class="info" data-info="${d.id}" title="${esc(d.info || '')}" aria-label="Info">i</button>${e.total(d.id) ? `<span class="muted small">given ${+e.total(d.id).toFixed(2)} ${d.bolus ? d.bolus.unit : ''}</span>` : ''}</div><div class="ctl">${bol}${inf}</div><div class="infotext">${esc(d.info || '')}</div></div>`;
       }).join('')}</div>`;
@@ -170,14 +199,17 @@
   }
   function fluidsHTML() {
     const e = state.eng;
-    return `<div class="grp"><h4>Crystalloid</h4><div class="act-grid">${S.FLUIDS.filter((f) => f.kind === 'crystalloid').map((f) => `<button class="btn" data-fluid="${f.id}">${esc(f.name)}</button>`).join('')}</div></div>
-      <div class="grp"><h4>Blood products</h4><div class="act-grid">${S.FLUIDS.filter((f) => f.kind !== 'crystalloid').map((f) => `<button class="btn" data-fluid="${f.id}">${esc(f.name)}</button>`).join('')}</div></div>
+    const fl = S.FLUIDS.filter((f) => !!f.paed === !!e.p.paed);
+    return `${e.p.paed ? `<p class="muted small">Weight ${e.p.weight} kg — volumes are calculated per kg.</p>` : ''}<div class="grp"><h4>Crystalloid</h4><div class="act-grid">${fl.filter((f) => f.kind === 'crystalloid').map((f) => `<button class="btn" data-fluid="${f.id}">${esc(f.name)}</button>`).join('')}</div></div>
+      <div class="grp"><h4>Blood products</h4><div class="act-grid">${fl.filter((f) => f.kind !== 'crystalloid').map((f) => `<button class="btn" data-fluid="${f.id}">${esc(f.name)}</button>`).join('')}</div></div>
       <div class="fluid-sum">Given so far: crystalloid ${e.fluidIn.crystalloid} mL · red cells ${Math.round(e.fluidIn.rbc / 280)} u · FFP ${Math.round(e.fluidIn.ffp / 270)} u · platelets ${Math.round(e.fluidIn.plt / 250)} · cryo ${Math.round(e.fluidIn.cryo / 100)}<br>Tip: a passive leg raise (Airway &amp; procedures) tests fluid responsiveness without giving fluid.</div>`;
   }
   function actionsHTML() {
     const e = state.eng, p = e.p, scn = state.scn;
-    const ok = (a) => (!a.setting || a.setting === scn.setting) && (!a.need || (a.need === 'ventilated' && p.ventilated) || (a.need === 'pregnant' && p.pregnant) || (a.need === 'obstetric' && (p.obstetric || p.pregnant)));
+    const ok = (a) => (!a.setting || a.setting === scn.setting) && (!a.need || (a.need === 'ventilated' && p.ventilated) || (a.need === 'pregnant' && p.pregnant) || (a.need === 'obstetric' && (p.obstetric || p.pregnant)) || (a.need === 'als' && scn.als));
     const groups = [...new Set(S.ACTIONS.map((a) => a.grp))];
+    const extra = scn.extraActions && scn.extraActions.length ? `<div class="grp"><h4>Scenario-specific actions</h4><div class="act-grid">${scn.extraActions.map((a) => `<button class="btn ${e.did(a.id) ? 'done' : ''}" data-act="${a.id}">${esc(a.name)}${e.did(a.id) ? ' ✓' : ''}</button>`).join('')}</div></div>` : '';
+    const alsBar = scn.als ? `<div class="als-bar ${p.arrested ? 'on' : ''}">${p.arrested ? `CARDIAC ARREST · CPR ${e.flags.cpr ? 'IN PROGRESS' : 'NOT RUNNING'} · ${Math.floor(e.arrestT || 0)} s · shocks ${e.shocks || 0}` : 'Pulse present'}</div>` : '';
     let vent = '';
     if (p.ventilated) {
       vent = `<div class="grp"><h4>Ventilator</h4><div class="vent">
@@ -186,7 +218,7 @@
         <label>Rate (/min) <output id="o_ventRR">${p.ventRR}</output><input type="range" min="6" max="35" step="1" value="${p.ventRR}" data-vent="ventRR"></label>
         <div class="small muted">Ppeak ${Math.round(p.paw)} · autoPEEP ${p.autoPEEP.toFixed(0)} · Vt ~6–8 mL/kg IBW</div></div></div>`;
     }
-    return vent + groups.map((g) => {
+    return alsBar + extra + vent + groups.map((g) => {
       const acts = S.ACTIONS.filter((a) => a.grp === g && ok(a));
       if (!acts.length) return '';
       return `<div class="grp"><h4>${g}</h4><div class="act-grid">${acts.map((a) => `<button class="btn ${e.did(a.id) ? 'done' : ''}" data-act="${a.id}">${esc(a.name)}${e.did(a.id) ? ' ✓' : ''}</button>`).join('')}</div></div>`;
@@ -258,7 +290,7 @@
     } else if (kind === 'ct') {
       const c = (inv.ct || [])[+idx];
       e.say(`Transfer to CT for ${c.label} (~40 s).`, e.p.map < 65 ? 'warn' : 'info');
-      e.after(40, () => { const spec = Object.assign({ kind: 'ct' }, c); const r = { name: c.label, kind: 'img', spec, report: c.report }; addResult(r); toast(`${c.label} reported`, 'good'); showResult(r); });
+      e.after(40, () => { const spec = Object.assign({ kind: 'ct' }, c); const r = { name: c.label, kind: 'img', spec, report: typeof c.report === 'function' ? c.report(e) : c.report }; addResult(r); toast(`${c.label} reported`, 'good'); showResult(r); });
     } else if (kind === 'pocus') {
       const r = { name: 'POCUS', kind: 'pocus', views: inv.pocus || [] }; addResult(r); showResult(r);
     }
@@ -292,7 +324,7 @@
       const vs = r.views;
       if (!vs.length) { openModal('POCUS', '<p>No views available.</p>'); return; }
       openModal('Point-of-care ultrasound', `<div class="view-tabs">${vs.map((v, i) => `<button class="btn sm ${i ? '' : 'on'}" data-view="${i}">${esc(v.label)}</button>`).join('')}</div><div class="img-wrap"><div id="usHost"></div><div class="report"><h4 id="usLab"></h4><p id="usRep"></p><p class="muted small">Representative openly-licensed clip of the finding — not the simulated patient. The report describes this patient.</p></div></div>`, () => {
-        const show = (i) => { if (state.stopAnim) state.stopAnim(); const v = Object.assign({ kind: 'pocus' }, vs[i]); state.stopAnim = S.Imaging.mount($('#usHost'), v, state.eng); $('#usLab').textContent = v.label; $('#usRep').textContent = v.report; $$('[data-view]').forEach((b) => b.classList.toggle('on', +b.dataset.view === i)); };
+        const show = (i) => { if (state.stopAnim) state.stopAnim(); const v = Object.assign({ kind: 'pocus' }, vs[i]); state.stopAnim = S.Imaging.mount($('#usHost'), v, state.eng); $('#usLab').textContent = v.label; $('#usRep').textContent = typeof v.report === 'function' ? v.report(state.eng) : v.report; $$('[data-view]').forEach((b) => b.classList.toggle('on', +b.dataset.view === i)); };
         $$('[data-view]').forEach((b) => (b.onclick = () => show(+b.dataset.view)));
         show(0);
       });
@@ -387,17 +419,18 @@
     const title = outcome === 'win' ? 'Patient stabilised' : outcome === 'arrest' ? 'Cardiac arrest — scenario failed' : 'Scenario ended';
     const log = e.log.filter((x) => x.kind === 'act' || x.kind === 'good' || x.kind === 'bad' || x.type === 'inv' || x.type === 'hint');
     const html = `<div class="debrief">
-      <div class="banner ${outcome === 'win' ? 'win' : 'lose'}"><span>${title}</span><span>⏱ ${fmt(ms)}${newBest ? ' · new personal best' : ''}</span></div>
+      <div class="banner ${outcome === 'win' ? 'win' : 'lose'}"><span>${title}${s.tutorial ? '' : ' · ' + e.L.name + ' grade'}</span><span>⏱ ${fmt(ms)}${newBest ? ' · new personal best' : ''}</span></div>
       <div class="stat-row"><div class="stat"><span class="muted small">Time</span><b>${fmt(ms)}</b></div><div class="stat"><span class="muted small">Critical actions</span><b>${cs.filter((c) => c.done).length}/${cs.length}</b></div><div class="stat"><span class="muted small">Harmful actions</span><b>${e.harms.length}</b></div><div class="stat"><span class="muted small">Hints used</span><b>${state.hints}</b></div><div class="stat"><span class="muted small">Final MAP / SpO₂</span><b>${Math.round(e.p.map)} / ${e.p.spo2}%</b></div></div>
       <div id="lbBox" class="lb-box"></div>
       <h3>Critical actions</h3><ul>${cs.map((c) => `<li class="${c.done ? 'ok' : 'miss'}">${esc(c.text)}</li>`).join('')}</ul>
+      ${e.did('complication') ? `<h3>Second problem (consultant grade)</h3><p>${e.flags.compl === 'iv' ? 'The IV cannula tissued mid-resuscitation — infusions and boluses stopped reaching the patient. Watch pump alarms and the response to drugs; re-site access (IO if needed).' : e.flags.compl === 'tube' ? 'The tracheal tube displaced during a move — loss of capnography is a displaced tube until proven otherwise (DAS / AoA QRH 2-2 and 2-3).' : e.flags.compl === 'o2' ? 'The oxygen supply was disconnected — always re-check the delivery chain when saturations fall.' : esc(e.flags.complText || 'A scenario-specific complication occurred.')} ${e.flags.ivDown || e.flags.tubeDisplaced || e.flags.o2Off ? '<b>It was not resolved.</b>' : 'You resolved it.'}</p>` : ''}
       ${e.harms.length ? `<h3>Potential harm</h3><ul>${e.harms.map((h) => `<li class="harm">${esc(h)}</li>`).join('')}</ul>` : ''}
       <h3>Learning points</h3><ul>${(s.debrief.points || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       <h3>Guidelines &amp; further reading</h3><ul>${(s.debrief.refs || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       <details><summary>Timeline (${log.length} events)</summary><ol class="log">${log.map((x) => `<li class="${x.kind}"><span class="t">${Math.floor(x.t / 60)}:${String(Math.floor(x.t % 60)).padStart(2, '0')}</span><span>${esc(x.text)}</span></li>`).join('')}</ol><p class="muted small">Timeline shows simulator time.</p></details>
       <div class="row-end"><button class="btn" id="dbMenu">Menu</button><button class="btn" id="dbHint">Review physiology</button><button class="btn" id="dbNext">${state.fieldMode ? 'Next ' + FIELD[state.fieldMode] + ' scenario' : 'Random scenario'}</button><button class="btn primary" id="dbRetry">Retry</button></div></div>`;
     openModal((state.blind ? 'Debrief — it was: ' : 'Debrief: ') + s.title, html);
-    if (S.LB) S.LB.debrief($('#lbBox'), { scn: s, outcome, ms, hints: state.hints, harms: e.harms.length, blind: state.blind });
+    if (S.LB) S.LB.debrief($('#lbBox'), { scn: s, outcome, ms, hints: state.hints, harms: e.harms.length, blind: state.blind, level: e.level });
     $('#dbMenu').onclick = () => { closeModal(); location.hash = ''; };
     $('#dbRetry').onclick = () => { closeModal(); start(s.id); };
     $('#dbHint').onclick = () => { closeModal(); state.hints--; $('#hintBtn').click(); };
@@ -421,6 +454,9 @@
   window.addEventListener('hashchange', route);
   route();
   if (S.LB) S.LB.init({ openModal, fmt, esc, store });
+  const qrhOpen = (ids) => openModal('📕 AoA Quick Reference Handbook', S.QRH.html(ids));
+  const qh = $('#qrhHome'); if (qh) qh.onclick = () => qrhOpen([]);
+  const qs = $('#qrhBtn'); if (qs) qs.onclick = () => { if (state.eng) state.eng.mark('qrh'); qrhOpen(state.scn && state.scn.qrh); };
   const lbb = $('#lbBtn'); if (lbb) { if (!(S.LB && S.LB.enabled())) lbb.hidden = true; lbb.onclick = () => S.LB && S.LB.show(); }
   S.app = state; // exposed for testing
 })();

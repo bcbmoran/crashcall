@@ -58,7 +58,7 @@
         'Judicious fluid, then noradrenaline; treat bradycardia with atropine/glycopyrronium; pacing if refractory.',
         'Many centres target MAP 80–85 mmHg for the first days to optimise spinal cord perfusion.',
       ],
-      refs: ['NICE NG41: Spinal injury — assessment and initial management', 'AO Spine / CNS guidelines on acute spinal cord injury (2024)'],
+      refs: ['NICE NG41: Spinal injury — assessment and initial management (2016)', 'NICE NG40: Major trauma — service delivery (2016)'],
     },
   });
 
@@ -122,7 +122,7 @@
   // ICU 3. Refractory septic shock on the ventilator
   // =====================================================================
   add({
-    id: 'icu-refractory-septic', title: 'Refractory septic shock (ventilated pneumonia)', field: 'ICU', shock: 'Distributive (septic)', difficulty: 3, setting: 'icu',
+    id: 'icu-refractory-septic', qrh: ['3-14'], title: 'Refractory septic shock (ventilated pneumonia)', field: 'ICU', shock: 'Distributive (septic)', difficulty: 3, setting: 'icu',
     stem: '66-year-old man, day 1 on ICU with severe community-acquired pneumonia. Intubated, on noradrenaline 0.35 mcg/kg/min and rising. FiO₂ 0.6. Nurse calls you: MAP 58 and lactate climbing. Antibiotics given 6 h ago.',
     patient: { age: 66, sex: 'M', weight: 80, ventilated: true, fio2: 0.6, peep: 8, ventRR: 18, effort: 0, shunt: 0.3, peepRecruit: 0.6, vasoplegia: 0.27, contract: 0.6, catecholResp: 0.55, lactate: 5.8, lacGen: 0.001, temp: 38.6, hrBase: 92, artLine: true, cvc: true, vol: 0.98, leak: 0.0002, oedemaProne: 0.3 },
     init(e) { const pl = e.pool('noradrenaline'); pl.rate = 0.35; pl.E = 0.35; e.flags.paralysed = true; },
@@ -177,7 +177,7 @@
         'Echo to look for septic cardiomyopathy — add an inotrope (dobutamine) or switch to adrenaline if CO is low.',
         'Stop fluids when no longer fluid responsive; positive balance worsens ARDS.',
       ],
-      refs: ['Surviving Sepsis Campaign 2021', 'VANISH trial (JAMA 2016)', 'ADRENAL (NEJM 2018) / APROCCHSS (NEJM 2018)', 'FICM/ICS UK guideline on ARDS (2018)'],
+      refs: ['Surviving Sepsis Campaign 2021 (co-sponsored by ESICM; endorsed by the ICS/FICM)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (2021)', 'VANISH trial (JAMA 2016, UK)', 'FICM/ICS: Guidelines on the management of ARDS (2018)', 'AoA QRH 3-14: Sepsis'],
     },
   });
 
@@ -185,7 +185,7 @@
   // ICU 4. Ventilated patient: sudden desaturation (tension PTX)
   // =====================================================================
   add({
-    id: 'icu-vent-tension', title: 'Ventilated patient: sudden desaturation & hypotension', field: 'ICU', shock: 'Obstructive', difficulty: 2, setting: 'icu',
+    id: 'icu-vent-tension', qrh: ['2-3', '2-2'], title: 'Ventilated patient: sudden desaturation & hypotension', field: 'ICU', shock: 'Obstructive', difficulty: 2, setting: 'icu',
     stem: 'You are called to bed 4: 55-year-old man, day 5 of ventilation for ARDS (PEEP 10). Just had a right subclavian CVC inserted. High-pressure alarm, SpO₂ falling, BP dropping.',
     patient: { age: 55, sex: 'M', weight: 85, ventilated: true, fio2: 0.45, peep: 10, ventRR: 16, effort: 0, shunt: 0.18, peepRecruit: 0.5, artLine: true, cvc: true, hrBase: 85 },
     init(e) { e.flags.paralysed = true; },
@@ -255,7 +255,7 @@
   // ICU 5. Post-cardiac surgery tamponade
   // =====================================================================
   add({
-    id: 'icu-cardiac-tamponade', title: 'Tamponade after cardiac surgery', field: 'ICU', shock: 'Obstructive', difficulty: 3, setting: 'icu',
+    id: 'icu-cardiac-tamponade', qrh: ['3-9'], title: 'Tamponade after cardiac surgery', field: 'ICU', shock: 'Obstructive', difficulty: 3, setting: 'icu',
     stem: '68-year-old man, 4 hours after CABG ×3. Still ventilated. Mediastinal drains were draining 200 mL/h but have suddenly stopped. Rising noradrenaline, CVP climbing, urine output falling.',
     patient: { age: 68, sex: 'M', weight: 84, ventilated: true, fio2: 0.4, peep: 5, ventRR: 14, effort: 0, obstruct: 0.38, contract: 0.85, hrBase: 90, artLine: true, cvc: true, lactate: 3.1, pulsus: 0.18, temp: 36.4 },
     init(e) { const pl = e.pool('noradrenaline'); pl.rate = 0.1; pl.E = 0.1; e.flags.paralysed = true; },
@@ -312,7 +312,7 @@
         'Optimise preload, keep the heart rate up, avoid excessive PEEP and vasodilators.',
         'In cardiac arrest after cardiac surgery follow CALS: early re-sternotomy within 5 minutes.',
       ],
-      refs: ['EACTS Guidelines for resuscitation in cardiac arrest after cardiac surgery (2017)', 'CALS (Cardiac Advanced Life Support) course manual'],
+      refs: ['EACTS Guidelines for resuscitation in cardiac arrest after cardiac surgery (2017; adopted by the UK CALS programme / SCTS)', 'AoA QRH 3-9: Cardiac tamponade', 'Resuscitation Council UK ALS 2021: Special circumstances — cardiac surgery'],
     },
   });
 
@@ -320,7 +320,7 @@
   // ANAES 1. Anaphylaxis on induction (AoA QRH)
   // =====================================================================
   add({
-    id: 'an-anaphylaxis', title: 'Anaphylaxis after induction', field: 'Anaes', shock: 'Distributive (anaphylactic)', difficulty: 2, setting: 'theatre',
+    id: 'an-anaphylaxis', qrh: ['3-1'], title: 'Anaphylaxis after induction', field: 'Anaes', shock: 'Distributive (anaphylactic)', difficulty: 2, setting: 'theatre',
     stem: '45-year-old woman for elective laparoscopic cholecystectomy. Induction: propofol, fentanyl, rocuronium; co-amoxiclav given; gelatin infusion started. Two minutes later: BP 62/30, HR 135, rising airway pressures, flushed.',
     patient: { age: 45, sex: 'F', weight: 70, ventilated: true, fio2: 0.5, peep: 5, ventRR: 12, effort: 0, med: 0.85, bronchBase: 0.6, hrBase: 90, look: { urticaria: true, flush: 0.7, surgField: 'upper' } },
     init(e) { e.flags.paralysed = true; S.anaphylaxisTick(e, 0, 0); },
@@ -362,12 +362,12 @@
     },
     debrief: {
       points: [
-        'AoA QRH: declare emergency, remove triggers, 100% O₂, adrenaline 50 mcg IV boluses, crystalloid 20 mL/kg, consider early infusion.',
+        'AoA QRH 3-1: declare emergency, remove triggers, 100% O₂, adrenaline 50 mcg IV boluses, crystalloid 20 mL/kg, consider early infusion.',
         'If EtCO₂ falls below 2 kPa, start CPR (cardiac arrest drill).',
         'Refractory: adrenaline infusion, noradrenaline, vasopressin, glucagon if on β-blockers.',
         'Send tryptase (immediately, 1–2 h, >24 h) and refer to an allergy clinic; report to MHRA Yellow Card. NAP6 data: antibiotics and NMBAs are the commonest triggers.',
       ],
-      refs: ['AoA Quick Reference Handbook (QRH): Anaphylaxis', 'NAP6: Perioperative anaphylaxis (RCoA 2018)', 'RCUK Anaphylaxis 2021'],
+      refs: ['AoA QRH 3-1: Anaphylaxis', 'NAP6: Perioperative anaphylaxis (RCoA, 2018)', 'Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'AAGBI/BSACI: Suspected anaphylactic reactions associated with anaesthesia (2009)'],
     },
   });
 
@@ -375,7 +375,7 @@
   // ANAES 2. Local anaesthetic systemic toxicity (LAST)
   // =====================================================================
   add({
-    id: 'an-last', title: 'Local anaesthetic systemic toxicity (LAST)', field: 'Anaes', shock: 'Cardiogenic (toxicological)', difficulty: 3, setting: 'theatre',
+    id: 'an-last', qrh: ['3-10', '2-1'], title: 'Local anaesthetic systemic toxicity (LAST)', field: 'Anaes', shock: 'Cardiogenic (toxicological)', difficulty: 3, setting: 'theatre',
     stem: 'Block room: 70-year-old woman (60 kg) having a fascia iliaca block for a hip fracture with 40 mL levobupivacaine 0.25%. You are injecting the final 10 mL when she becomes agitated, complains of a metallic taste, then has a generalised seizure.',
     patient: { age: 70, sex: 'F', weight: 60, hrBase: 70, effort: 0.6, vco2: 1.3, gcs: 5, fio2: 0.28, look: { drapes: false } },
     init(e) { e.p.la = 0.8; e.flags.seizing = true; },
@@ -436,7 +436,7 @@
         'In arrest: CPR with modified ALS (adrenaline ≤ 1 mcg/kg), avoid vasopressin, CCBs, β-blockers, lidocaine. Recovery may take > 1 h — consider ECMO.',
         'Prevention: ultrasound guidance, test doses, aspiration, maximum dose awareness (bupivacaine 2 mg/kg).',
       ],
-      refs: ['AAGBI Safety Guideline: Management of severe local anaesthetic toxicity (2010)', 'AoA QRH: Local anaesthetic toxicity', 'ASRA checklist for LAST (2020)'],
+      refs: ['AoA QRH 3-10: Local anaesthetic toxicity', 'AAGBI Safety Guideline: Management of severe local anaesthetic toxicity (2010)', 'Resuscitation Council UK ALS 2021: Special circumstances — toxic agents'],
     },
   });
 
@@ -444,7 +444,7 @@
   // ANAES 3. Malignant hyperthermia
   // =====================================================================
   add({
-    id: 'an-mh', title: 'Malignant hyperthermia', field: 'Anaes', shock: null, category: 'Metabolic', difficulty: 3, setting: 'theatre',
+    id: 'an-mh', qrh: ['3-8', '2-8'], title: 'Malignant hyperthermia', field: 'Anaes', shock: null, category: 'Metabolic', difficulty: 3, setting: 'theatre',
     stem: '22-year-old man having ORIF of an ankle fracture under sevoflurane. 40 minutes in: EtCO₂ is creeping up despite increasing ventilation, HR rising, and the CO₂ absorbent is hot.',
     patient: { age: 22, sex: 'M', weight: 80, ventilated: true, fio2: 0.5, ventRR: 12, peep: 5, effort: 0, vco2: 2.2, vo2: 1.6, temp: 38.3, tempRate: 0.006, k: 5.6, hrBase: 100, lacGen: 0.002, look: { sweaty: true, surgField: 'lower' } },
     init(e) { e.flags.paralysed = true; },
@@ -497,12 +497,12 @@
     },
     debrief: {
       points: [
-        'AoA QRH: stop trigger agents, call for help, hyperventilate with 100% O₂ at high flow, activated charcoal filters, maintain anaesthesia with TIVA.',
+        'AoA QRH 3-8: stop trigger agents, call for help, hyperventilate with 100% O₂ at high flow, activated charcoal filters, maintain anaesthesia with TIVA.',
         'Dantrolene 2.5 mg/kg IV, then 1 mg/kg every 5 min until controlled (up to 10 mg/kg). Each 20 mg vial needs 60 mL water.',
         'Treat hyperkalaemia (insulin–glucose, calcium), arrhythmias (amiodarone/β-blocker; avoid CCBs with dantrolene), and cool (stop at 38.5 °C).',
         'Refer patient and family to the UK MH Investigation Unit (Leeds).',
       ],
-      refs: ['AoA QRH: Malignant hyperthermia crisis', 'AAGBI Malignant hyperthermia guidance (2020)', 'UK MH Unit, Leeds'],
+      refs: ['AoA QRH 3-8: Malignant hyperthermia crisis', 'Association of Anaesthetists: Malignant hyperthermia crisis safety guideline (2020)', 'UK MH Investigation Unit, Leeds (24-h hotline)'],
     },
   });
 
@@ -510,7 +510,7 @@
   // ANAES 4. High spinal at caesarean section
   // =====================================================================
   add({
-    id: 'an-high-spinal', title: 'High spinal block at caesarean section', field: 'Anaes', shock: 'Distributive (sympathectomy)', difficulty: 2, setting: 'theatre',
+    id: 'an-high-spinal', qrh: ['3-11', '2-4'], title: 'High spinal block at caesarean section', field: 'Anaes', shock: 'Distributive (sympathectomy)', difficulty: 2, setting: 'theatre',
     stem: '31-year-old woman for category 2 caesarean. Spinal: 2.6 mL hyperbaric bupivacaine 0.5% + diamorphine. Five minutes later: "I can\'t breathe properly", weak hands, nauseated. BP 60/30 and HR drifting down.',
     patient: { age: 31, sex: 'F', weight: 78, pregnant: true, cavalComp: 0.88, venodil: 0.25, vasoplegia: 0.82, baro: 0.15, hrBase: 58, effort: 0.75, atropineResp: 1, look: { pregnant: true, surgField: 'lower' } },
     init(e) { e.p.block = 0.4; },
@@ -561,7 +561,7 @@
         'Support ventilation early; if consciousness lost or ventilation inadequate → RSI with reduced dose induction.',
         'If cardiac arrest: CPR with LUD and perimortem caesarean section within 5 minutes.',
       ],
-      refs: ['OAA Obstetric Anaesthetic Emergencies QRH: High regional block', 'OAA guidelines for obstetric anaesthesia services', 'International consensus on vasopressors at CS (Anaesthesia 2018)'],
+      refs: ['OAA/AoA: Obstetric anaesthetic emergencies QRH — high regional block / total spinal', 'AoA QRH 3-11: High central neuraxial block', 'International consensus statement on vasopressors at caesarean section (Anaesthesia 2018; UK-led, OAA-endorsed)'],
     },
   });
 
@@ -569,7 +569,7 @@
   // ANAES 5. Severe bronchospasm after intubation
   // =====================================================================
   add({
-    id: 'an-bronchospasm', title: 'Severe bronchospasm after intubation', field: 'Anaes', shock: null, category: 'Respiratory', difficulty: 2, setting: 'theatre',
+    id: 'an-bronchospasm', qrh: ['3-4'], title: 'Severe bronchospasm after intubation', field: 'Anaes', shock: null, category: 'Respiratory', difficulty: 2, setting: 'theatre',
     stem: '35-year-old man with poorly controlled asthma, induced for emergency appendicectomy (propofol, suxamethonium). After intubation: airway pressure 45 cmH₂O, "shark-fin" capnograph, SpO₂ falling.',
     patient: { age: 35, sex: 'M', weight: 85, ventilated: true, fio2: 0.5, ventRR: 14, peep: 5, effort: 0, bronchospasm: 0.88, hrBase: 95, look: { surgField: 'lower' } },
     init(e) { e.p.load = 1; e.flags.paralysed = true; },
@@ -612,11 +612,11 @@
     },
     debrief: {
       points: [
-        'AoA QRH: 100% O₂, exclude mechanical causes (DOPES / kinked tube / endobronchial), deepen anaesthesia, salbutamol, consider adrenaline, magnesium, ketamine, aminophylline.',
+        'AoA QRH 3-4: 100% O₂, exclude mechanical causes (DOPES / kinked tube / endobronchial), deepen anaesthesia, salbutamol, consider adrenaline, magnesium, ketamine, aminophylline.',
         'Ventilate with low RR, long expiratory time; accept permissive hypercapnia.',
         'Consider anaphylaxis — look for rash, hypotension.',
       ],
-      refs: ['AoA QRH: Bronchospasm', 'BTS/SIGN acute asthma'],
+      refs: ['AoA QRH 3-4: Bronchospasm', 'BTS/SIGN 158: Acute asthma (2019)'],
     },
   });
 
@@ -624,7 +624,7 @@
   // ANAES 6. CICO
   // =====================================================================
   add({
-    id: 'an-cico', title: 'Can\'t intubate, can\'t oxygenate (CICO)', field: 'Anaes', shock: null, category: 'Airway', difficulty: 3, setting: 'theatre',
+    id: 'an-cico', qrh: ['3-3'], title: 'Can\'t intubate, can\'t oxygenate (CICO)', field: 'Anaes', shock: null, category: 'Airway', difficulty: 3, setting: 'theatre',
     stem: 'Emergency laparotomy, 50-year-old man, BMI 42. RSI with propofol + rocuronium. Three attempts at videolaryngoscopy have failed, second-generation SGA attempts failed, facemask ventilation impossible despite 2-person technique. SpO₂ falling.',
     patient: { age: 50, sex: 'M', weight: 125, airwayPatent: false, effort: 0, fio2: 1, lastFio2: 1, shunt: 0.12, hrBase: 95, gcs: 3 },
     init(e) { e.flags.paralysed = true; },
@@ -666,7 +666,7 @@
         'Scalpel technique: transverse stab through cricothyroid membrane, rotate 90°, bougie, 6.0 cuffed tube. If impalpable, 8–10 cm vertical incision first.',
         'Sugammadex may be considered but waking does not guarantee airway patency.',
       ],
-      refs: ['Difficult Airway Society 2015 guidelines for unanticipated difficult intubation', 'AoA QRH: Can\'t intubate, can\'t oxygenate', 'NAP4 (RCoA/DAS 2011)'],
+      refs: ['Difficult Airway Society: Guidelines for management of unanticipated difficult intubation in adults (2015)', 'AoA QRH 3-3: Can\'t intubate, can\'t oxygenate (CICO)', 'NAP4: Major complications of airway management (RCoA/DAS, 2011)'],
     },
   });
 
@@ -674,7 +674,7 @@
   // ANAES 7. Major obstetric haemorrhage
   // =====================================================================
   add({
-    id: 'an-pph', title: 'Major obstetric haemorrhage (uterine atony)', field: 'Anaes', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 2, setting: 'theatre',
+    id: 'an-pph', qrh: ['3-2'], title: 'Major obstetric haemorrhage (uterine atony)', field: 'Anaes', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 2, setting: 'theatre',
     stem: 'Obstetric theatre: 29-year-old woman, 30 min after a vaginal twin delivery following a prolonged labour. Epidural in situ. Estimated blood loss now 1.8 L and continuing; the uterus feels boggy.',
     patient: { age: 29, sex: 'F', weight: 70, obstetric: true, vol: 0.74, bleed: 0.0012, coag: 0.35, hb: 96, lactate: 3.2, hrBase: 88, look: { drapes: false, sweaty: true } },
     init(e) { e.flags.ut = new Set(); },
@@ -732,7 +732,7 @@
         'TXA 1 g IV (WOMAN trial). Use blood early; keep fibrinogen > 2 g/L; consider viscoelastic testing.',
         'Mechanical/surgical: bimanual compression, intrauterine balloon, B-Lynch, interventional radiology, hysterectomy.',
       ],
-      refs: ['RCOG Green-top Guideline 52: Prevention and management of postpartum haemorrhage (2016)', 'WOMAN trial (Lancet 2017)', 'OAA Obstetric Anaesthetic Emergencies QRH: Major obstetric haemorrhage'],
+      refs: ['RCOG Green-top Guideline 52: Prevention and management of postpartum haemorrhage (2016)', 'OAA/AoA: Obstetric anaesthetic emergencies QRH — major obstetric haemorrhage', 'AoA QRH 3-2: Massive blood loss', 'HSE / RCPI Institute of Obstetricians & Gynaecologists: Clinical practice guideline — Prevention and management of primary PPH (Ireland)', 'WOMAN trial (Lancet 2017)'],
     },
   });
 
@@ -740,7 +740,7 @@
   // ANAES 8. Bradycardia at laparoscopy
   // =====================================================================
   add({
-    id: 'an-lap-brady', title: 'Severe bradycardia at laparoscopy', field: 'Anaes', shock: 'Cardiogenic (vagal)', difficulty: 1, setting: 'theatre',
+    id: 'an-lap-brady', qrh: ['2-6'], title: 'Severe bradycardia at laparoscopy', field: 'Anaes', shock: 'Cardiogenic (vagal)', difficulty: 1, setting: 'theatre',
     stem: '28-year-old woman, fit and well, for diagnostic laparoscopy. As the surgeon insufflates CO₂ the heart rate drops abruptly from 75 to 32 and BP falls.',
     patient: { age: 28, sex: 'F', weight: 62, ventilated: true, fio2: 0.4, ventRR: 12, effort: 0, hrBase: 30, baro: 0.15, atropineResp: 1, look: { surgField: 'lower' } },
     init(e) { e.flags.insufflated = true; e.flags.paralysed = true; e.flags.lowHR = 0; },
@@ -771,11 +771,11 @@
     },
     debrief: {
       points: [
-        'AoA QRH (bradycardia): stop the surgical stimulus, give atropine/glycopyrronium, consider adrenaline and pacing if refractory.',
+        'AoA QRH 2-6 (bradycardia): stop the surgical stimulus, give atropine/glycopyrronium, consider adrenaline and pacing if refractory.',
         'Insufflation-induced vagal reflexes are common — warn surgeons and insufflate slowly.',
         'Also consider hypoxia, drugs (remifentanil, suxamethonium, neostigmine), high regional block.',
       ],
-      refs: ['AoA QRH: Bradycardia', 'RCUK ALS bradycardia algorithm'],
+      refs: ['AoA QRH 2-6: Bradycardia', 'Resuscitation Council UK ALS 2021: Bradycardia algorithm'],
     },
   });
 })();

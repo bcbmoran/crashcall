@@ -123,6 +123,8 @@
       }
       const resp = this.respPhase(t);
       if (k === 'pleth' || k === 'abp') {
+        if (p.arrested && this.eng.flags.cpr) { const c = Math.max(0, Math.sin(t * 2 * Math.PI * 1.85)); return k === 'abp' ? 10 + c * 45 : c * 0.35; }
+        if (p.arrested) return k === 'abp' ? 6 : 0;
         if (['vf', 'asystole', 'pea'].includes(rhythm) || p.map < 18) return k === 'abp' ? (p.map < 18 ? clamp(p.map, 0, 18) : 10) + Math.random() * 0.4 : 0;
         const delay = k === 'abp' ? 0.12 : 0.22;
         const [b, nb] = this.beatAt(this.beats, t - delay);
@@ -155,6 +157,14 @@
 
     frame(dt) {
       const ctx = this.ctx, p = this.eng.p;
+      if (p.monitorOff) {
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, this.W, this.H);
+        ctx.fillStyle = '#ff5c5c'; ctx.font = '700 18px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText('NO POWER — monitor off', this.W / 2, this.H / 2 - 8);
+        ctx.fillStyle = '#9aa'; ctx.font = '13px system-ui, sans-serif';
+        ctx.fillText('Feel a pulse, check BP manually, or connect a battery monitor', this.W / 2, this.H / 2 + 16);
+        ctx.textAlign = 'left'; this.x = 0; this.last = {}; return;
+      }
       dt = Math.min(dt, 0.1);
       const speed = this.waveW / 6; // 6 s per sweep
       const chs = this.channels();
@@ -208,7 +218,7 @@
       const arrest = ['vf', 'asystole'].includes(p.rhythm);
       const items = [];
       const hr = arrest ? '---' : p.rhythm === 'pea' ? p.hr : p.hr;
-      items.push({ lab: 'HR', val: String(hr), col: '#39ff6a', alarm: p.hr < 45 || p.hr > 140 || arrest, unit: 'bpm' });
+      items.push({ lab: 'HR', val: String(hr), col: '#39ff6a', alarm: p.hr < (p.hrAlarm || [45])[0] || p.hr > (p.hrAlarm || [0, 140])[1] || arrest || p.arrested, unit: 'bpm' });
       if (p.artLine) {
         items.push({ lab: 'ABP', val: p.map < 18 ? '--/--' : `${Math.round(p.sbp)}/${Math.round(p.dbp)}`, sub: `(${Math.round(p.map)})`, col: '#ff4d4d', alarm: p.map < 60 || p.sbp > 180 });
       }

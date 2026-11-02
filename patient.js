@@ -32,7 +32,8 @@
     // legs under blanket
     const blanket = set === 'theatre' ? '#5c9a86' : set === 'icu' ? '#8fb3d9' : '#b9c7d6';
     // arms
-    add(`<g id="body">`);
+    const ps = p.paed ? Math.max(0.5, Math.min(1, 0.45 + p.weight / 90)) : 1;
+    add(`<g id="body" transform="translate(${160 * (1 - ps)} ${225 * (1 - ps)}) scale(${ps})">`);
     add(`<rect x="262" y="128" width="150" height="30" rx="14" fill="${sk}" />`);
     add(`<rect x="262" y="292" width="150" height="30" rx="14" fill="${sk}" />`);
     add(`<ellipse cx="420" cy="143" rx="14" ry="12" fill="${sk}"/><ellipse cx="420" cy="307" rx="14" ry="12" fill="${sk}"/>`);
@@ -116,7 +117,8 @@
     if (eng.fluidIn.plt) bags.push(['#f3e6a8', 'Platelets']);
     bags.forEach(([c, t], i) => add(`<rect x="${560 - i * 62}" y="352" width="54" height="56" rx="8" fill="${c}" stroke="#889"/><text x="${587 - i * 62}" y="404" font-size="8" text-anchor="middle" fill="${c === '#a3182a' ? '#fff' : '#234'}">${t}</text>`));
     // defib / pacer
-    if (eng.did('pacing') || eng.did('sync_dc')) add(`<rect x="12" y="300" width="120" height="100" rx="10" fill="#f2c500"/><rect x="22" y="310" width="100" height="40" fill="#111"/><text x="72" y="335" fill="#4f4" font-size="11" text-anchor="middle">${p.rhythm === 'paced' ? 'PACING 70' : 'SYNC'}</text><text x="72" y="380" font-size="12" text-anchor="middle" fill="#222" font-weight="700">Defib</text><rect x="290" y="200" width="22" height="30" rx="4" fill="#333" opacity=".7"/>`);
+    if (eng.flags.cpr) add(`<g><ellipse cx="330" cy="225" rx="34" ry="20" fill="#f1c27d" stroke="#a0764a"/><ellipse cx="330" cy="225" rx="22" ry="12" fill="#e0ac69"><animate attributeName="rx" values="22;16;22" dur="0.55s" repeatCount="indefinite"/></ellipse><text x="330" y="265" font-size="12" font-weight="700" text-anchor="middle" fill="#b00">CPR</text></g>`);
+    if (eng.did('pacing') || eng.did('sync_dc') || eng.did('defib')) add(`<rect x="12" y="300" width="120" height="100" rx="10" fill="#f2c500"/><rect x="22" y="310" width="100" height="40" fill="#111"/><text x="72" y="335" fill="#4f4" font-size="11" text-anchor="middle">${p.rhythm === 'paced' ? 'PACING 70' : 'SYNC'}</text><text x="72" y="380" font-size="12" text-anchor="middle" fill="#222" font-weight="700">Defib</text><rect x="290" y="200" width="22" height="30" rx="4" fill="#333" opacity=".7"/>`);
     // chest drain bottle
     if (eng.did('chest_drain')) add(`<rect x="335" y="360" width="50" height="52" rx="6" fill="#ddeeff" stroke="#69a"/><rect x="340" y="${395 - (scn.drainBlood || 6)}" width="40" height="${(scn.drainBlood || 6) + 12}" fill="#c33" opacity=".6"/><text x="360" y="356" font-size="9" text-anchor="middle" fill="#345">UWSD</text>`);
     if (eng.did('inv_pocus')) add(`<rect x="160" y="350" width="80" height="60" rx="6" fill="#d8dde3" stroke="#889"/><rect x="168" y="356" width="64" height="34" fill="#111"/><path d="M200 358 l-20 30 h40 z" fill="#555"/><text x="200" y="403" font-size="9" text-anchor="middle" fill="#333">Ultrasound</text>`);
@@ -132,7 +134,7 @@
       const p = this.eng.p;
       const pumps = Object.keys(this.eng.pools).map((k) => k + this.eng.pools[k].rate).join();
       return [skinColour(this.eng), p.ventilated, p.sga, p.assisted, p.fio2, p.artLine, p.cvc, p.rhythm === 'paced', pumps, JSON.stringify(this.eng.fluidIn), Object.keys(this.eng.done).length,
-        p.spo2 < 88, p.lactate > 4 || p.map < 55, p.cvp > 14, p.sym > 0.55, p.ventRR, p.peep, Math.round(p.paw / 3), Math.round(p.autoPEEP), this.eng.flags.hfno].join('|');
+        p.spo2 < 88, p.lactate > 4 || p.map < 55, p.cvp > 14, p.sym > 0.55, p.ventRR, p.peep, Math.round(p.paw / 3), Math.round(p.autoPEEP), this.eng.flags.hfno, this.eng.flags.cpr, p.arrested].join('|');
     }
     update() {
       const sig = this.signature();

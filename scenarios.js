@@ -55,7 +55,7 @@
   // 1. Septic shock — urosepsis
   // =====================================================================
   add({
-    id: 'em-sepsis-uro', title: 'Septic shock: urosepsis', field: 'EM', shock: 'Distributive (septic)', difficulty: 2, setting: 'ed',
+    id: 'em-sepsis-uro', qrh: ['3-14'], title: 'Septic shock: urosepsis', field: 'EM', shock: 'Distributive (septic)', difficulty: 2, setting: 'ed',
     stem: '72-year-old woman brought in by ambulance from home. 2 days of rigors, loin pain and new confusion. Background: type 2 diabetes, recurrent UTIs. Paramedics gave 250 mL crystalloid. NEWS2 = 10.',
     patient: { age: 72, sex: 'F', weight: 65, vasoplegia: 0.4, vol: 0.8, leak: 0.0007, lactate: 4.6, lacGen: 0.0015, temp: 39.1, hrBase: 82, shunt: 0.05, rrBase: 22, extraAcid: 1.5, na: 134, glucose: 11.8, gcs: 14, look: { flush: 0.35 } },
     tick(e, dt) {
@@ -116,7 +116,7 @@
         'Start noradrenaline early if hypotension persists — peripheral administration is acceptable short-term.',
         'Source control matters: an obstructed infected kidney needs urgent decompression (nephrostomy / stent).',
       ],
-      refs: ['Surviving Sepsis Campaign Guidelines 2021', 'NICE NG51: Suspected sepsis — recognition, diagnosis and early management (updated 2024)', 'RCEM Sepsis best practice'],
+      refs: ['NICE NG51: Suspected sepsis — recognition, diagnosis and early management (2024 update)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (including maternity) (2021)', 'RCEM: Sepsis best practice guideline', 'Surviving Sepsis Campaign 2021 (co-sponsored by ESICM; endorsed by the ICS/FICM)', 'AoA QRH 3-14: Sepsis'],
     },
   });
 
@@ -124,7 +124,7 @@
   // 2. Haemorrhagic shock — pelvic fracture
   // =====================================================================
   add({
-    id: 'em-trauma-pelvis', title: 'Major trauma: pelvic fracture haemorrhage', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
+    id: 'em-trauma-pelvis', qrh: ['3-2'], title: 'Major trauma: pelvic fracture haemorrhage', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
     stem: '34-year-old male motorcyclist, ~60 mph collision with a car. Pre-alert: "pelvic pain, HR 125, SBP 90". On arrival he is pale and clammy. Trauma team activated.',
     patient: { age: 34, sex: 'M', weight: 80, vol: 0.6, bleed: 0.0011, coag: 0.5, hb: 108, lactate: 5.2, temp: 35.3, hrBase: 78, rrBase: 24, gcs: 14, look: { sweaty: true } },
     init(e) { e.flags.bleedMult = 1; },
@@ -192,7 +192,7 @@
         'FAST is negative in retroperitoneal/pelvic bleeding — a negative FAST does not exclude haemorrhage.',
         'Prevent the lethal triad: warm the patient and fluids, monitor ionised calcium, use viscoelastic testing if available.',
       ],
-      refs: ['NICE NG39: Major trauma — assessment and initial management', 'ATLS 10th ed.', 'CRASH-2 trial (Lancet 2010)', 'JPAC / BSH major haemorrhage guidance'],
+      refs: ['NICE NG39: Major trauma — assessment and initial management (2016)', 'BOAST: The management of patients with pelvic fractures (BOA, 2018)', 'JPAC / BSH: Major haemorrhage guidance (2022)', 'CRASH-2 trial (Lancet 2010)'],
     },
   });
 
@@ -270,7 +270,7 @@
         'Finger thoracostomy is preferred in ventilated patients; in spontaneously breathing patients follow with a chest drain.',
         'POCUS: absent sliding + barcode sign; a lung point is diagnostic.',
       ],
-      refs: ['ATLS 10th ed.', 'BTS Pleural Disease Guideline 2023', 'NICE NG39 Major trauma'],
+      refs: ['NICE NG39: Major trauma — assessment and initial management (2016)', 'BTS Guideline for pleural disease (2023)'],
     },
   });
 
@@ -339,7 +339,7 @@
         'Cautious fluid only (≤500 mL). Noradrenaline is the first-line vasopressor to protect RV coronary perfusion.',
         'Avoid intubation if possible — induction and positive pressure can precipitate arrest in RV failure.',
       ],
-      refs: ['ESC 2019 Guidelines on Acute Pulmonary Embolism', 'NICE NG158: Venous thromboembolic diseases', 'BTS guideline for outpatient management of PE (2018)'],
+      refs: ['NICE NG158: Venous thromboembolic diseases — diagnosis, management and thrombophilia testing (2023)', 'ESC/ERS 2019 Guidelines on acute pulmonary embolism (endorsed in UK practice; referenced by NICE NG158)', 'BTS: Guideline for the initial outpatient management of PE (2018)'],
     },
   });
 
@@ -414,7 +414,7 @@
         'Antihistamines are for skin symptoms only and steroids are no longer routinely recommended in the acute phase (RCUK 2021).',
         'Take mast cell tryptase samples: as soon as possible, at 1–2 h, and > 24 h.',
       ],
-      refs: ['Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'NICE CG134: Anaphylaxis'],
+      refs: ['Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'Resuscitation Council UK: Refractory anaphylaxis algorithm (2021)', 'NICE CG134: Anaphylaxis — assessment and referral after emergency treatment'],
     },
   });
 
@@ -422,7 +422,7 @@
   // 6. Cardiogenic shock — anterior STEMI
   // =====================================================================
   add({
-    id: 'em-cardiogenic-stemi', title: 'Cardiogenic shock: anterior STEMI', field: 'EM', shock: 'Cardiogenic', difficulty: 3, setting: 'ed',
+    id: 'em-cardiogenic-stemi', qrh: ['3-12'], title: 'Cardiogenic shock: anterior STEMI', field: 'EM', shock: 'Cardiogenic', difficulty: 3, setting: 'ed',
     stem: '64-year-old man, 2 hours of crushing central chest pain radiating to the jaw. Now grey, sweaty and breathless. Smoker, hypertension. Paramedics gave aspirin 300 mg.',
     patient: { age: 64, sex: 'M', weight: 88, contract: 0.32, vol: 1.06, pulmOedema: 0.35, oedemaProne: 1.4, shunt: 0.06, hrBase: 92, rrBase: 26, lactate: 3.6, look: { sweaty: true }, ecg: { st: 0.05 } },
     tick(e, dt) {
@@ -484,7 +484,7 @@
         'Noradrenaline is preferred to maintain MAP; add an inotrope (dobutamine) for low output. Consider mechanical support (Impella/IABP) in specialist centres.',
         'Avoid nitrates and β-blockers in hypotension.',
       ],
-      refs: ['ESC 2023 Guidelines for the management of acute coronary syndromes', 'NICE CG167: Myocardial infarction with ST-segment elevation', 'ESC 2021 Heart Failure guidelines'],
+      refs: ['NICE NG185: Acute coronary syndromes (2020)', 'ESC 2023 Guidelines for the management of acute coronary syndromes (adopted by the British Cardiovascular Society)', 'NICE NG106: Chronic heart failure / ESC 2021 HF guidelines — cardiogenic shock', 'AoA QRH 3-12: Massive myocardial ischaemia'],
     },
   });
 
@@ -492,7 +492,7 @@
   // 7. Variceal upper GI bleed
   // =====================================================================
   add({
-    id: 'em-variceal-bleed', title: 'Upper GI bleed: oesophageal varices', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
+    id: 'em-variceal-bleed', qrh: ['3-2'], title: 'Upper GI bleed: oesophageal varices', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
     stem: '52-year-old man with alcohol-related cirrhosis. Two large haematemeses (~1 L fresh blood) at home. Pale, sweaty, mildly confused. Last drink yesterday.',
     patient: { age: 52, sex: 'M', weight: 70, vol: 0.66, bleed: 0.0009, coag: 0.9, hb: 74, lactate: 4.1, hrBase: 84, gcs: 14, rrBase: 22, look: { skin: '#e3c48e', sweaty: true } },
     tick(e, dt) {
@@ -552,7 +552,7 @@
         'If uncontrolled: balloon tamponade (Sengstaken–Blakemore) as a bridge to TIPSS.',
         'Do not routinely correct INR with FFP unless actively bleeding with significant coagulopathy.',
       ],
-      refs: ['NICE CG141: Acute upper GI bleeding in over 16s', 'BSG/ British Society of Gastroenterology variceal bleeding guidance (2015)', 'Baveno VII consensus (2022)'],
+      refs: ['NICE CG141: Acute upper gastrointestinal bleeding in over 16s (2012, updated 2016)', 'British Society of Gastroenterology: UK guidelines on the management of variceal haemorrhage in cirrhotic patients (2015)', 'BSG: Acute upper GI bleeding care bundle (2019)'],
     },
   });
 
@@ -618,7 +618,7 @@
         'Insulin 10 units with 25 g glucose — hypoglycaemia is common; monitor glucose for 6 h.',
         'Pacing and atropine are often ineffective until K⁺ is treated.',
       ],
-      refs: ['UK Kidney Association: Treatment of acute hyperkalaemia in adults (2023)', 'Resuscitation Council UK ALS: special circumstances'],
+      refs: ['UK Kidney Association: Clinical practice guideline — Treatment of acute hyperkalaemia in adults (2023)', 'Resuscitation Council UK ALS 2021: Special circumstances — hyperkalaemia'],
     },
   });
 
@@ -677,7 +677,7 @@
         'Catecholamines can be added but often have limited effect. Consider pacing, lipid emulsion and VA-ECMO for refractory shock.',
         'Propranolol is lipophilic and blocks Na⁺ channels — broad QRS may respond to sodium bicarbonate.',
       ],
-      refs: ['TOXBASE (NPIS): Beta-blockers', 'RCEM/NPIS guideline on antidote availability'],
+      refs: ['TOXBASE (UK National Poisons Information Service): Beta-blockers', 'RCEM/NPIS: Guideline on antidote availability for emergency departments'],
     },
   });
 
@@ -735,7 +735,7 @@
         'Stable narrow regular tachycardia: modified Valsalva, then adenosine 6 mg → 12 mg → 18 mg.',
         'Very fast rates shorten diastole — stroke volume falls so CO falls despite the high HR.',
       ],
-      refs: ['Resuscitation Council UK ALS Guidelines 2021: Tachycardia algorithm', 'REVERT trial (Lancet 2015)'],
+      refs: ['Resuscitation Council UK ALS Guidelines 2021: Tachycardia algorithm', 'REVERT trial — modified Valsalva (Lancet 2015, UK)'],
     },
   });
 
@@ -798,7 +798,7 @@
         'Treatment: O₂, back-to-back salbutamol 5 mg + ipratropium 500 mcg nebs, steroids, IV magnesium 2 g; consider IV salbutamol/aminophylline with senior input.',
         'Intubate early if tiring — ketamine induction; ventilate with low RR, low Vt, long I:E; disconnect and decompress if pressures/BP collapse.',
       ],
-      refs: ['BTS/NICE/SIGN Asthma: diagnosis, monitoring and chronic asthma management (NG245, 2024)', 'BTS/SIGN 158 acute asthma section'],
+      refs: ['BTS/SIGN 158: British guideline on the management of asthma — acute asthma (2019)', 'BTS/NICE/SIGN NG245: Asthma — diagnosis, monitoring and chronic asthma management (2024)', 'HSE National Clinical Programme for Asthma: Model of care (Ireland)'],
     },
   });
 })();
