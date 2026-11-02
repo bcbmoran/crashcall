@@ -36,15 +36,19 @@
     const list = S.SCENARIOS.filter((s) => (filt.field === 'All' || s.field === filt.field) && (filt.shock === 'All' || shockKey(s) === filt.shock));
     $('#scnGrid').innerHTML = list.map((s) => `<button class="scn" data-id="${s.id}">
         <div class="meta"><span class="tag ${s.field}">${FIELD[s.field]}</span><span>${esc(s.shock || s.category || '')}</span></div>
-        <h3>${esc(s.title)}</h3><p>${esc(s.stem)}</p>
+        <h3>${blindOn() && !s.tutorial ? 'Hidden case ' + caseCode(s.id).toUpperCase() : esc(s.title)}</h3><p>${esc(s.stem)}</p>
         <div class="meta"><span class="diff" title="Difficulty">${'●'.repeat(s.difficulty)}${'○'.repeat(3 - s.difficulty)}</span>${best[s.id] ? `<span>Best ${fmt(best[s.id])}</span>` : ''}</div></button>`).join('') || '<p class="muted">No scenarios match these filters.</p>';
     $$('.scn').forEach((b) => (b.onclick = () => go(b.dataset.id)));
   }
+  const blindOn = () => !!store.get('blind', false);
+  const caseCode = (id) => (S.SCENARIOS.findIndex((x) => x.id === id) * 7919 + 1013).toString(36);
+  const fromCode = (c) => { const i = (parseInt(c, 36) - 1013) / 7919; return S.SCENARIOS[i] ? S.SCENARIOS[i].id : null; };
+  const bt = $('#blindToggle'); if (bt) { bt.checked = blindOn(); bt.onchange = () => { store.set('blind', bt.checked); renderHome(); }; }
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   $('#randomAll').onclick = () => go(pick(S.SCENARIOS.filter((s) => !s.tutorial)).id);
   const tb = $('#tutBtn'); if (tb) tb.onclick = () => go('tutorial');
   $$('[data-field]').forEach((b) => (b.onclick = () => go(pick(S.SCENARIOS.filter((s) => s.field === b.dataset.field)).id, b.dataset.field)));
-  function go(id, field) { location.hash = 'play/' + id; state.fieldMode = field || null; }
+  function go(id, field) { const s = S.SCENARIOS.find((x) => x.id === id); location.hash = blindOn() && s && !s.tutorial ? 'case/' + caseCode(id) : 'play/' + id; state.fieldMode = field || null; }
 
   // ---------------- sim state ----------------
   const state = { scn: null, eng: null, mon: null, pv: null, running: false, paused: true, elapsed: 0, last: 0, acc: 0, uiT: 0, hints: 0, results: [], tab: 'drugs', fieldMode: null, stopAnim: null, hintTimer: null };
@@ -56,13 +60,13 @@
     $('#home').classList.remove('active'); $('#sim').classList.add('active');
     window.scrollTo(0, 0);
     const eng = new S.Engine(scn);
-    Object.assign(state, { scn, eng, running: true, paused: true, elapsed: 0, acc: 0, hints: 0, results: [], tab: 'drugs', ended: false });
-    $('#scnTitle').textContent = scn.title;
+    Object.assign(state, { scn, eng, running: true, paused: true, elapsed: 0, acc: 0, hints: 0, results: [], tab: 'drugs', ended: false, blind: blindOn() && !scn.tutorial });
+    $('#scnTitle').textContent = state.blind ? 'Unknown case (blind mode)' : scn.title;
     $('#scnField').textContent = FIELD[scn.field]; $('#scnField').className = 'tag ' + scn.field;
     $('#stem').textContent = scn.stem;
     $('#briefField').textContent = FIELD[scn.field] + (scn.shock ? ' · ' + scn.shock : scn.category ? ' · ' + scn.category : '');
     $('#briefField').className = 'tag ' + scn.field;
-    $('#briefTitle').textContent = scn.title; $('#briefStem').textContent = scn.stem;
+    $('#briefTitle').textContent = state.blind ? 'Unknown case' : scn.title; $('#briefStem').textContent = scn.stem;
     $('#briefing').hidden = false;
     $('#log').innerHTML = '';
     $('#toasts').innerHTML = '';
@@ -385,23 +389,26 @@
     const html = `<div class="debrief">
       <div class="banner ${outcome === 'win' ? 'win' : 'lose'}"><span>${title}</span><span>⏱ ${fmt(ms)}${newBest ? ' · new personal best' : ''}</span></div>
       <div class="stat-row"><div class="stat"><span class="muted small">Time</span><b>${fmt(ms)}</b></div><div class="stat"><span class="muted small">Critical actions</span><b>${cs.filter((c) => c.done).length}/${cs.length}</b></div><div class="stat"><span class="muted small">Harmful actions</span><b>${e.harms.length}</b></div><div class="stat"><span class="muted small">Hints used</span><b>${state.hints}</b></div><div class="stat"><span class="muted small">Final MAP / SpO₂</span><b>${Math.round(e.p.map)} / ${e.p.spo2}%</b></div></div>
+      <div id="lbBox" class="lb-box"></div>
       <h3>Critical actions</h3><ul>${cs.map((c) => `<li class="${c.done ? 'ok' : 'miss'}">${esc(c.text)}</li>`).join('')}</ul>
       ${e.harms.length ? `<h3>Potential harm</h3><ul>${e.harms.map((h) => `<li class="harm">${esc(h)}</li>`).join('')}</ul>` : ''}
       <h3>Learning points</h3><ul>${(s.debrief.points || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       <h3>Guidelines &amp; further reading</h3><ul>${(s.debrief.refs || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       <details><summary>Timeline (${log.length} events)</summary><ol class="log">${log.map((x) => `<li class="${x.kind}"><span class="t">${Math.floor(x.t / 60)}:${String(Math.floor(x.t % 60)).padStart(2, '0')}</span><span>${esc(x.text)}</span></li>`).join('')}</ol><p class="muted small">Timeline shows simulator time.</p></details>
       <div class="row-end"><button class="btn" id="dbMenu">Menu</button><button class="btn" id="dbHint">Review physiology</button><button class="btn" id="dbNext">${state.fieldMode ? 'Next ' + FIELD[state.fieldMode] + ' scenario' : 'Random scenario'}</button><button class="btn primary" id="dbRetry">Retry</button></div></div>`;
-    openModal('Debrief: ' + s.title, html);
+    openModal((state.blind ? 'Debrief — it was: ' : 'Debrief: ') + s.title, html);
+    if (S.LB) S.LB.debrief($('#lbBox'), { scn: s, outcome, ms, hints: state.hints, harms: e.harms.length, blind: state.blind });
     $('#dbMenu').onclick = () => { closeModal(); location.hash = ''; };
     $('#dbRetry').onclick = () => { closeModal(); start(s.id); };
     $('#dbHint').onclick = () => { closeModal(); state.hints--; $('#hintBtn').click(); };
-    $('#dbNext').onclick = () => { const pool = S.SCENARIOS.filter((x) => (!state.fieldMode || x.field === state.fieldMode) && x.id !== s.id && !x.tutorial); const f = state.fieldMode; closeModal(); location.hash = 'play/' + pick(pool).id; state.fieldMode = f; };
+    $('#dbNext').onclick = () => { const pool = S.SCENARIOS.filter((x) => (!state.fieldMode || x.field === state.fieldMode) && x.id !== s.id && !x.tutorial); const f = state.fieldMode; closeModal(); go(pick(pool).id, f); };
   }
 
   // ---------------- routing ----------------
   function route() {
     const h = location.hash.replace(/^#/, '');
     if (h.startsWith('play/')) start(h.slice(5));
+    else if (h.startsWith('case/')) start(fromCode(h.slice(5)));
     else {
       closeModal();
       state.paused = true;
@@ -413,5 +420,7 @@
   }
   window.addEventListener('hashchange', route);
   route();
+  if (S.LB) S.LB.init({ openModal, fmt, esc, store });
+  const lbb = $('#lbBtn'); if (lbb) { if (!(S.LB && S.LB.enabled())) lbb.hidden = true; lbb.onclick = () => S.LB && S.LB.show(); }
   S.app = state; // exposed for testing
 })();

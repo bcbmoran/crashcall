@@ -195,6 +195,15 @@ details summary { cursor: pointer; font-weight: 700; margin: 8px 0; }
 .coach-hl { outline: 3px solid var(--hintc) !important; outline-offset: 3px; animation: coachPulse 1.4s ease-in-out infinite; }
 @keyframes coachPulse { 50% { outline-color: transparent; } }
 .mode-card.tut { border: 2px solid var(--hintc); }
+.lb-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+.lb-form input, .lb-form select { font: inherit; padding: .4em .6em; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); min-width: 200px; max-width: 100%; }
+.lb-box { margin: 4px 0 14px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface2); }
+.lb-box:empty { display: none; }
+table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); font-weight: 700; }
+.blind-row { max-width: 1200px; margin: 10px auto 0; padding: 0 24px; }
+.switch { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; font-weight: 600; }
+.switch input { width: 18px; height: 18px; accent-color: var(--accent); }
+@media (max-width: 560px) { .blind-row { padding: 0 16px; } }
 @keyframes breathe { 0%, 100% { transform: scale(1, 1); } 40% { transform: scale(1.025, 1.06); } }
 
 @media (max-width: 980px) {
