@@ -31,11 +31,11 @@
   }
   function renderHome() {
     chips($('#fieldChips'), ['EM', 'ICU', 'Anaes'], 'field');
-    chips($('#shockChips'), SHOCKS, 'shock');
+    if (blindOn()) { filt.shock = 'All'; $('#shockChips').innerHTML = ''; } else chips($('#shockChips'), SHOCKS, 'shock');
     const best = store.get('best', {});
     const list = S.SCENARIOS.filter((s) => (filt.field === 'All' || s.field === filt.field) && (filt.shock === 'All' || shockKey(s) === filt.shock));
     $('#scnGrid').innerHTML = list.map((s) => `<button class="scn" data-id="${s.id}">
-        <div class="meta"><span class="tag ${s.field}">${FIELD[s.field]}</span><span>${esc(s.shock || s.category || '')}</span></div>
+        <div class="meta"><span class="tag ${s.field}">${FIELD[s.field]}</span><span>${blindOn() && !s.tutorial ? '' : esc(s.shock || s.category || '')}</span></div>
         <h3>${blindOn() && !s.tutorial ? 'Hidden case ' + caseCode(s.id).toUpperCase() : esc(s.title)}</h3><p>${esc(s.stem)}</p>
         <div class="meta"><span class="diff" title="Difficulty">${'●'.repeat(s.difficulty)}${'○'.repeat(3 - s.difficulty)}</span>${best[s.id] ? `<span>Best ${fmt(best[s.id])}</span>` : ''}</div></button>`).join('') || '<p class="muted">No scenarios match these filters.</p>';
     $$('.scn').forEach((b) => (b.onclick = () => go(b.dataset.id)));
@@ -64,7 +64,7 @@
     $('#scnTitle').textContent = state.blind ? 'Unknown case (blind mode)' : scn.title;
     $('#scnField').textContent = FIELD[scn.field]; $('#scnField').className = 'tag ' + scn.field;
     $('#stem').textContent = scn.stem;
-    $('#briefField').textContent = FIELD[scn.field] + (scn.shock ? ' · ' + scn.shock : scn.category ? ' · ' + scn.category : '');
+    $('#briefField').textContent = FIELD[scn.field] + (state.blind ? '' : scn.shock ? ' · ' + scn.shock : scn.category ? ' · ' + scn.category : '');
     $('#briefField').className = 'tag ' + scn.field;
     $('#briefTitle').textContent = state.blind ? 'Unknown case' : scn.title; $('#briefStem').textContent = scn.stem;
     $('#briefing').hidden = false;
