@@ -41,6 +41,7 @@ a { color: var(--accent); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn:focus-visible, button:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 50%, transparent); outline-offset: 1px; }
 .tag { display: inline-block; padding: .12em .55em; border-radius: 999px; font-size: .75rem; font-weight: 700; color: #fff; background: var(--muted); letter-spacing: .02em; }
+.tag.Tutorial { background: var(--hintc); }
 .tag.EM { background: var(--tag-em); } .tag.ICU { background: var(--tag-icu); } .tag.Anaes { background: var(--tag-an); }
 
 /* ---------- Home ---------- */
@@ -187,6 +188,13 @@ table.prof tr.now { background: var(--surface2); font-weight: 700; }
 details summary { cursor: pointer; font-weight: 700; margin: 8px 0; }
 .row-end { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
 
+.coach { position: fixed; right: 16px; bottom: 16px; z-index: 45; width: min(390px, calc(100% - 32px)); background: var(--surface); border: 2px solid var(--hintc); border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+.coach p { margin: 6px 0 10px; font-size: .92rem; }
+.coach-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--hintc); }
+.coach-btns { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.coach-hl { outline: 3px solid var(--hintc) !important; outline-offset: 3px; animation: coachPulse 1.4s ease-in-out infinite; }
+@keyframes coachPulse { 50% { outline-color: transparent; } }
+.mode-card.tut { border: 2px solid var(--hintc); }
 @keyframes breathe { 0%, 100% { transform: scale(1, 1); } 40% { transform: scale(1.025, 1.06); } }
 
 @media (max-width: 980px) {

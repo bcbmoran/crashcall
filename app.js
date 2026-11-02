@@ -4,7 +4,7 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-  const FIELD = { EM: 'Emergency medicine', ICU: 'Critical care', Anaes: 'Anaesthesia' };
+  const FIELD = { EM: 'Emergency medicine', ICU: 'Critical care', Anaes: 'Anaesthesia', Tutorial: 'Tutorial' };
   const SETTING = { ed: 'ED resus', icu: 'ICU', theatre: 'Theatre', ward: 'Ward' };
   const SHOCKS = ['Hypovolaemic', 'Distributive', 'Cardiogenic', 'Obstructive', 'Other'];
   const store = {
@@ -41,7 +41,8 @@
     $$('.scn').forEach((b) => (b.onclick = () => go(b.dataset.id)));
   }
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  $('#randomAll').onclick = () => go(pick(S.SCENARIOS).id);
+  $('#randomAll').onclick = () => go(pick(S.SCENARIOS.filter((s) => !s.tutorial)).id);
+  const tb = $('#tutBtn'); if (tb) tb.onclick = () => go('tutorial');
   $$('[data-field]').forEach((b) => (b.onclick = () => go(pick(S.SCENARIOS.filter((s) => s.field === b.dataset.field)).id, b.dataset.field)));
   function go(id, field) { location.hash = 'play/' + id; state.fieldMode = field || null; }
 
@@ -71,11 +72,12 @@
     state.pv = new S.PatientView($('#patientView'), eng, scn);
     eng.on(onEvent);
     setTab('drugs');
+    state.coachI = null; renderCoach();
     renderPumps();
     updateUI(true);
     $('#pauseBtn').textContent = '❚❚';
   }
-  $('#startBtn').onclick = () => { $('#briefing').hidden = true; state.paused = false; state.last = performance.now(); logLine(0, 'Scenario started — patient handed over.', 'info'); };
+  $('#startBtn').onclick = () => { $('#briefing').hidden = true; if (state.scn && state.scn.coach) { state.coachI = 0; renderCoach(); } state.paused = false; state.last = performance.now(); logLine(0, 'Scenario started — patient handed over.', 'info'); };
 
   function onEvent(ev) {
     if (ev.type === 'end') { logLine(ev.t, ev.text, ev.kind); setTimeout(() => finish(ev.outcome), 900); return; }
@@ -130,6 +132,7 @@
     $('#critCount').textContent = `Critical actions completed: ${done} / ${cs.length} (revealed in the debrief)`;
     const need = state.scn.stableFor || 20;
     $('#stabBar').style.width = Math.min(100, (e.stableTime / need) * 100) + '%';
+    coachTick();
     $('#stabTxt').textContent = e.stableTime > 0 ? `${Math.floor(e.stableTime)} / ${need} s stable` : 'Targets not yet held';
   }
 
@@ -342,9 +345,36 @@
   $('#backBtn').onclick = () => { location.hash = ''; };
   window.addEventListener('resize', () => { if (state.mon && $('#sim').classList.contains('active')) state.mon.resize(); });
 
+  // ---------------- tutorial coach ----------------
+  function renderCoach() {
+    let box = $('#coach');
+    const steps = state.scn && state.scn.coach;
+    $$('.coach-hl').forEach((x) => x.classList.remove('coach-hl'));
+    if (!steps || state.coachI == null || state.coachI >= steps.length) { if (box) box.remove(); return; }
+    if (!box) { box = document.createElement('div'); box.id = 'coach'; box.className = 'coach'; box.setAttribute('role', 'status'); document.body.append(box); }
+    const st = steps[state.coachI];
+    const done = st.check ? !!st.check(state.eng) : true;
+    const last = state.coachI === steps.length - 1;
+    box.innerHTML = `<div class="coach-top"><b>Tutorial ${state.coachI + 1}/${steps.length}: ${esc(st.title)}</b><button class="btn ghost sm" id="coachHide">Hide</button></div><p>${esc(st.text)}</p><div class="coach-btns"><button class="btn sm" id="coachBack" ${state.coachI ? '' : 'disabled'}>Back</button>${st.check ? `<span class="muted small">${done ? '✓ Done' : 'Waiting for you…'}</span>` : ''}<button class="btn sm primary" id="coachNext">${last ? 'Close' : st.check && !done ? 'Skip step' : 'Next'}</button></div>`;
+    const tgt = st.sel && $(st.sel); if (tgt) tgt.classList.add('coach-hl');
+    $('#coachHide').onclick = () => { state.coachI = null; renderCoach(); };
+    $('#coachBack').onclick = () => { state.coachI = Math.max(0, state.coachI - 1); renderCoach(); };
+    $('#coachNext').onclick = () => { state.coachI++; renderCoach(); };
+  }
+  function coachTick() {
+    const steps = state.scn && state.scn.coach;
+    if (!steps || state.coachI == null || state.coachI >= steps.length || state.coachWait) return;
+    const st = steps[state.coachI];
+    if (st.check && st.check(state.eng)) {
+      state.coachWait = true;
+      setTimeout(() => { state.coachWait = false; if (state.coachI != null && steps[state.coachI] === st) { state.coachI++; renderCoach(); } }, 1200);
+    }
+  }
+
   // ---------------- debrief ----------------
   function finish(outcome) {
     const e = state.eng, s = state.scn; if (!e) return;
+    state.coachI = null; renderCoach();
     state.paused = true; $('#pauseBtn').textContent = '▶';
     const ms = state.elapsed;
     let newBest = false;
@@ -365,7 +395,7 @@
     $('#dbMenu').onclick = () => { closeModal(); location.hash = ''; };
     $('#dbRetry').onclick = () => { closeModal(); start(s.id); };
     $('#dbHint').onclick = () => { closeModal(); state.hints--; $('#hintBtn').click(); };
-    $('#dbNext').onclick = () => { const pool = S.SCENARIOS.filter((x) => (!state.fieldMode || x.field === state.fieldMode) && x.id !== s.id); const f = state.fieldMode; closeModal(); location.hash = 'play/' + pick(pool).id; state.fieldMode = f; };
+    $('#dbNext').onclick = () => { const pool = S.SCENARIOS.filter((x) => (!state.fieldMode || x.field === state.fieldMode) && x.id !== s.id && !x.tutorial); const f = state.fieldMode; closeModal(); location.hash = 'play/' + pick(pool).id; state.fieldMode = f; };
   }
 
   // ---------------- routing ----------------
@@ -375,6 +405,7 @@
     else {
       closeModal();
       state.paused = true;
+      state.coachI = null; renderCoach();
       $('#sim').classList.remove('active'); $('#home').classList.add('active');
       renderHome();
       if (h === 'library') document.getElementById('library').scrollIntoView();
