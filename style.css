@@ -104,6 +104,10 @@ a { color: var(--accent); }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin: -4px -6px 10px; overflow-x: auto; }
 .tabs button { background: none; border: none; color: var(--muted); font: inherit; font-weight: 600; padding: .55em .8em; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
 .tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-search { margin: 0 0 10px; }
+.tab-search input { width: 100%; box-sizing: border-box; padding: .5em .75em; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); font: inherit; }
+.tab-search input:focus { outline: 2px solid var(--accent); outline-offset: 0; background: var(--surface); }
+.srch-sec > h3 { font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: .6em 0 .2em; }
 .tab-body { max-height: 520px; overflow: auto; padding-right: 4px; }
 .grp { margin-bottom: 12px; }
 .grp > h4 { margin: 0 0 6px; font-size: .82rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
@@ -255,3 +259,5 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .rcuk-set { display: flex; flex-direction: column; gap: 6px; }
 .rcuk-link { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); text-decoration: none; }
 .rcuk-link:hover { border-color: var(--accent); }
+.rcuk-prac { display: flex; flex-wrap: wrap; gap: 4px; margin: -2px 0 4px 6px; }
+.rcuk-prac .btn { font-size: .78rem; padding: 3px 8px; }

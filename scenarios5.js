@@ -46,7 +46,7 @@
         'Interim measures: isoprenaline 5 micrograms/min, adrenaline 2–10 micrograms/min, or transcutaneous pacing (with analgesia/sedation).',
         'Look for reversible causes: drugs (β-blockers, rate-limiting CCBs, digoxin), hyperkalaemia, inferior MI.',
       ],
-      refs: ['Resuscitation Council UK ALS 2021: Bradycardia algorithm', 'NICE NG185 / ESC 2021 Pacing guidelines (adopted by BHRS)'],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Adult bradyarrhythmia algorithm', 'NICE NG185 / ESC 2021 Pacing guidelines (adopted by BHRS)'],
     },
   });
 
@@ -145,7 +145,7 @@
         'Recurrent torsades: increase the heart rate (isoprenaline or overdrive pacing). Pulseless torsades → defibrillate.',
         'Avoid amiodarone and other class III drugs. Check credible meds lists for QT risk.',
       ],
-      refs: ['Resuscitation Council UK ALS 2021: Tachycardia algorithm — polymorphic VT', 'MHRA Drug Safety Update: QT prolongation (citalopram/escitalopram, 2011)'],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Adult tachyarrhythmia algorithm — polymorphic VT with QT prolongation', 'MHRA Drug Safety Update: QT prolongation (citalopram/escitalopram, 2011)'],
     },
   });
 
@@ -198,7 +198,7 @@
         'Sympathetic blockade is key: sedation (± intubation), β-blockers (propranolol/esmolol) and amiodarone; correct K⁺ and Mg²⁺; treat ischaemia.',
         'Avoid catecholamine inotropes where possible; involve electrophysiology early (ICD reprogramming, catheter ablation).',
       ],
-      refs: ['Resuscitation Council UK ALS 2021: Tachycardia algorithm', 'ESC 2022 Guidelines for ventricular arrhythmias and prevention of SCD (adopted by BHRS/British Cardiovascular Society)'],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Adult tachyarrhythmia algorithm (V3, March 2026)', 'ESC 2022 Guidelines for ventricular arrhythmias and prevention of SCD (adopted by BHRS/British Cardiovascular Society)'],
     },
   });
 
@@ -292,7 +292,7 @@
         'Avoid nitrates and diuretics; give cautious fluid boluses; treat bradycardia; consider inotropes if fluid fails.',
         'NICE NG185: primary PCI if presenting within 12 h and achievable within 120 min of when fibrinolysis could be given.',
       ],
-      refs: ['NICE NG185: Acute coronary syndromes (2020)', 'ESC 2023 ACS guidelines (adopted by the British Cardiovascular Society)', 'Resuscitation Council UK ALS 2021: Bradycardia algorithm'],
+      refs: ['NICE NG185: Acute coronary syndromes (2020)', 'ESC 2023 ACS guidelines (adopted by the British Cardiovascular Society)', 'Resuscitation Council UK 2025 Guidelines: Adult bradyarrhythmia algorithm'],
     },
   });
 
@@ -792,7 +792,7 @@
         'Survival depends on finding and treating the cause — 4 Hs (hypoxia, hypovolaemia, hypo/hyperkalaemia, hypothermia) and 4 Ts (thrombosis, tension, tamponade, toxins).',
         'Focused echo during pulse checks (≤ 10 s) helps identify hypovolaemia, tamponade or RV dilatation.',
       ],
-      refs: ['Resuscitation Council UK: Adult Advanced Life Support (2021)', 'Resuscitation Council UK: Special circumstances (2021)'],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Adult in-hospital resuscitation and advanced life support', 'Resuscitation Council UK 2025 Guidelines: Special circumstances'],
     },
   });
 
@@ -816,7 +816,7 @@
       if (ev.type === 'action' && ev.id === 'thrombectomy') { if (!f.cta) return { handled: true, msg: 'Neuro-interventional: please send the CTA.' }; f.mt = true; return { handled: true, msg: 'Accepted for mechanical thrombectomy — transfer to the neuroscience centre.', kind: 'good' }; }
     },
     exam: ex({ C: 'Irregularly irregular pulse.', D: (e) => (e.flags.better ? 'GCS 15. Mild dysphasia, right arm drift.' : 'GCS 14 (expressive dysphasia). Right face, arm and leg weakness (power 1–2/5). Left gaze preference.'), E: 'No head injury.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['INR', '1.0'], ['Platelets', '262']] }), gas: false, ecg: { note: 'new-onset AF — likely cardioembolic source.' }, cxr: cxrN, ct: [{ label: 'CT head (non-contrast)', media: 'ct_head', report: 'No haemorrhage. Hyperdense left MCA sign; ASPECTS 8.' }], pocus: [] },
+    inv: { bloods: (e) => labs(e, { extra: [['INR', '1.0'], ['Platelets', '262']] }), gas: false, ecg: { note: 'new-onset AF — likely cardioembolic source.' }, cxr: cxrN, ct: [{ label: 'CT head (non-contrast)', media: 'ct_dense_mca_left', report: 'No haemorrhage. Hyperdense left MCA sign; ASPECTS 8.' }], pocus: [] },
     critical: [
       { text: 'CT head to exclude haemorrhage', check: (e) => e.did('inv_ct') },
       { text: 'Lower BP to < 185/110 before thrombolysis (labetalol)', check: (e) => any(e, 'labetalol', 'gtn') },

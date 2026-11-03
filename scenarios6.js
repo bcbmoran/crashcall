@@ -40,7 +40,7 @@
       if (ev.type === 'vent' && ev.key === 'ventRR' && ev.value >= 22) return { msg: 'Prolonged hyperventilation causes cerebral vasoconstriction/ischaemia — only as a brief bridge for herniation.', kind: 'warn' };
     },
     exam: ex({ A: (e) => (e.p.ventilated ? 'ETT secured; C-spine protected.' : 'Snoring; jaw thrust improves it. C-spine immobilised.'), C: 'No external haemorrhage. Abdomen soft, pelvis stable.', D: (e) => `GCS ${e.p.ventilated ? 'sedated' : e.p.gcs}. Right pupil ${e.p.icp > 35 ? '7 mm fixed' : '6 mm sluggish'}, left 3 mm. Extensor posturing on the left.`, E: 'Boggy right temporal scalp haematoma.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'CT head + C-spine', media: 'ct_head', report: 'Right temporal extradural haematoma 2.8 cm with 9 mm midline shift and effaced basal cisterns. Overlying skull fracture. C-spine normal.' }], pocus: [{ label: 'eFAST', media: 'us_morison_neg', report: 'Negative.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'CT head + C-spine', media: 'ct_edh_right', report: 'Right temporal extradural haematoma 2.8 cm with 9 mm midline shift and effaced basal cisterns. Overlying skull fracture. C-spine normal.' }], pocus: [{ label: 'eFAST', media: 'us_morison_neg', report: 'Negative.' }] },
     critical: [
       { text: 'RSI with neuroprotective technique', check: (e) => e.p.ventilated },
       { text: 'Normocapnia (PaCO₂ 4.5–5.0 kPa) and SpO₂ ≥ 94%', check: (e) => e.p.ventilated && e.p.paco2 / 7.5 < 5.6 },
@@ -84,7 +84,7 @@
       if (ev.type === 'drug' && ev.id === 'txa') return { msg: 'TXA within 2 h in mild–moderate TBI (CRASH-3) — she is beyond 3 h.', kind: 'info' };
     },
     exam: ex({ C: 'Irregularly irregular.', D: (e) => `GCS ${e.p.gcs}. Left pupil ${e.p.gcs < 10 ? 'dilated' : 'normal'}. Mild right drift.`, E: 'Left frontal bruise and laceration.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['Apixaban level (anti-Xa)', '178 ng/mL'], ['Group & save', 'Sent']] }), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_head', report: 'Left acute subdural haematoma 14 mm with 7 mm midline shift.' }], pocus: [] },
+    inv: { bloods: (e) => labs(e, { extra: [['Apixaban level (anti-Xa)', '178 ng/mL'], ['Group & save', 'Sent']] }), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_sdh_left', report: 'Left acute subdural haematoma 14 mm with 7 mm midline shift.' }], pocus: [] },
     critical: [
       { text: 'CT head within 1 hour (anticoagulated)', check: (e) => e.did('inv_ct') },
       { text: 'Reverse the anticoagulant', check: (e) => e.flags.reversed },
@@ -220,7 +220,7 @@
         'Traumatic cardiac arrest from penetrating trauma: resuscitative thoracotomy (clamshell) within 10 min of losing output; address reversible causes before chest compressions (RCUK traumatic arrest algorithm).',
         'Pericardiocentesis is unreliable in trauma because blood clots.',
       ],
-      refs: ['Resuscitation Council UK ALS 2021: Traumatic cardiac arrest algorithm', ...TRAUMA_REFS],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Traumatic cardiac arrest/peri-arrest algorithm', ...TRAUMA_REFS],
     },
   });
 
@@ -239,7 +239,7 @@
       return crystalHarm(e, ev);
     },
     exam: ex({ C: 'Cool, pale, CRT 4 s.', D: 'GCS 15, faint.', E: 'Distended, tender lower abdomen with guarding. Shoulder-tip pain.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['Serum hCG', '3,400 IU/L'], ['Rhesus', 'RhD negative']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'FAST — RUQ', media: 'us_fast_pos', report: 'Free fluid in Morison’s pouch.' }, { label: 'Pelvis', media: 'us_fast_pos', report: 'Empty uterus; large volume free fluid in the pouch of Douglas.' }] },
+    inv: { bloods: (e) => labs(e, { extra: [['Serum hCG', '3,400 IU/L'], ['Rhesus', 'RhD negative']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'FAST — RUQ', media: 'us_morison_ectopic', report: 'Free fluid in Morison’s pouch.' }, { label: 'FAST — pelvis', media: 'us_pelvis_fluid', report: 'Empty uterus; large volume free fluid in the pouch of Douglas.' }] },
     critical: [
       { text: 'Pregnancy test', check: (e) => e.flags.hcg },
       { text: 'FAST / POCUS', check: (e) => e.did('inv_pocus') },

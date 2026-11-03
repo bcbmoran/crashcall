@@ -107,10 +107,11 @@
       points: [
         'Peri-operative arrest: declare it, start compressions, call the arrest team, FiO₂ 1.0, stop anaesthetic agents and confirm the airway.',
         'Shockable rhythm: shock, 2 min CPR, re-assess; adrenaline 1 mg and amiodarone 300 mg after the 3rd shock, then adrenaline every 3–5 min (amiodarone 150 mg after the 5th).',
+        'RCUK 2025: if VF persists after 3 shocks, change the pads to the antero-posterior position; ensure optimal pad placement and effective ventilation.',
         'Once intubated, give continuous compressions with ventilation at 10/min; use waveform capnography for CPR quality and ROSC.',
         'After ROSC follow QRH 3-13 / RCUK post-resuscitation care: SpO₂ 94–98%, normocapnia, MAP ≥ 65, 12-lead ECG and early coronary angiography.',
       ],
-      refs: [Q('2-1'), 'Resuscitation Council UK: Adult Advanced Life Support guidelines (2021)', Q('3-13')],
+      refs: [Q('2-1'), 'Resuscitation Council UK 2025 Guidelines: Adult advanced life support', Q('3-13')],
     },
   });
 
@@ -362,7 +363,7 @@
         'Magnesium 50 mg/kg (adult 2 g) and amiodarone 5 mg/kg (adult 300 mg) for rate/rhythm control; correct potassium.',
         'Adenosine is diagnostic only in AF — it will not cardiovert it.',
       ],
-      refs: [Q('2-7'), 'Resuscitation Council UK ALS Guidelines 2021: Tachycardia algorithm', 'NICE NG196: Atrial fibrillation (2021)'],
+      refs: [Q('2-7'), 'Resuscitation Council UK 2025 Guidelines: Adult tachyarrhythmia algorithm (V3, March 2026)', 'NICE NG196: Atrial fibrillation (2021)'],
     },
   });
 
@@ -614,12 +615,12 @@
     ] },
     debrief: {
       points: [
-        'QRH 3-13 / RCUK post-resuscitation care: SpO₂ 94–98%, normocapnia (PaCO₂ 4.5–6.0 kPa), MAP ≥ 65 mmHg, prevent fever (> 37.7 °C) for at least 72 h.',
+        'QRH 3-13 / RCUK 2025 post-resuscitation care: ABCDE, SpO₂ 94–98%, normocapnia (PaCO₂ 4.5–6.0 kPa), systolic BP > 100 mmHg (MAP ≥ 65 here), and temperature control — prevent fever (keep ≤ 37.5 °C) for 36–72 h in comatose patients.',
         'Maintain glucose ≤ 10 mmol/L, treat seizures, avoid hypotension and hypoxaemia.',
-        '12-lead ECG; emergency coronary angiography if STEMI; CT head ± CTPA if no obvious cardiac cause.',
+        '12-lead ECG; emergency coronary angiography if ST elevation or high suspicion of coronary occlusion; whole-body CT if no obvious cardiac cause. Treat seizures with levetiracetam or sodium valproate.',
         'Delay prognostication for at least 72 h (multimodal).',
       ],
-      refs: [Q('3-13'), 'Resuscitation Council UK: Post-resuscitation care guidelines (2021)', 'ERC–ESICM post-resuscitation care guidelines 2021 (basis of the RCUK guidance)'],
+      refs: [Q('3-13'), 'Resuscitation Council UK 2025 Guidelines: Adult post-resuscitation care'],
     },
   });
 

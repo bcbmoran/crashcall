@@ -312,7 +312,7 @@
         'Optimise preload, keep the heart rate up, avoid excessive PEEP and vasodilators.',
         'In cardiac arrest after cardiac surgery follow CALS: early re-sternotomy within 5 minutes.',
       ],
-      refs: ['EACTS Guidelines for resuscitation in cardiac arrest after cardiac surgery (2017; adopted by the UK CALS programme / SCTS)', 'AoA QRH 3-9: Cardiac tamponade', 'Resuscitation Council UK ALS 2021: Special circumstances — cardiac surgery'],
+      refs: ['EACTS Guidelines for resuscitation in cardiac arrest after cardiac surgery (2017; adopted by the UK CALS programme / SCTS)', 'AoA QRH 3-9: Cardiac tamponade', 'Resuscitation Council UK 2025 Guidelines: Special circumstances — cardiac surgery'],
     },
   });
 
@@ -437,7 +437,7 @@
         'In arrest: CPR with modified ALS (adrenaline ≤ 1 mcg/kg), avoid vasopressin, CCBs, β-blockers, lidocaine. Recovery may take > 1 h — consider ECMO.',
         'Prevention: ultrasound guidance, test doses, aspiration, maximum dose awareness (bupivacaine 2 mg/kg).',
       ],
-      refs: ['AoA QRH 3-10: Local anaesthetic toxicity', 'AAGBI Safety Guideline: Management of severe local anaesthetic toxicity (2010)', 'Resuscitation Council UK ALS 2021: Special circumstances — toxic agents'],
+      refs: ['AoA QRH 3-10: Local anaesthetic toxicity', 'AAGBI Safety Guideline: Management of severe local anaesthetic toxicity (2010)', 'Resuscitation Council UK 2025 Guidelines: Special circumstances — toxic agents'],
     },
   });
 
@@ -776,7 +776,7 @@
         'Insufflation-induced vagal reflexes are common — warn surgeons and insufflate slowly.',
         'Also consider hypoxia, drugs (remifentanil, suxamethonium, neostigmine), high regional block.',
       ],
-      refs: ['AoA QRH 2-6: Bradycardia', 'Resuscitation Council UK ALS 2021: Bradycardia algorithm'],
+      refs: ['AoA QRH 2-6: Bradycardia', 'Resuscitation Council UK 2025 Guidelines: Adult bradyarrhythmia algorithm'],
     },
   });
 })();

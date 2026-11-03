@@ -183,8 +183,8 @@
       if (ev.type === 'action' && ev.id === 'vagal' && p.rhythm === 'svt') return { handled: true, msg: 'Ice-water bag applied to the face (diving reflex) for 10 s — brief slowing, then SVT continues.' };
       if (ev.type === 'drug' && ev.id === 'adenosine' && p.rhythm === 'svt') {
         const k = ev.dose / p.weight;
-        if (k < 0.14) return { msg: 'Dose too small — no effect (start at 150 micrograms/kg).', kind: 'warn' };
-        if (k < 0.28 && !e.flags.ad1) { e.flags.ad1 = true; return { msg: 'Brief AV block then SVT resumes. Increase to 300 micrograms/kg (then 500 micrograms/kg).', kind: 'warn' }; }
+        if (k < 0.09) return { msg: 'Dose too small — no effect (start at 100–200 micrograms/kg).', kind: 'warn' };
+        if (k < 0.28 && !e.flags.ad1) { e.flags.ad1 = true; return { msg: 'Brief AV block then SVT resumes. After at least 1 min, give 300 micrograms/kg.', kind: 'warn' }; }
         return convert('Adenosine: a few seconds of asystole, then sinus rhythm 150/min.');
       }
       if (ev.type === 'action' && ev.id === 'sync_dc') {
@@ -198,24 +198,24 @@
     critical: [
       { text: '12-lead ECG', check: (e) => e.did('inv_ecg') },
       { text: 'Vagal manoeuvre (ice to face)', check: (e) => e.did('vagal') },
-      { text: 'Adenosine 150 → 300 → 500 micrograms/kg', check: (e) => e.did('adenosine') || e.did('sync_dc') },
+      { text: 'Adenosine 100–200 → 300 micrograms/kg', check: (e) => e.did('adenosine') || e.did('sync_dc') },
       { text: 'Sinus rhythm restored', check: (e) => e.p.rhythm === 'sinus' },
     ],
     targets: { map: 48, spo2: 94, hrMax: 180 },
     hint: { steps: [
       { t: 'Accessory pathway re-entry (AVRT) — common in infants', kind: 'cause' },
       { t: 'Rate 220–300 → no filling time', rx: 'Vagal: ice-water to face' },
-      { t: 'Heart failure develops over hours (hepatomegaly, poor feeding)', rx: 'Adenosine 150 → 300 → 500 mcg/kg' },
-      { t: 'Decompensated shock', rx: 'Synchronised DC 1 J/kg → 2 J/kg', kind: 'end' },
+      { t: 'Heart failure develops over hours (hepatomegaly, poor feeding)', rx: 'Adenosine 0.1–0.2 → 0.3 mg/kg' },
+      { t: 'Decompensated shock', rx: 'Synchronised DC 1 J/kg, doubling to max 4 J/kg', kind: 'end' },
     ] },
     debrief: {
       points: [
         'SVT in infants often presents with poor feeding and heart failure; rate is typically > 220/min with fixed R–R.',
-        'RCUK PLS / APLS: vagal manoeuvres (ice-water bag to the face in infants), then adenosine via a large proximal vein with rapid flush: 150 → 300 → 500 micrograms/kg (max 12 mg).',
-        'Decompensated: synchronised DC cardioversion 1 J/kg, then 2 J/kg, under sedation/anaesthesia.',
+        'RCUK 2025 paediatric arrhythmia algorithm: compensated SVT — vagal manoeuvres (ice-water bag to the face in infants), then adenosine via a large proximal vein with rapid flush: 100–200 micrograms/kg, then 300 micrograms/kg after ≥ 1 min (max 12–18 mg).',
+        'Decompensated: synchronised cardioversion 1 J/kg, doubling each attempt to a maximum of 4 J/kg, with sedation/analgesia (IM/IN ketamine if no IV) — do not delay for IV access; consider amiodarone 5 mg/kg over > 20 min with expert advice before the 3rd shock.',
         'Discuss with paediatric cardiology for ongoing prophylaxis.',
       ],
-      refs: ['Resuscitation Council UK: Paediatric Advanced Life Support guidelines (2021) — tachyarrhythmia', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)'],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Paediatric cardiac arrhythmia algorithm', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)'],
     },
   });
 
@@ -569,12 +569,12 @@
     ] },
     debrief: {
       points: [
-        'RCUK PLS 2021: open the airway, 5 rescue breaths, then 15 compressions : 2 breaths at 100–120/min, one-third of chest depth.',
+        'RCUK PLS 2025: open the airway, 5 rescue breaths (bag-mask with oxygen, 2-person), then 15 compressions : 2 breaths at 100–120/min, one-third of chest depth; continuous compressions once a tube/SGA is in, ventilating at 25/min (infant), 20 (1–8 y), 15 (8–12 y) or 10 (> 12 y).',
         'Non-shockable rhythm: adrenaline 10 micrograms/kg (max 1 mg) IV/IO as soon as possible, then every 3–5 min.',
-        'Shockable: 4 J/kg; adrenaline and amiodarone 5 mg/kg after the 3rd and 5th shocks.',
+        'Shockable: 4 J/kg (escalate stepwise to 8 J/kg, max 360 J, from the 5th shock); adrenaline 10 micrograms/kg and amiodarone 5 mg/kg after the 3rd shock, adrenaline every 3–5 min thereafter, amiodarone repeated once after the 5th shock.',
         'Drowning: oxygenation is key; consider hypothermia and prolong resuscitation if cold.',
       ],
-      refs: ['Resuscitation Council UK: Paediatric Advanced Life Support (2021)', 'Resuscitation Council UK: Special circumstances — drowning (2021)', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)'],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Paediatric life support (basic and advanced)', 'Resuscitation Council UK 2025 Guidelines: Paediatric special circumstances — drowning', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)'],
     },
   });
 
@@ -637,12 +637,13 @@
     ] },
     debrief: {
       points: [
-        'RCUK NLS 2021: dry/stimulate/keep warm, assess tone, breathing and HR; open the airway and give 5 inflation breaths (30 cmH₂O term, 2–3 s), then ventilation breaths at 30/min.',
-        'Start in air (term ≥ 32 weeks: 21–30% O₂); if HR < 60 after 30 s of effective ventilation give compressions 3:1 and increase O₂ to 100%.',
-        'Drugs via UVC: adrenaline 20 micrograms/kg; consider glucose 250 mg/kg and volume 10 mL/kg.',
-        'Most newborns respond to effective lung aeration — reassess chest rise before escalating.',
+        'RCUK NLS 2025: start the clock, delay cord clamping where possible, dry/stimulate and keep warm; assess breathing and heart rate (colour is no longer used to guide care).',
+        'Not breathing adequately: open the airway and give 5 inflation breaths (30 cmH₂O, 2–3 s, in air for ≥ 32 weeks) with PEEP 6 cmH₂O if possible; check for chest rise, then ventilation breaths at 30/min. Reassess HR and chest rise every 30 s.',
+        'Chest not moving: mask seal, head and jaw position, 2-person jaw thrust; consider an SGA, higher pressures, suction or a tracheal tube; repeat inflation breaths.',
+        'HR < 60/min after 30 s of effective ventilation: 3 compressions : 1 breath (15 cycles/min) with 100% O₂. Via UVC/IO: adrenaline 20 micrograms/kg every 4 min, volume 10 mL/kg, check glucose. Sodium bicarbonate is no longer recommended.',
+        'Pre-ductal SpO₂ targets: 70–75% at 3 min, 80–85% at 5 min, 85–95% at 10 min.',
       ],
-      refs: ['Resuscitation Council UK: Newborn Life Support guidelines (2021)', 'ERC Newborn resuscitation guidelines 2021 (basis of the RCUK guidance)'],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Newborn resuscitation and support of transition of infants at birth'],
     },
   });
 })();

@@ -5,7 +5,7 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const FIELD = { EM: 'Emergency medicine', ICU: 'Critical care', Anaes: 'Anaesthesia', Paeds: 'Paediatrics', Tutorial: 'Tutorial' };
-  const SETTING = { ed: 'ED resus', icu: 'ICU', theatre: 'Theatre', ward: 'Ward' };
+  const SETTING = { ed: 'ED resus', icu: 'ICU', theatre: 'Theatre', ward: 'Ward', community: 'Community (no hospital kit)', home: 'Home birth (ambulance kit)', cathlab: 'Cardiac catheter lab', delivery: 'Delivery suite' };
   const SHOCKS = ['Hypovolaemic', 'Distributive', 'Cardiogenic', 'Obstructive', 'Other'];
   const store = {
     get(k, d) { try { const v = localStorage.getItem('resussim.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -31,7 +31,6 @@
   }
   function renderHome() {
     chips($('#fieldChips'), ['EM', 'ICU', 'Anaes', 'Paeds'], 'field');
-    if (blindOn()) { filt.shock = 'All'; $('#shockChips').innerHTML = ''; } else chips($('#shockChips'), SHOCKS, 'shock');
     const best = store.get('best', {});
     const list = S.SCENARIOS.filter((s) => (filt.field === 'All' || s.field === filt.field) && (filt.shock === 'All' || shockKey(s) === filt.shock));
     $('#scnGrid').innerHTML = list.map((s) => `<button class="scn" data-id="${s.id}">
@@ -167,10 +166,40 @@
 
   // ---------------- controls ----------------
   $$('#ctlTabs button').forEach((b) => (b.onclick = () => setTab(b.dataset.tab)));
-  function setTab(t, auto) { state.tab = t; state.examPrompt = !!auto && t === 'exam'; $$('#ctlTabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t)); renderTab(); }
+  const srch = () => { const i = $('#tabSearch'); return i ? i.value.trim().toLowerCase() : ''; };
+  const si = $('#tabSearch');
+  if (si) {
+    si.oninput = () => renderTab();
+    si.onkeydown = (ev) => { if (ev.key === 'Escape') { si.value = ''; renderTab(); } };
+  }
+  const clearSearch = () => { if (si) si.value = ''; };
+  // Search across every tab except Examine; the matching buttons work exactly as on their own tab.
+  function searchHTML() {
+    const sec = (name, html) => `<section class="srch-sec"><h3>${name}</h3>${html}</section>`;
+    return sec('Airway &amp; procedures', actionsHTML()) + sec('Investigations', invHTML()) + sec('Fluids &amp; blood', fluidsHTML()) + sec('Drugs', drugsHTML()) + '<p class="muted srch-none" style="display:none">No matches — try another word (e.g. a drug, procedure or test).</p>';
+  }
+  function filterSearch(body, q) {
+    const words = q.split(/\s+/).filter(Boolean);
+    const hide = (el, h) => { el.style.display = h ? 'none' : ''; };
+    $$('.als-bar, .results, .fluid-sum, .srch-sec > p, .grp > p', body).forEach((x) => hide(x, true));
+    $$('.vent', body).forEach((x) => hide(x.closest('.grp'), true));
+    const items = $$('.drug, [data-act], [data-fluid], [data-inv]', body).filter((x) => !x.closest('.drug') || x.classList.contains('drug'));
+    items.forEach((x) => {
+      const g = x.closest('.grp'), h = g && $('h4', g);
+      const hay = ((x.classList.contains('drug') ? ($('.dn', x) || x).textContent : x.textContent) + ' ' + (h ? h.textContent : '') + ' ' + (x.dataset.d || x.dataset.act || x.dataset.fluid || x.dataset.inv || '')).toLowerCase();
+      hide(x, !words.every((w) => hay.includes(w)));
+    });
+    $$('.grp', body).forEach((g) => { if (g.style.display === 'none') return; hide(g, !$$('.drug, [data-act], [data-fluid], [data-inv]', g).some((x) => x.style.display !== 'none')); });
+    let any = false;
+    $$('.srch-sec', body).forEach((s) => { const v = $$('.grp', s).some((g) => g.style.display !== 'none'); hide(s, !v); any = any || v; });
+    hide($('.srch-none', body), any);
+  }
+  function setTab(t, auto) { clearSearch(); state.tab = t; state.examPrompt = !!auto && t === 'exam'; $$('#ctlTabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t)); renderTab(); }
   function renderTab() {
     const body = $('#tabBody'), e = state.eng; if (!e) return;
-    const t = state.tab;
+    const t = state.tab, q = srch();
+    $$('#ctlTabs button').forEach((b) => b.classList.toggle('active', !q && b.dataset.tab === t));
+    if (q) { body.innerHTML = searchHTML(); wireTab(body); filterSearch(body, q); return; }
     if (t === 'drugs') body.innerHTML = drugsHTML();
     else if (t === 'fluids') body.innerHTML = fluidsHTML();
     else if (t === 'actions') body.innerHTML = actionsHTML();
@@ -180,6 +209,7 @@
   }
   function fmtDose(d) { return d >= 1000 && d % 1000 === 0 ? d / 1000 + ' ' : String(d); }
   function drugsHTML() {
+    if (state.scn.kit && state.scn.kit.drugs === false) return `<p class="muted">${esc(state.scn.kit.note || 'No drugs are available in this setting.')}</p>`;
     const e = state.eng;
     const cats = S.DRUG_CATS.filter((c) => c !== 'Fluids & blood');
     return cats.map((c) => {
@@ -200,6 +230,7 @@
     }).join('');
   }
   function fluidsHTML() {
+    if (state.scn.kit && state.scn.kit.fluids === false) return `<p class="muted">${esc(state.scn.kit.note || 'No IV fluids or blood are available in this setting.')}</p>`;
     const e = state.eng;
     const fl = S.FLUIDS.filter((f) => !!f.paed === !!e.p.paed);
     return `${e.p.paed ? `<p class="muted small">Weight ${e.p.weight} kg — volumes are calculated per kg.</p>` : ''}<div class="grp"><h4>Crystalloid</h4><div class="act-grid">${fl.filter((f) => f.kind === 'crystalloid').map((f) => `<button class="btn" data-fluid="${f.id}">${esc(f.name)}</button>`).join('')}</div></div>
@@ -208,7 +239,8 @@
   }
   function actionsHTML() {
     const e = state.eng, p = e.p, scn = state.scn;
-    const ok = (a) => (!a.setting || a.setting === scn.setting) && (!a.need || (a.need === 'ventilated' && p.ventilated) || (a.need === 'pregnant' && p.pregnant) || (a.need === 'obstetric' && (p.obstetric || p.pregnant)) || (a.need === 'als' && scn.als));
+    const kit = scn.kit || {};
+    const ok = (a) => (!kit.actions || kit.actions.includes(a.id)) && (!a.setting || a.setting === scn.setting) && (!a.need || (a.need === 'ventilated' && p.ventilated) || (a.need === 'pregnant' && p.pregnant) || (a.need === 'obstetric' && (p.obstetric || p.pregnant)) || (a.need === 'als' && scn.als));
     const groups = [...new Set(S.ACTIONS.map((a) => a.grp))];
     const extra = scn.extraActions && scn.extraActions.length ? `<div class="grp"><h4>Scenario-specific actions</h4><div class="act-grid">${scn.extraActions.map((a) => `<button class="btn ${e.did(a.id) ? 'done' : ''}" data-act="${a.id}">${esc(a.name)}${e.did(a.id) ? ' ✓' : ''}</button>`).join('')}</div></div>` : '';
     const alsBar = scn.als ? `<div class="als-bar ${p.arrested ? 'on' : ''}">${p.arrested ? `CARDIAC ARREST · CPR ${e.flags.cpr ? 'IN PROGRESS' : 'NOT RUNNING'} · ${Math.floor(e.arrestT || 0)} s · shocks ${e.shocks || 0}` : 'Pulse present'}</div>` : '';
@@ -228,6 +260,7 @@
   }
   function invHTML() {
     const scn = state.scn, inv = scn.inv || {};
+    if (scn.kit && scn.kit.inv === false) return `<p class="muted">${esc(scn.kit.note || 'No investigations are available in this setting.')}</p>`;
     const cts = inv.ct || [], pocus = inv.pocus || [];
     return `<div class="grp"><h4>Request</h4><div class="inv-list">
       <button class="btn" data-inv="gas">Blood gas (point-of-care, ~5 s)</button>
@@ -522,7 +555,7 @@
   const qrhOpen = (ids) => openModal('📕 AoA Quick Reference Handbook', S.QRH.html(ids));
   const qh = $('#qrhHome'); if (qh) qh.onclick = () => qrhOpen([]);
   const rcukOpen = () => openModal('🫀 Resuscitation Council UK 2025 algorithms', S.RCUK.html(state.scn && state.scn.field));
-  const rh = $('#rcukHome'); if (rh) rh.onclick = () => openModal('🫀 Resuscitation Council UK 2025 algorithms', S.RCUK.html(null));
+  const rh = $('#rcukHome'); if (rh) rh.onclick = () => { openModal('🫀 Resuscitation Council UK 2025 algorithms', S.RCUK.html(null, { practise: true, blind: blindOn() })); $$('[data-practise]').forEach((b) => (b.onclick = () => { closeModal(); go(b.dataset.practise); })); };
   const rb = $('#rcukBtn'); if (rb) rb.onclick = () => { if (state.eng) state.eng.mark('rcuk'); rcukOpen(); };
   const qs = $('#qrhBtn'); if (qs) qs.onclick = () => { if (state.eng) state.eng.mark('qrh'); qrhOpen(state.scn && state.scn.qrh); };
   const lbb = $('#lbBtn'); if (lbb) { if (!(S.LB && S.LB.enabled())) lbb.hidden = true; lbb.onclick = () => S.LB && S.LB.show(); }

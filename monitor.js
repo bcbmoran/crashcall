@@ -130,6 +130,14 @@
 
     frame(dt) {
       const ctx = this.ctx, p = this.eng.p;
+      if (p.noMonitor) {
+        ctx.fillStyle = '#000'; ctx.fillRect(0, 0, this.W, this.H);
+        ctx.fillStyle = '#9aa'; ctx.font = '700 16px system-ui, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(p.noMonitor === true ? 'No monitor — you only have your eyes, ears and hands' : String(p.noMonitor), this.W / 2, this.H / 2 - 8);
+        ctx.font = '13px system-ui, sans-serif';
+        ctx.fillText('Look, listen and feel. Use the Examine tab.', this.W / 2, this.H / 2 + 16);
+        ctx.textAlign = 'left'; this.x = 0; this.last = {}; return;
+      }
       if (p.monitorOff) {
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, this.W, this.H);
         ctx.fillStyle = '#ff5c5c'; ctx.font = '700 18px system-ui, sans-serif'; ctx.textAlign = 'center';

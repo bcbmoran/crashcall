@@ -615,7 +615,7 @@
         'Insulin 10 units with 25 g glucose — hypoglycaemia is common; monitor glucose for 6 h.',
         'Pacing and atropine are often ineffective until K⁺ is treated.',
       ],
-      refs: ['UK Kidney Association: Clinical practice guideline — Treatment of acute hyperkalaemia in adults (2023)', 'Resuscitation Council UK ALS 2021: Special circumstances — hyperkalaemia'],
+      refs: ['UK Kidney Association: Clinical practice guideline — Treatment of acute hyperkalaemia in adults (2023)', 'Resuscitation Council UK 2025 Guidelines: Special circumstances — hyperkalaemia'],
     },
   });
 
@@ -727,12 +727,12 @@
     },
     debrief: {
       points: [
-        'RCUK tachycardia algorithm: adverse features (shock, syncope, ischaemia, heart failure) → synchronised DC shock up to 3 attempts under sedation/anaesthesia.',
+        'RCUK 2025 tachyarrhythmia algorithm: life-threatening features (shock, syncope with ongoing hypotension, myocardial ischaemia, severe heart failure, immediately post-ROSC) → synchronised shock, up to 3 attempts, under sedation/anaesthesia.',
         'If DC fails: amiodarone 300 mg over 10–20 min and repeat shock.',
         'Stable narrow regular tachycardia: modified Valsalva, then adenosine 6 mg → 12 mg → 18 mg.',
         'Very fast rates shorten diastole — stroke volume falls so CO falls despite the high HR.',
       ],
-      refs: ['Resuscitation Council UK ALS Guidelines 2021: Tachycardia algorithm', 'REVERT trial — modified Valsalva (Lancet 2015, UK)'],
+      refs: ['Resuscitation Council UK 2025 Guidelines: Adult tachyarrhythmia algorithm (V3, March 2026)', 'REVERT trial — modified Valsalva (Lancet 2015, UK)'],
     },
   });
 

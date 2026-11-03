@@ -181,6 +181,7 @@
     }
     react(ev) {
       let r = null;
+      const preRhythm = this.p.rhythm;
       if (this.scn.onEvent) r = this.scn.onEvent(this, ev) || null;
       if (r && r.msg) this.say(r.msg, r.kind || 'info');
       if (r && r.harm) this.harm(r.harm);
@@ -190,7 +191,7 @@
       if (ev.type === 'drug' && ev.id === 'adrenaline' && ev.dose >= 500 && !p.arrested && !(r && r.noHarm) && !this.scn.als) { this.harm('1 mg IV adrenaline given to a patient with a pulse'); this.after(6, (en) => { if (!en.outcome && en.p.contractEff < 1.6) { en.p.rhythm = en.scn.als ? 'vf' : 'vt'; en.p.fixedRate = 190; en.say('Ventricular tachycardia after the adrenaline bolus!', 'bad'); en.after(25, (e2) => { if (e2.p.rhythm === 'vt') { e2.p.rhythm = 'sinus'; e2.say('VT self-terminated.', 'warn'); } }); } }); }
       if (ev.type === 'drug' && (ev.id === 'labetalol' || ev.id === 'esmolol') && p.map < 65 && !(r && r.noHarm)) this.harm('β-blocker given to a hypotensive patient');
       if (ev.type === 'inf' && ev.id === 'gtn' && ev.rate > 0 && p.map < 65 && !(r && r.noHarm)) this.harm('Nitrate infusion in hypotension');
-      if (ev.type === 'drug' && ev.id === 'adenosine' && p.rhythm === 'sinus') this.harm('Adenosine given for sinus rhythm');
+      if (ev.type === 'drug' && ev.id === 'adenosine' && preRhythm === 'sinus') this.harm('Adenosine given for sinus rhythm');
       return r;
     }
 
@@ -270,13 +271,15 @@
         case 'reposition_tube': msg('Tube position checked — already at the correct depth.'); break;
         case 'replace_filter': msg('HME filter and catheter mount replaced — no change.'); break;
         case 'ngt': msg('Nasogastric tube passed; stomach decompressed.'); break;
+        case 'pads_ap': msg(p.arrested ? 'Pads moved to antero-posterior position (left parasternal + left infrascapular).' : 'Pads repositioned antero-posteriorly.'); this.flags.padsAP = true; break;
         case 'cpr':
-          if (!p.arrested && !this.flags.cpr) { msg('There is a palpable pulse — compressions are not indicated.', 'warn'); this.harm('Chest compressions on a patient with a pulse'); break; }
+          if (!p.arrested && !this.flags.cpr && !(p.paed && p.hr < 60 && p.map < p.mapNormal * 0.8)) { msg('There is a palpable pulse — compressions are not indicated.', 'warn'); this.harm('Chest compressions on a patient with a pulse'); break; }
+          if (!p.arrested && !this.flags.cpr) msg('HR < 60/min with poor perfusion in a child — treat as cardiac arrest: start compressions (RCUK PLS).', 'warn');
           this.flags.cpr = !this.flags.cpr; if (this.flags.cpr) this.mark('cpr_on');
           msg(this.flags.cpr ? (p.paed ? 'High-quality CPR started (15:2), compressions 100–120/min, one-third chest depth.' : 'High-quality CPR started: 100–120/min, 5–6 cm depth, minimal interruptions.') : 'Compressions paused.', this.flags.cpr ? 'good' : 'warn');
           break;
         case 'defib':
-          if (this.shockable()) { this.shocks = (this.shocks || 0) + 1; msg(`Shock ${this.shocks} delivered (${p.paed ? '4 J/kg' : '150–200 J biphasic'}). Resume CPR immediately for 2 minutes.`, 'good'); }
+          if (this.shockable()) { this.shocks = (this.shocks || 0) + 1; const n = this.shocks; const en = p.paed ? (n >= 5 ? `escalated towards 8 J/kg ≈ ${Math.min(360, Math.round(8 * p.weight))} J` : `4 J/kg ≈ ${Math.round(4 * p.weight)} J`) : n === 1 ? '150–200 J biphasic' : '150–360 J biphasic'; msg(`Shock ${n} delivered (${en}). Resume CPR immediately for 2 minutes.${!p.paed && n === 3 && !this.did('pads_ap') ? ' If VF persists, consider changing to antero-posterior pads.' : ''}`, 'good'); }
           else if (p.arrested) { msg('Non-shockable rhythm — shock not indicated.', 'bad'); this.harm('Defibrillation of a non-shockable rhythm'); }
           else { msg('Unsynchronised shock delivered to a patient with a pulse — it has induced VF!', 'bad'); this.harm('Unsynchronised shock to a patient with a pulse'); p.rhythm = 'vf'; }
           break;
@@ -510,7 +513,7 @@
         p.arrested = true; this.arrestT = 0; this.noCprT = 0; this.flags.cpr = false;
         if (!arrestRhythm) p.rhythm = scn.arrestRhythm ? scn.arrestRhythm(this) : p.sa < 0.62 ? 'asystole' : 'pea';
         this.mark('arrest');
-        this.emit({ type: 'msg', text: 'CARDIAC ARREST — no pulse. Start CPR, call for help and follow the ALS algorithm.', kind: 'bad' });
+        this.emit({ type: 'msg', text: scn.arrestMsg || 'CARDIAC ARREST — no pulse. Start CPR, call for help and follow the ALS algorithm.', kind: 'bad' });
       }
       if (p.arrested) {
         this.arrestT += dt;
@@ -520,9 +523,9 @@
           this.lowMapTime = 0; this.lowSatTime = 0; this.mark('rosc');
           for (const id in this.pools) { const pl = this.pools[id]; if (pl.def && pl.def.catechol && !pl.rate) { pl.E *= id === 'adrenaline' ? 0.08 : 0.3; pl.depot = 0; } }
           this.emit({ type: 'msg', text: 'ROSC — palpable pulse and rising EtCO₂. Stop compressions; start post-resuscitation care.', kind: 'good' });
-        } else if (this.arrestT > (scn.arrestLimit || 300) || this.noCprT > 30) {
+        } else if (this.arrestT > (scn.arrestLimit || 300) || this.noCprT > (scn.noCprLimit || 30)) {
           this.outcome = 'arrest';
-          this.emit({ type: 'end', outcome: 'arrest', text: this.noCprT > 30 ? 'Resuscitation failed — prolonged interruption of chest compressions.' : 'Resuscitation unsuccessful.', kind: 'bad' });
+          this.emit({ type: 'end', outcome: 'arrest', text: this.noCprT > (scn.noCprLimit || 30) ? 'Resuscitation failed — prolonged interruption of chest compressions.' : 'Resuscitation unsuccessful.', kind: 'bad' });
           return true;
         }
         this.stableTime = 0;

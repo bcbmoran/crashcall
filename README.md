@@ -5,7 +5,7 @@ A free, browser-based simulator for **emergency medicine, critical care, anaesth
 **Play:** open `index.html`, or the GitHub Pages site for this repository.
 
 ## Features
-- **80 scenarios + a tutorial** across EM, ICU, anaesthesia and paediatrics, covering every class of shock:
+- **94 scenarios + a tutorial** across EM, ICU, anaesthesia and paediatrics, covering every class of shock:
   - *Hypovolaemic* — pelvic fracture haemorrhage, variceal bleed, major obstetric haemorrhage
   - *Distributive* — septic (ED and refractory ICU), anaphylaxis (ED and on induction), neurogenic, adrenal crisis, high spinal
   - *Cardiogenic* — anterior STEMI, β-blocker overdose, hyperkalaemia, unstable SVT, LAST, vagal bradycardia
@@ -13,11 +13,14 @@ A free, browser-based simulator for **emergency medicine, critical care, anaesth
   - plus life-threatening asthma, bronchospasm, malignant hyperthermia and CICO
   - **AoA QRH crises** — key basic plan, VF arrest under anaesthesia, endobronchial tube, blocked tube, hypotension, hypertension (empty vaporiser), fast AF, serotonin toxicity/hyperthermia, gas embolism, laryngospasm, patient fire, post-ROSC neuroprotection, oxygen failure, power failure, theatre evacuation
   - **More EM / ICU** — complete heart block, digoxin toxicity, torsades, electrical storm, flash pulmonary oedema, inferior STEMI with RV infarct, aortic dissection, hypertensive emergency, autonomic dysreflexia, adult DKA, alcohol withdrawal seizure, neutropenic sepsis, Crohn’s perforation on steroids, toxic shock, severe CAP, ACE-inhibitor angioedema, PEA arrest, stroke thrombolysis, severe TBI, subdural on a DOAC, elderly trauma on a β-blocker, stab wounds (haemothorax, tamponade), ruptured ectopic, peptic ulcer bleed, major burns, hydrofluoric acid burn, organophosphate poisoning and adder bite
+  - **Resuscitation Council UK 2025 algorithms** — every one-page RCUK 2025 algorithm has a scenario: traumatic cardiac arrest, VF in the cath lab (stacked shocks), adult and infant choking, community BLS + AED, stable SVT, fast AF and pre-excited AF, paediatric in-hospital BLS, paediatric bradycardia, shockable paediatric arrest, paediatric VT with a pulse, out-of-hospital newborn life support and ARNI
   - **Paediatrics** — infant septic shock, asthma, anaphylaxis, infant SVT, status epilepticus, trauma haemorrhage, laryngospasm, croup, DKA, bronchiolitis, paediatric arrest (PLS) and newborn life support (NLS), all with weight-based dosing
 - **Pick a specific scenario, practise a field (EM / Critical care / Anaesthesia / Paediatrics) or get a random one.**
 - **Grade-based difficulty**: *Junior trainee* (slower deterioration, more margin, a nurse prompts you if you stall), *Senior trainee* (standard) or *Consultant* (faster deterioration, hidden targets, longer stability required and an unannounced second problem such as a tissued cannula or displaced tube). Separate leaderboards per grade.
 - **Consequences**: wrong actions are logged as harms (+30 s on the leaderboard) and many cause real deterioration (e.g. propofol RSI in shock, decompressing a normal chest, 1 mg IV adrenaline with a pulse → VT, unsynchronised shock → VF).
 - **AoA QRH library** (📕 button) with the relevant guidelines for each case linked to the official PDF.
+- **RCUK 2025 algorithms** (🫀 button): every official one-page algorithm linked to resus.org.uk, with ▶ buttons to practise each one.
+- **Physiology-driven ECG**: a vector (dipole) model generates the monitor and 12-lead from the patient (electrolytes, drugs, temperature, ischaemia, rhythm), with the report written from the tracing.
 - Blind mode and a shared online leaderboard (Google Sheets).
 - Live bedside monitor (ECG, invasive/non-invasive BP, SpO₂ pleth, capnography, temperature, CVP) with sweep waveforms, pulse-pressure variation, pulsus paradoxus and optional pulse-oximeter tone.
 - Patient view showing relevant equipment: ventilator / anaesthetic machine, infusion pumps, airway devices, lines, chest drain, pelvic binder, blood products, defib/pacer.
