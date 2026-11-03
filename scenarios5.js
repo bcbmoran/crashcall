@@ -24,7 +24,7 @@
       if (ev.type === 'action' && ev.id === 'cath_lab') { e.flags.cardio = true; return { handled: true, msg: 'Cardiology: temporary transvenous wire in the cath lab now, then permanent pacemaker.', kind: 'good' }; }
     },
     exam: ex({ C: (e) => (e.p.rhythm === 'chb' ? 'Slow, regular pulse; cannon a-waves in the JVP. Cool peripheries.' : 'Paced rhythm, good volume.'), D: 'GCS 15, light-headed.', E: 'No trauma from falls.' }),
-    inv: { bloods: (e) => labs(e, { k: 4.6, trop: 22 }), gas: true, ecg: (e) => ({ desc: e.p.rhythm === 'chb' ? `Complete heart block: P waves ~78/min dissociated from broad escape complexes ~${e.p.hr}/min.` : 'Ventricular paced rhythm 70/min.' }), cxr: cxrN, ct: [], pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Good LV function, slow rate, no effusion.' }] },
+    inv: { bloods: (e) => labs(e, { k: 4.6, trop: 22 }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Good LV function, slow rate, no effusion.' }] },
     critical: [
       { text: '12-lead ECG', check: (e) => e.did('inv_ecg') },
       { text: 'Atropine 500 micrograms (repeat to 3 mg)', check: (e) => e.did('atropine') },
@@ -56,10 +56,10 @@
   add({
     id: 'em-digoxin', title: 'Digoxin toxicity', field: 'EM', shock: 'Cardiogenic (toxic)', difficulty: 2, setting: 'ed',
     stem: '84-year-old woman on digoxin and furosemide for AF and heart failure. Three days of vomiting and confusion; she says everything looks yellow. HR 38. Creatinine was high at her GP last week.',
-    patient: { age: 84, sex: 'F', weight: 52, rhythm: 'chb', fixedRate: 38, contract: 0.8, k: 6.3, gcs: 14, lactate: 2.4, look: {} },
+    patient: { age: 84, sex: 'F', weight: 52, rhythm: 'chb', fixedRate: 38, contract: 0.8, k: 6.3, gcs: 14, lactate: 2.4, ecg: { dig: 0.9, escape: 'junctional', atrial: 'af', bidir: true, ectopy: 0.08 }, look: {} },
     tick(e, dt) {
       const p = e.p, f = e.flags;
-      if (f.fab) { if (p.rhythm !== 'af') { p.rhythm = 'af'; p.fixedRate = 84; } p.k = toward(p.k, 4.8, 0.01, dt); return; }
+      if (f.fab) { if (p.rhythm !== 'af') { p.rhythm = 'af'; p.fixedRate = 84; } p.k = toward(p.k, 4.8, 0.01, dt); p.ecg.dig = toward(p.ecg.dig, 0.35, 0.01, dt); p.ecg.ectopy = 0; return; }
       f.vtT = (f.vtT || 0) + dt;
       if (p.rhythm === 'vt' && f.vtT > 9) { p.rhythm = 'chb'; p.fixedRate = 38; f.vtT = 0; e.say('Bidirectional VT self-terminates; back to slow junctional rhythm.', 'warn'); }
       else if (p.rhythm !== 'vt' && f.vtT > 45) { p.rhythm = 'vt'; p.fixedRate = 165; f.vtT = 0; e.say('Run of BIDIRECTIONAL VT on the monitor!', 'bad'); }
@@ -73,7 +73,7 @@
       if (ev.type === 'action' && ev.id === 'sync_dc' && e.p.rhythm === 'vt') return { handled: true, harm: 'DC cardioversion in digoxin toxicity (risk of refractory VF) — use antibody fragments' };
     },
     exam: ex({ C: 'Slow, regular pulse; cool peripheries. Mild ankle oedema.', D: (e) => `GCS ${e.p.gcs}, confused. Xanthopsia.`, E: 'Dry mucous membranes.' }),
-    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), urea: 21, cr: 214, egfr: 18, extra: [['Digoxin level', '4.2 µg/L (therapeutic 0.5–2.0)'], ['Magnesium', '0.68 mmol/L']] }), gas: true, ecg: (e) => ({ desc: e.flags.fab ? 'AF ~85/min, reverse-tick ST depression.' : e.p.rhythm === 'vt' ? 'Bidirectional VT (alternating QRS axis).' : 'Junctional bradycardia ~38/min with high-grade AV block, reverse-tick ST depression, frequent ectopics.' }), cxr: { media: 'cxr_normal', report: 'Cardiomegaly, no oedema.' }, ct: [], pocus: [] },
+    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), urea: 21, cr: 214, egfr: 18, extra: [['Digoxin level', '4.2 µg/L (therapeutic 0.5–2.0)'], ['Magnesium', '0.68 mmol/L']] }), gas: true, ecg: (e) => ({ note: e.flags.fab ? 'after DigiFab: AV conduction restored (underlying AF).' : 'digoxin toxicity — increased automaticity with AV block (LITFL: "regularised AF", frequent PVCs, bidirectional VT).' }), cxr: { media: 'cxr_normal', report: 'Cardiomegaly, no oedema.' }, ct: [], pocus: [] },
     critical: [
       { text: '12-lead ECG and potassium', check: (e) => e.did('inv_ecg') && (e.did('inv_gas') || e.did('inv_bloods')) },
       { text: 'Discuss with TOXBASE / NPIS', check: (e) => e.flags.tox },
@@ -125,7 +125,7 @@
       if (ev.type === 'action' && ev.id === 'pacing') { e.p.rhythm = 'paced'; e.p.paceRate = 100; return { handled: true, msg: 'Overdrive pacing at 100/min.', kind: 'good' }; }
     },
     exam: ex({ C: 'Pulse regular, slow between runs.', D: (e) => (e.p.rhythm === 'vt' ? 'Unresponsive during the run.' : 'GCS 15 between episodes.'), E: 'Afebrile.' }),
-    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), extra: [['Magnesium', '0.52 mmol/L'], ['Adjusted calcium', '2.18 mmol/L']] }), gas: true, ecg: (e) => ({ desc: e.p.rhythm === 'vt' ? 'Polymorphic VT twisting around the baseline (torsades de pointes).' : 'Sinus bradycardia 54/min, QTc 640 ms, U waves.' }), cxr: { media: 'cxr_rll', report: 'Right lower-lobe consolidation.' }, ct: [], pocus: [] },
+    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), extra: [['Magnesium', '0.52 mmol/L'], ['Adjusted calcium', '2.18 mmol/L']] }), gas: true, ecg: (e) => ({ note: 'acquired long QT (clarithromycin + hypokalaemia + hypomagnesaemia).' }), cxr: { media: 'cxr_rll', report: 'Right lower-lobe consolidation.' }, ct: [], pocus: [] },
     critical: [
       { text: 'Magnesium sulfate 2 g IV', check: (e) => e.did('magnesium') },
       { text: 'Stop QT-prolonging drugs', check: (e) => e.did('stop_trigger') },
@@ -155,7 +155,7 @@
   add({
     id: 'icu-electrical-storm', title: 'Electrical storm (recurrent VT)', field: 'ICU', shock: 'Cardiogenic (arrhythmic)', difficulty: 3, setting: 'icu',
     stem: '66-year-old man with ischaemic cardiomyopathy (EF 25%) and an ICD, admitted to CCU after six ICD shocks in an hour. He is terrified. Monitor: monomorphic VT 180/min with a weak pulse.',
-    patient: { age: 66, sex: 'M', weight: 82, rhythm: 'vt', fixedRate: 180, contract: 0.6, hrBase: 80, k: 3.4, stress: 0.6, lactate: 2.8, artLine: true, look: { sweaty: true } },
+    patient: { age: 66, sex: 'M', weight: 82, rhythm: 'vt', fixedRate: 180, contract: 0.6, hrBase: 80, k: 3.4, stress: 0.6, lactate: 2.8, artLine: true, ecg: { oldQ: true }, look: { sweaty: true } },
     tick(e, dt) {
       const p = e.p, f = e.flags;
       const ctrl = (e.E('amiodarone') > 0.15 ? 1 : 0) + (any(e, 'esmolol', 'labetalol') ? 1 : 0) + (any(e, 'midazolam', 'propofol') || p.ventilated ? 1 : 0);
@@ -175,7 +175,7 @@
       if (ev.type === 'drug' && (ev.id === 'adrenaline' || ev.id === 'isoprenaline' || ev.id === 'dobutamine')) return { harm: 'Catecholamine in electrical storm (pro-arrhythmic)' };
     },
     exam: ex({ C: (e) => (e.p.rhythm === 'vt' ? 'Weak thready pulse. Cool and clammy. Bibasal crackles.' : 'Pulse regular. Cool peripheries.'), D: 'GCS 15, very anxious.', E: 'ICD box left chest.' }),
-    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), trop: 180, extra: [['Magnesium', '0.61 mmol/L']] }), gas: true, ecg: (e) => ({ desc: e.p.rhythm === 'vt' ? 'Monomorphic broad-complex tachycardia 180/min, RBBB morphology.' : 'Sinus rhythm, old anterior Q waves.' }), cxr: { media: 'cxr_oedema', report: 'Cardiomegaly, ICD in situ, mild interstitial oedema.' }, ct: [], pocus: [{ label: 'Parasternal long axis', media: 'us_plax_poor', report: 'Severely impaired, dilated LV.' }] },
+    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), trop: 180, extra: [['Magnesium', '0.61 mmol/L']] }), gas: true, ecg: (e) => ({ note: 'ischaemic cardiomyopathy with ICD (scar-related VT).' }), cxr: { media: 'cxr_oedema', report: 'Cardiomegaly, ICD in situ, mild interstitial oedema.' }, ct: [], pocus: [{ label: 'Parasternal long axis', media: 'us_plax_poor', report: 'Severely impaired, dilated LV.' }] },
     critical: [
       { text: 'Synchronised DC cardioversion for unstable VT', check: (e) => e.did('sync_dc') },
       { text: 'Amiodarone', check: (e) => e.did('amiodarone') },
@@ -224,7 +224,7 @@
       if (ev.type === 'inf' && ev.id === 'gtn' && ev.rate > 0) return { msg: 'High-dose GTN (titrate quickly upwards; SBP is high).', kind: 'good', noHarm: true };
     },
     exam: ex({ A: 'Speaking single words.', B: (e) => (e.p.pulmOedema > 0.3 ? 'Crackles to the mid-zones bilaterally, pink frothy sputum.' : 'Basal crackles only.'), C: 'Hypertensive, sweaty, cool peripheries. JVP raised.', D: 'GCS 15, agitated.', E: 'Mild ankle oedema.' }),
-    inv: { bloods: (e) => labs(e, { trop: 68, extra: [['NT-proBNP', '8,400 ng/L']] }), gas: true, ecg: { desc: 'Sinus tachycardia, LVH with strain, no acute ST elevation.' }, cxr: { media: 'cxr_oedema', report: 'Bilateral alveolar oedema, upper-lobe diversion, small effusions.' }, ct: [], pocus: [{ label: 'Lung ultrasound', media: 'us_blines', report: 'Diffuse bilateral B-lines.' }, { label: 'Parasternal long axis', media: 'us_plax_poor', report: 'Moderately impaired LV; no effusion.' }] },
+    inv: { bloods: (e) => labs(e, { trop: 68, extra: [['NT-proBNP', '8,400 ng/L']] }), gas: true, ecg: { morph: { lvh: true }, note: 'no acute ST elevation.' }, cxr: { media: 'cxr_oedema', report: 'Bilateral alveolar oedema, upper-lobe diversion, small effusions.' }, ct: [], pocus: [{ label: 'Lung ultrasound', media: 'us_blines', report: 'Diffuse bilateral B-lines.' }, { label: 'Parasternal long axis', media: 'us_plax_poor', report: 'Moderately impaired LV; no effusion.' }] },
     critical: [
       { text: 'CPAP / NIV', check: (e) => e.flags.cpap },
       { text: 'High-dose nitrate', check: (e) => e.did('gtn') },
@@ -257,8 +257,9 @@
     tick(e, dt) {
       const p = e.p;
       p.venodil = Math.max(0, p.venodil - 0.0008 * dt);
-      if (e.flags.reperfused) { p.contract = toward(p.contract, 0.9, 0.006, dt); p.hrBase = toward(p.hrBase, 72, 0.02, dt); }
+      if (e.flags.reperfused) { p.contract = toward(p.contract, 0.9, 0.006, dt); p.hrBase = toward(p.hrBase, 72, 0.02, dt); p.ecg.st = toward(p.ecg.st, 0.05, 0.004, dt); }
       else p.contract = Math.max(0.45, p.contract - 0.0003 * dt);
+      p.ecg.avb = p.hr < 55 && !e.flags.reperfused ? 'wenck' : null; // AV-nodal ischaemia (RCA) → Mobitz I
     },
     extraActions: [{ id: 'rv_leads', name: 'Right-sided ECG (V4R)' }, { id: 'acs_load', name: 'Antiplatelet loading (ticagrelor/prasugrel)' }],
     onEvent(e, ev) {
@@ -270,7 +271,7 @@
       if (ev.type === 'fluid' && e.fluidIn.crystalloid > 2000) return { msg: 'Rising JVP — further fluid unlikely to help; consider inotrope.', kind: 'warn' };
     },
     exam: ex({ B: 'Chest clear.', C: 'Raised JVP with clear lungs. Cool, clammy.', D: 'GCS 15.', E: 'Nil.' }),
-    inv: { bloods: (e) => labs(e, { trop: 1250 }), gas: true, ecg: (e) => ({ desc: `${e.p.hr < 55 ? 'Second-degree (Mobitz I) AV block, ' : ''}ST elevation II, III, aVF (III > II), reciprocal depression I/aVL; ST elevation V1.`, st: { II: 0.25, III: 0.35, aVF: 0.3, I: -0.12, aVL: -0.2, V1: 0.12 } }), cxr: cxrN, ct: [], pocus: [{ label: 'Apical 4-chamber', media: 'us_plax_poor', report: 'Dilated, hypokinetic RV; LV inferior hypokinesia; no effusion.' }] },
+    inv: { bloods: (e) => labs(e, { trop: 1250 }), gas: true, ecg: (e) => ({ note: 'ST elevation II, III, aVF (III > II) with reciprocal depression in I/aVL and ST elevation in V1 — inferior STEMI with RV involvement: record V4R; avoid nitrates.', st: { II: 0.25, III: 0.35, aVF: 0.3, I: -0.12, aVL: -0.2, V1: 0.12 } }), cxr: cxrN, ct: [], pocus: [{ label: 'Apical 4-chamber', media: 'us_plax_poor', report: 'Dilated, hypokinetic RV; LV inferior hypokinesia; no effusion.' }] },
     critical: [
       { text: '12-lead and right-sided ECG', check: (e) => e.did('inv_ecg') && e.flags.rv },
       { text: 'Fluid bolus (preload-dependent RV)', check: (e) => e.did('fluid') },
@@ -319,7 +320,7 @@
       if (ev.type === 'inf' && ev.id === 'gtn' && ev.rate > 0 && !any(e, 'labetalol', 'esmolol')) return { msg: 'Vasodilator before β-blockade → reflex tachycardia increases shear stress.', kind: 'warn' };
     },
     exam: ex({ C: 'Radial pulse delay on the left. Early diastolic murmur at the left sternal edge.', D: 'GCS 15. No focal deficit.', E: 'Abdomen soft.' }),
-    inv: { bloods: (e) => labs(e, { trop: 18, extra: [['D-dimer', '4,800 ng/mL']] }), gas: true, ecg: { desc: 'Sinus rhythm, LVH, no acute ST elevation.' }, cxr: { media: 'cxr_normal', report: 'Widened mediastinum.' }, ct: [{ label: 'CT aortogram', media: null, report: 'Stanford type A dissection from the aortic root to the iliac bifurcation; small pericardial effusion.' }], pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Dilated aortic root (5.1 cm) with an intimal flap; small effusion.' }] },
+    inv: { bloods: (e) => labs(e, { trop: 18, extra: [['D-dimer', '4,800 ng/mL']] }), gas: true, ecg: { morph: { lvh: true }, note: 'no acute ST elevation (a normal ECG does not exclude dissection).' }, cxr: { media: 'cxr_normal', report: 'Widened mediastinum.' }, ct: [{ label: 'CT aortogram', media: null, report: 'Stanford type A dissection from the aortic root to the iliac bifurcation; small pericardial effusion.' }], pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Dilated aortic root (5.1 cm) with an intimal flap; small effusion.' }] },
     critical: [
       { text: 'Analgesia', check: (e) => e.flags.opioid },
       { text: 'IV β-blocker first (labetalol/esmolol) to HR ≤ 60', check: (e) => any(e, 'labetalol', 'esmolol') },
@@ -362,7 +363,7 @@
       if (ev.type === 'drug' && ev.id === 'labetalol' && e.p.map > 140) return { msg: 'Labetalol bolus. In hypertensive emergency a titratable infusion is preferred.', kind: 'info' };
     },
     exam: ex({ C: 'Bounding pulse. Heaving apex.', D: (e) => `GCS ${e.p.gcs}, disorientated. No focal deficit. Papilloedema.`, E: 'Afebrile.' }),
-    inv: { bloods: (e) => labs(e, { urea: 14, cr: 228, egfr: 28, plt: 110, extra: [['Blood film', 'Schistocytes (MAHA)'], ['Urine dipstick', 'Protein 3+, blood 2+']] }), gas: true, ecg: { desc: 'Sinus rhythm, LVH with strain.' }, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_head', report: 'No haemorrhage. Subtle bilateral parieto-occipital white-matter low density — consider PRES; MRI recommended.' }], pocus: [] },
+    inv: { bloods: (e) => labs(e, { urea: 14, cr: 228, egfr: 28, plt: 110, extra: [['Blood film', 'Schistocytes (MAHA)'], ['Urine dipstick', 'Protein 3+, blood 2+']] }), gas: true, ecg: { morph: { lvh: true } }, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_head', report: 'No haemorrhage. Subtle bilateral parieto-occipital white-matter low density — consider PRES; MRI recommended.' }], pocus: [] },
     critical: [
       { text: 'Titratable IV antihypertensive (labetalol / GTN infusion)', check: (e) => e.rate('labetalol') > 0 || e.rate('gtn') > 0 },
       { text: 'Arterial line', check: (e) => e.p.artLine },
@@ -403,7 +404,7 @@
       if (ev.type === 'drug' && ev.id === 'atropine') return { msg: 'Bradycardia is reflex vagal — it will resolve when the trigger is removed.', kind: 'info' };
     },
     exam: ex({ C: 'Bradycardic, bounding. Pale and cool below the lesion; flushed above.', D: 'GCS 15, severe headache, blurred vision.', E: 'Abdomen: distended, dull suprapubic area. Catheter bag empty.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus bradycardia 46/min.' }, cxr: cxrN, ct: [], pocus: [{ label: 'Bladder scan', media: null, report: 'Bladder volume ~900 mL.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'Bladder scan', media: null, report: 'Bladder volume ~900 mL.' }] },
     critical: [
       { text: 'Sit upright, loosen clothing', check: (e) => e.did('ad_sit') },
       { text: 'Find and remove the trigger (catheter)', check: (e) => e.flags.relieved },
@@ -451,7 +452,7 @@
       if (ev.type === 'inf' && ev.id === 'insulin_inf' && ev.rate > 0.11) return { harm: 'Insulin above 0.1 units/kg/h' };
     },
     exam: ex({ B: 'Deep sighing respiration, ketotic breath.', C: 'Dry mucous membranes, cool peripheries, CRT 4 s.', E: 'Diffuse abdominal tenderness, no peritonism.' }),
-    inv: { bloods: (e) => labs(e, { urea: 11, cr: 128, wcc: 16.2, extra: [['Blood ketones', `${Math.max(0.3, e.p.extraAcid / 2.8).toFixed(1)} mmol/L`], ['hCG', 'Negative']] }), gas: true, ecg: (e) => ({ desc: e.p.k < 3 ? 'Flat T waves, U waves.' : e.p.k > 5.5 ? 'Peaked T waves.' : 'Sinus tachycardia.' }), cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }] },
+    inv: { bloods: (e) => labs(e, { urea: 11, cr: 128, wcc: 16.2, extra: [['Blood ketones', `${Math.max(0.3, e.p.extraAcid / 2.8).toFixed(1)} mmol/L`], ['hCG', 'Negative']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }] },
     critical: [
       { text: 'Fluid: 500 mL 0.9% over 15 min (SBP < 90), then 1 L/h', check: (e) => fluidL(e) >= 1 },
       { text: 'Fixed-rate IV insulin 0.1 units/kg/h', check: (e) => e.rate('insulin_inf') > 0 },
@@ -500,7 +501,7 @@
       if (ev.type === 'drug' && ev.id === 'phenytoin') return { msg: 'Phenytoin is ineffective for withdrawal seizures — benzodiazepines are the treatment.', kind: 'warn' };
     },
     exam: ex({ A: (e) => (e.flags.seizing ? 'Snoring, trismus.' : 'Patent.'), C: 'Tachycardic, sweaty.', D: (e) => (e.flags.seizing ? 'Generalised tonic–clonic seizure.' : `GCS ${e.p.gcs}, post-ictal. Coarse tremor. Nystagmus.`), E: 'Spider naevi, palmar erythema. Smells of alcohol.' }),
-    inv: { bloods: (e) => labs(e, { na: 131, plt: 96, alt: 84, extra: [['Magnesium', '0.58 mmol/L'], ['Phosphate', '0.6 mmol/L'], ['Ethanol', '<10 mg/dL']] }), gas: true, ecg: { desc: 'Sinus tachycardia, QTc 470 ms.' }, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_head', report: 'Generalised atrophy; no haemorrhage.' }], pocus: [] },
+    inv: { bloods: (e) => labs(e, { na: 131, plt: 96, alt: 84, extra: [['Magnesium', '0.58 mmol/L'], ['Phosphate', '0.6 mmol/L'], ['Ethanol', '<10 mg/dL']] }), gas: true, ecg: { morph: { qtc: 0.47 } }, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_head', report: 'Generalised atrophy; no haemorrhage.' }], pocus: [] },
     critical: [
       { text: 'Benzodiazepine to terminate seizure', check: (e) => any(e, 'lorazepam', 'midazolam') },
       { text: 'Check and treat glucose', check: (e) => e.did('glucose') },
@@ -543,7 +544,7 @@
       if (ev.type === 'inv' && ev.id === 'bloods' && !e.did('antibiotics')) return { msg: 'Do not wait for the neutrophil count — treat empirically.', kind: 'warn' };
     },
     exam: ex({ B: 'Clear chest.', C: 'Warm peripheries, bounding pulse. PICC site: mild erythema.', D: 'GCS 15.', E: (e) => `T ${e.p.temp.toFixed(1)} °C. Mouth ulcers. Alopecia.` }),
-    inv: { bloods: (e) => labs(e, { wcc: 0.4, neut: 0.1, plt: 64, hb: 92, crp: 182, extra: [['Blood cultures', 'Peripheral + PICC lumens'], ['Procalcitonin', '6.1 µg/L']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }, { label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Hyperdynamic LV.' }] },
+    inv: { bloods: (e) => labs(e, { wcc: 0.4, neut: 0.1, plt: 64, hb: 92, crp: 182, extra: [['Blood cultures', 'Peripheral + PICC lumens'], ['Procalcitonin', '6.1 µg/L']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }, { label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Hyperdynamic LV.' }] },
     critical: [
       { text: 'Empirical antibiotics within 1 hour (piperacillin–tazobactam)', check: (e) => e.did('antibiotics') && !e.flags.late },
       { text: 'Fluid resuscitation', check: (e) => fluidL(e) >= 1 },
@@ -587,7 +588,7 @@
       if (ev.type === 'inf' && ev.id === 'noradrenaline' && ev.rate > 0.4 && !e.did('hydrocortisone')) return { msg: 'Poor response to noradrenaline — he is steroid-dependent and has missed doses.', kind: 'warn' };
     },
     exam: ex({ B: 'Shallow breathing (pain).', C: 'Warm, bounding.', D: 'GCS 15.', E: (e) => `T ${e.p.temp.toFixed(1)} °C. Board-like rigidity, guarding RIF. Previous laparotomy scar.` }),
-    inv: { bloods: (e) => labs(e, { wcc: 18.6, crp: 310, alb: 24, extra: [['Random cortisol', 'Sent']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_normal', report: 'Erect CXR: free air under the right hemidiaphragm.' }, ct: [{ label: 'CT abdomen/pelvis', media: null, report: 'Free gas and fluid; thickened terminal ileum with a contained perforation and 6 cm pelvic collection.' }], pocus: [{ label: 'FAST', media: 'us_fast_pos', report: 'Free fluid in the pelvis.' }] },
+    inv: { bloods: (e) => labs(e, { wcc: 18.6, crp: 310, alb: 24, extra: [['Random cortisol', 'Sent']] }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Erect CXR: free air under the right hemidiaphragm.' }, ct: [{ label: 'CT abdomen/pelvis', media: null, report: 'Free gas and fluid; thickened terminal ileum with a contained perforation and 6 cm pelvic collection.' }], pocus: [{ label: 'FAST', media: 'us_fast_pos', report: 'Free fluid in the pelvis.' }] },
     critical: [
       { text: 'Antibiotics within 1 hour', check: (e) => e.did('antibiotics') },
       { text: 'Fluids and vasopressor', check: (e) => fluidL(e) >= 1 && vaso(e) },
@@ -631,7 +632,7 @@
       if (ev.type === 'action' && ev.id === 'tss_ivig') return { handled: true, msg: 'Microbiology agree IVIG for refractory toxic shock.', kind: 'good' };
     },
     exam: ex({ C: 'Warm, vasodilated.', D: 'GCS 14, drowsy.', E: (e) => `T ${e.p.temp.toFixed(1)} °C. Diffuse macular erythroderma, conjunctival injection, strawberry tongue.` }),
-    inv: { bloods: (e) => labs(e, { wcc: 19, plt: 92, cr: 186, egfr: 31, bili: 38, crp: 290, extra: [['Creatine kinase', '3,800 U/L'], ['hCG', 'Negative']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Flat IVC.' }] },
+    inv: { bloods: (e) => labs(e, { wcc: 19, plt: 92, cr: 186, egfr: 31, bili: 38, crp: 290, extra: [['Creatine kinase', '3,800 U/L'], ['hCG', 'Negative']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Flat IVC.' }] },
     critical: [
       { text: 'Remove the source (retained tampon)', check: (e) => e.flags.removed },
       { text: 'Antibiotics including clindamycin', check: (e) => e.did('antibiotics') && e.flags.clinda },
@@ -673,7 +674,7 @@
       if (ev.type === 'action' && ev.id === 'icu_referral') { e.flags.icu = true; }
     },
     exam: ex({ B: 'Bronchial breathing and coarse crackles right base. Tiring.', C: 'Warm peripheries.', D: (e) => `GCS ${e.p.gcs}, new confusion.`, E: (e) => `T ${e.p.temp.toFixed(1)} °C.` }),
-    inv: { bloods: (e) => labs(e, { wcc: 21, crp: 286, urea: 9.8, extra: [['Legionella / pneumococcal urinary antigens', 'Sent']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_rll', report: 'Dense right lower-lobe consolidation with air bronchograms.' }, ct: [{ label: 'CT chest', media: 'ct_pneumonia', report: 'Right lower-lobe consolidation, small parapneumonic effusion.' }], pocus: [{ label: 'Lung ultrasound (right base)', media: 'us_blines', report: 'Hepatisation with dynamic air bronchograms; B-lines.' }] },
+    inv: { bloods: (e) => labs(e, { wcc: 21, crp: 286, urea: 9.8, extra: [['Legionella / pneumococcal urinary antigens', 'Sent']] }), gas: true, ecg: {}, cxr: { media: 'cxr_rll', report: 'Dense right lower-lobe consolidation with air bronchograms.' }, ct: [{ label: 'CT chest', media: 'ct_pneumonia', report: 'Right lower-lobe consolidation, small parapneumonic effusion.' }], pocus: [{ label: 'Lung ultrasound (right base)', media: 'us_blines', report: 'Hepatisation with dynamic air bronchograms; B-lines.' }] },
     critical: [
       { text: 'Oxygen escalated to HFNO (target 94–98%)', check: (e) => e.did('hfno') || e.p.ventilated },
       { text: 'Antibiotics within 4 h (1 h if septic)', check: (e) => e.did('antibiotics') },
@@ -726,7 +727,7 @@
       if (ev.type === 'drug' && (ev.id === 'adrenaline_im' || ev.id === 'chlorphenamine' || ev.id === 'hydrocortisone')) return { msg: 'No response — this is bradykinin-mediated, not histamine-mediated.', kind: 'warn' };
     },
     exam: ex({ A: (e) => (e.flags.secured ? 'Tube secured.' : e.p.narrow > 0.8 ? 'Huge protruding tongue, stridor, drooling, cannot speak.' : 'Swollen tongue and lips, muffled voice, drooling.'), C: 'Normotensive.', D: 'GCS 15, frightened.', E: 'No urticaria.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['Mast cell tryptase', 'Normal'], ['C4', 'Normal']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: cxrN, ct: [], pocus: [] },
+    inv: { bloods: (e) => labs(e, { extra: [['Mast cell tryptase', 'Normal'], ['C4', 'Normal']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [] },
     critical: [
       { text: 'Early senior anaesthetic + ENT help', check: (e) => e.flags.help },
       { text: 'Secure the airway (awake intubation or FONA)', check: (e) => e.flags.secured },
@@ -755,7 +756,7 @@
   add({
     id: 'em-pea-arrest', title: 'PEA arrest on the ward', field: 'EM', shock: 'Hypovolaemic (arrest)', difficulty: 2, setting: 'ward', als: true, arrestLimit: 420,
     stem: 'Cardiac arrest call: 71-year-old man, day 1 after an open right hemicolectomy, found unresponsive. The nurse says he has been increasingly tachycardic overnight and his drain has filled. Monitor shows sinus rhythm at 120 — no pulse.',
-    patient: { age: 71, sex: 'M', weight: 74, rhythm: 'pea', vol: 0.5, hb: 70, bleed: 0.0004, lactate: 7, look: { wound: true } },
+    patient: { age: 71, sex: 'M', weight: 74, rhythm: 'pea', peaRate: 120, vol: 0.5, hb: 70, bleed: 0.0004, lactate: 7, look: { wound: true } },
     arrestRhythm: () => 'pea',
     rosc(e) {
       const f = e.flags, ok = e.flags.cpr && e.did('adrenaline') && (e.fluidIn.rbc + e.fluidIn.crystalloid >= 1000) && f.found;
@@ -770,7 +771,7 @@
       if (ev.type === 'drug' && ev.id === 'adrenaline' && e.p.arrested) return { msg: 'Adrenaline 1 mg IV — non-shockable rhythm: give as soon as access is available.', kind: 'good', noHarm: true };
     },
     exam: ex({ A: 'Bag-mask ventilation.', B: 'Bilateral chest rise.', C: (e) => (e.p.arrested ? 'No central pulse. Abdomen distended; drain full of fresh blood.' : 'Weak pulse.'), D: 'Unresponsive.', E: 'Laparotomy wound oozing.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: (e) => ({ desc: e.p.arrested ? 'Narrow-complex rhythm ~120/min without output (PEA).' : 'Sinus tachycardia.' }), cxr: cxrN, ct: [], pocus: [{ label: 'Subcostal (pulse check)', media: 'us_ivc_flat', report: 'Small hyperdynamic “kissing” ventricles; flat IVC; no effusion.' }, { label: 'FAST', media: 'us_fast_pos', report: 'Large volume free fluid.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'Subcostal (pulse check)', media: 'us_ivc_flat', report: 'Small hyperdynamic “kissing” ventricles; flat IVC; no effusion.' }, { label: 'FAST', media: 'us_fast_pos', report: 'Large volume free fluid.' }] },
     critical: [
       { text: 'High-quality CPR', check: (e) => e.did('cpr_on') },
       { text: 'Adrenaline 1 mg ASAP (non-shockable)', check: (e) => e.did('adrenaline') },
@@ -801,7 +802,7 @@
   add({
     id: 'em-stroke', title: 'Acute stroke — thrombolysis decision', field: 'EM', shock: null, category: 'Neurological', difficulty: 2, setting: 'ed',
     stem: 'Pre-alert: 71-year-old woman, right-sided weakness and expressive dysphasia, last seen well 70 minutes ago. On arrival BP 208/112, glucose 7.2. NIHSS 14. Not anticoagulated.',
-    patient: { age: 71, sex: 'F', weight: 66, vasoplegia: 1.65, hrBase: 82, gcs: 14, look: {} },
+    patient: { age: 71, sex: 'F', weight: 66, vasoplegia: 1.65, hrBase: 82, rhythm: 'af', gcs: 14, look: {} },
     tick(e, dt) { const f = e.flags; if (f.lysed && !f.better && e.t - f.lysedT > 60) { f.better = true; e.say('Speech improving — NIHSS now 8.', 'good'); } },
     extraActions: [{ id: 'cta', name: 'CT angiogram (head & neck)' }, { id: 'thrombectomy', name: 'Refer for mechanical thrombectomy' }],
     onEvent(e, ev) {
@@ -815,7 +816,7 @@
       if (ev.type === 'action' && ev.id === 'thrombectomy') { if (!f.cta) return { handled: true, msg: 'Neuro-interventional: please send the CTA.' }; f.mt = true; return { handled: true, msg: 'Accepted for mechanical thrombectomy — transfer to the neuroscience centre.', kind: 'good' }; }
     },
     exam: ex({ C: 'Irregularly irregular pulse.', D: (e) => (e.flags.better ? 'GCS 15. Mild dysphasia, right arm drift.' : 'GCS 14 (expressive dysphasia). Right face, arm and leg weakness (power 1–2/5). Left gaze preference.'), E: 'No head injury.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['INR', '1.0'], ['Platelets', '262']] }), gas: false, ecg: { desc: 'Atrial fibrillation 90/min — new.' }, cxr: cxrN, ct: [{ label: 'CT head (non-contrast)', media: 'ct_head', report: 'No haemorrhage. Hyperdense left MCA sign; ASPECTS 8.' }], pocus: [] },
+    inv: { bloods: (e) => labs(e, { extra: [['INR', '1.0'], ['Platelets', '262']] }), gas: false, ecg: { note: 'new-onset AF — likely cardioembolic source.' }, cxr: cxrN, ct: [{ label: 'CT head (non-contrast)', media: 'ct_head', report: 'No haemorrhage. Hyperdense left MCA sign; ASPECTS 8.' }], pocus: [] },
     critical: [
       { text: 'CT head to exclude haemorrhage', check: (e) => e.did('inv_ct') },
       { text: 'Lower BP to < 185/110 before thrombolysis (labetalol)', check: (e) => any(e, 'labetalol', 'gtn') },

@@ -4,68 +4,6 @@
   const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
   const g = (x, mu, w) => Math.exp(-((x - mu) * (x - mu)) / (2 * w * w));
 
-  // ECG value (mV-ish) at time `ph` seconds into a beat of length rr, morphology m
-  function ecgBeat(ph, rr, m, rhythm) {
-    const sc = clamp(Math.sqrt(rr / 0.85), 0.55, 1.15);
-    const x = ph / sc;
-    const qw = m.qrsW || 1;
-    let v = 0;
-    if (rhythm === 'vt') {
-      const xx = ph / rr;
-      if (m.poly) return (0.6 + 0.6 * Math.sin(ph * 0 + (m.tw || 0))) * Math.sin(2 * Math.PI * xx);
-      return 1.1 * Math.sin(2 * Math.PI * xx) * (1 - 0.3 * Math.cos(4 * Math.PI * xx));
-    }
-    if (m.sine) { const xx = ph / rr; return 0.9 * (m.amp || 1) * Math.sin(2 * Math.PI * xx); }
-    if (m.pvc) { // broad bizarre ectopic, no P, discordant T
-      return (m.amp || 1) * (1.3 * g(ph, 0.2, 0.04) - 0.5 * g(ph, 0.29, 0.03) - 0.4 * g(ph, 0.45, 0.07));
-    }
-    const hasP = !['af', 'svt', 'chb', 'paced', 'junctional'].includes(rhythm);
-    if (hasP) v += 0.12 * (m.p == null ? 1 : m.p) * g(x, 0.08, 0.022);
-    if (rhythm === 'paced') { v += ph > 0.155 && ph < 0.162 ? 1.6 : 0; }
-    const q0 = 0.19;
-    v += -0.08 * g(x, q0 - 0.022 * qw, 0.008 * qw);
-    v += (m.rAmp || 1) * g(x, q0, 0.011 * qw * (rhythm === 'paced' ? 2.2 : 1));
-    v += -0.22 * (m.sAmp || 1) * g(x, q0 + 0.024 * qw, 0.01 * qw * (rhythm === 'paced' ? 2 : 1));
-    // ST segment
-    const st = m.st || 0;
-    if (st) v += st * clamp((x - (q0 + 0.03 * qw)) / 0.02, 0, 1) * clamp((0.37 - x) / 0.08 + 0.4, 0, 1);
-    // T wave
-    const tp = m.tPeak || 1;
-    const tc = 0.38 + 0.02 * (qw - 1) + 0.12 * ((m.qt || 1) - 1);
-    v += 0.26 * tp * g(x, tc, (0.05 + 0.03 * ((m.qt || 1) - 1)) / Math.sqrt(Math.max(0.2, Math.abs(tp)))) * (rhythm === 'paced' ? -1 : 1);
-    if (m.u) v += 0.1 * m.u * g(x, tc + 0.14, 0.035);
-    if (m.j) v += m.j * g(x, q0 + 0.035 * qw, 0.012);
-    return v * (m.amp || 1);
-  }
-  S.ecgBeat = ecgBeat;
-
-  // ECG morphology driven by the simulated physiology (scenario p.ecg values are added on top).
-  // Returns the morphology plus a short list of human-readable findings (used by the 12-lead report).
-  function ecgMorph(p) {
-    const m = Object.assign({ st: 0, tPeak: 1, qrsW: 1, p: 1, amp: 1, u: 0, qt: 1, j: 0 }, p.ecg || {});
-    const f = [];
-    const k = p.k || 4.2, ica = p.ica || 1.15;
-    if (k >= 5.5) { m.tPeak = Math.max(m.tPeak, 1 + (k - 5.5) * 1.3); f.push('peaked T waves'); }
-    if (k >= 6.5) { m.qrsW = Math.max(m.qrsW, 1 + (k - 6.5) * 1.1); m.p *= clamp(1 - (k - 6.5) * 0.7, 0, 1); f.push('broad QRS, flattened P waves'); }
-    if (k >= 7.8) { m.sine = true; f.push('sine-wave pattern'); }
-    if (k < 3.5) { m.tPeak = Math.min(m.tPeak, Math.max(0.15, 1 - (3.5 - k) * 0.75)); m.u = (3.5 - k) * 0.35; m.st -= 0.04; f.push('flat T waves, U waves'); }
-    if (ica < 1.0) { m.qt = Math.max(m.qt, 1 + (1.1 - ica) * 1.6); f.push('prolonged QT (hypocalcaemia)'); }
-    if (m.qt > 1.25 && !f.some((x) => /QT/.test(x))) f.push('prolonged QT');
-    // supply/demand ischaemia: tachycardia with poor coronary perfusion or hypoxaemia
-    const dem = clamp(((p.hr || 80) - 120) / 60, 0, 1) * clamp((70 - (p.map || 80)) / 25, 0, 1) + clamp((0.85 - (p.sa || 0.98)) * 3, 0, 1);
-    if (dem > 0.15 && !(p.ecg && p.ecg.st > 0)) { m.st -= 0.12 * Math.min(1, dem); f.push('ST depression (demand ischaemia)'); }
-    if (p.ecg && p.ecg.st > 0.05) f.push('ST elevation');
-    if (p.temp < 32) { m.j = clamp((32 - p.temp) * 0.06, 0, 0.35); f.push('J (Osborn) waves'); }
-    // pericardial fluid: low voltage ± alternans; RV strain from obstruction without pulsus
-    if ((p.pulsus || 0) > 0.15 || (p.obstruct > 0.3 && p.cvp > 14 && p.pulsus)) { m.amp *= 0.5; m.alt = true; f.push('low-voltage complexes, electrical alternans'); }
-    else if (p.obstruct > 0.3) { m.tPeak = Math.min(m.tPeak, -0.5); f.push('T-wave inversion (RV strain)'); }
-    m.ectopy = clamp((k - 6) * 0.15, 0, 0.3) + clamp((0.8 - (p.sa || 0.98)) * 0.8, 0, 0.25) + (dem > 0.5 ? 0.08 : 0) + (p.ecg && p.ecg.ectopy || 0);
-    if (m.ectopy > 0.07) f.push('ventricular ectopics');
-    m.findings = f;
-    return m;
-  }
-  S.ecgMorph = ecgMorph;
-
   function plethShape(x) { // x 0..1 of a beat
     if (x < 0) return 0;
     if (x < 0.14) return Math.sin((x / 0.14) * Math.PI / 2);
@@ -90,7 +28,7 @@
   class Monitor {
     constructor(canvas, eng) {
       this.c = canvas; this.ctx = canvas.getContext('2d'); this.eng = eng;
-      this.tm = 0; this.x = 0; this.beats = [0]; this.pBeats = [0]; this.nextBeat = 0.4; this.nextP = 0.3;
+      this.tm = 0; this.x = 0; this.gen = new S.RhythmGen(); this.morph = S.ecgMorph(eng.p); this.morphAt = -1;
       this.breathStart = 0; this.nextBreath = 1;
       this.last = {}; this.nibp = null; this.nibpAt = -999; this.nibpCycle = 30;
       this.sound = false; this.actx = null;
@@ -121,25 +59,15 @@
       ch.push({ k: 'co2', col: '#ffe14d', label: 'CO₂' });
       return ch;
     }
-    beatAt(list, t) { for (let i = list.length - 1; i >= 0; i--) if (list[i] <= t) return [list[i], list[i + 1] || null]; return [null, null]; }
+    // ventricular beat (QRS onset) at or before t, and the one after it
+    beatAt(t) { const v = this.gen.v; for (let i = v.length - 1; i >= 0; i--) if (v[i].q <= t) return [v[i], v[i + 1] || null]; return [null, null]; }
     rrNow() { const hr = this.eng.p.hrTrue; return hr > 5 ? 60 / hr : 99; }
     schedule() {
       const p = this.eng.p;
-      while (this.nextBeat <= this.tm + 0.05) {
-        this.beats.push(this.nextBeat);
-        this.morph = ecgMorph(p);
-        const ect = this.morph.ectopy || 0;
-        const isPvc = ['sinus', 'af', 'chb'].includes(p.rhythm) && Math.random() < ect && !this.lastPvc;
-        this.lastPvc = isPvc;
-        (this.btype = this.btype || {})[this.nextBeat] = isPvc ? 'pvc' : (this.altFlag = !this.altFlag) ? 'a' : 'b';
-        let rr = this.rrNow();
-        if (isPvc) rr *= 0.7;
-        if (p.rhythm === 'af') rr *= 0.65 + Math.random() * 0.7;
-        this.nextBeat += Math.min(rr, 3);
-        if (this.sound && this.eng.p.hrTrue > 5 && !['vf', 'asystole', 'pea'].includes(p.rhythm)) this.beep();
-        if (this.beats.length > 40) this.beats.shift();
-      }
-      while (this.nextP <= this.tm + 0.05) { this.pBeats.push(this.nextP); this.nextP += 60 / 78; if (this.pBeats.length > 40) this.pBeats.shift(); }
+      if (this.tm - this.morphAt > 0.25 || this.tm < this.morphAt) { this.morph = S.ecgMorph(p); this.morphAt = this.tm; }
+      const n0 = this.gen.n;
+      this.gen.advance(this.tm + 0.3, p, this.morph);
+      if (this.gen.n > n0 && this.sound && p.hrTrue > 5 && !['vf', 'asystole', 'pea'].includes(p.rhythm)) this.beep();
       while (this.nextBreath <= this.tm + 0.05) {
         this.breathStart = this.nextBreath; this.breathLen = p.rr > 1 ? 60 / p.rr : 99; this.nextBreath += Math.min(this.breathLen, 8);
       }
@@ -157,23 +85,8 @@
     value(k, t) {
       const p = this.eng.p, rhythm = p.rhythm;
       if (k === 'ecg') {
-        if (rhythm === 'asystole') return 0.02 * Math.sin(t * 1.3);
-        const cprArt = p.arrested && this.eng.flags.cpr ? 0.5 * Math.max(0, Math.sin(t * 2 * Math.PI * 1.85)) - 0.15 : 0;
-        if (rhythm === 'vf') { const fine = clamp(1 - (this.eng.arrestT || 0) / 240, 0.35, 1); return fine * (0.45 * Math.sin(t * 31) * (0.6 + 0.4 * Math.sin(t * 2.3)) + 0.25 * Math.sin(t * 47 + 1)) + cprArt; }
-        if (rhythm === 'asystole' && cprArt) return cprArt;
-        let v = 0;
-        const m0 = this.morph || ecgMorph(p);
-        const [b, nb] = this.beatAt(this.beats, t);
-        if (b != null) {
-          const rr = (nb || b + this.rrNow()) - b, bt = this.btype && this.btype[b];
-          const m = bt === 'pvc' ? Object.assign({}, m0, { pvc: true }) : rhythm === 'vt' && m0.qt > 1.25 ? Object.assign({}, m0, { poly: true, tw: t * 1.6 }) : m0;
-          v += ecgBeat(t - b, Math.max(0.25, rr), m, rhythm) * (m0.alt && bt === 'b' ? 0.65 : 1);
-        }
-        v += cprArt;
-        if (rhythm === 'chb') { const [pb] = this.beatAt(this.pBeats, t); if (pb != null) v += 0.13 * g(t - pb, 0.08, 0.022); }
-        if (rhythm === 'af') v += 0.03 * Math.sin(t * 37) + 0.02 * Math.sin(t * 53 + 2);
-        if (p.rhythm === 'svt') v *= 1;
-        return v + 0.01 * Math.sin(t * 0.7);
+        const fine = clamp(1 - (this.eng.arrestT || 0) / 240, 0.3, 1);
+        return S.ecgLead(S.ECG_LEADS.II, t, this.gen, p, { fine, M: this.morph }) + S.ecgArtefact(t, p, this.eng.flags, this.morph);
       }
       const resp = this.respPhase(t);
       if (k === 'pleth' || k === 'abp') {
@@ -181,16 +94,15 @@
         if (p.arrested) return k === 'abp' ? 6 : 0;
         if (['vf', 'asystole', 'pea'].includes(rhythm) || p.map < 18) return k === 'abp' ? (p.map < 18 ? clamp(p.map, 0, 18) : 10) + Math.random() * 0.4 : 0;
         const delay = k === 'abp' ? 0.12 : 0.22;
-        const [b, nb] = this.beatAt(this.beats, t - delay);
-        if (b == null) return k === 'abp' ? p.dbp : 0;
-        const rr = (nb || b + this.rrNow()) - b;
+        const [bb, nbb] = this.beatAt(t - delay);
+        if (bb == null) return k === 'abp' ? p.dbp : 0;
+        const b = bb.q, rr = (nbb ? nbb.q : b + this.rrNow()) - b;
         const x = (t - delay - b) / Math.max(0.3, Math.min(rr, 1.1));
         // respiratory variation: hypovolaemia (ventilated) / pulsus paradoxus (tamponade)
         let mod = 1;
         if (p.ventilated) mod = 1 - clamp((1.05 - p.preload) * 0.45, 0.02, 0.25) * resp;
         if (p.pulsus) mod = 1 - p.pulsus * resp;
-        const bt = this.btype && this.btype[b];
-        const ect = bt === 'pvc' ? 0.45 : 1; // ectopic beats eject little
+        const ect = bb.type === 'pvc' ? 0.4 : rr < 0.45 * this.rrNow() ? 0.5 : 1; // premature beats eject little
         const svrN = (p.svr || 1100) / ((p.svrScale || 1) * 1100);
         if (k === 'abp') return p.dbp + (p.sbp - p.dbp) * mod * ect * abpShape(x, svrN, p.contractEff || 1);
         const amp = clamp((p.sv / 70 / (p.svScale || 1)) * Math.pow(1 / Math.max(0.3, svrN), 0.7) * (1 - 0.5 * (p.sym || 0)), 0.06, 1.4);

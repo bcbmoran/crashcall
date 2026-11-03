@@ -80,7 +80,7 @@
     inv: {
       bloods: (e) => labs(e, { wcc: 21.6, neut: 19.2, plt: 128, crp: 286, urea: 14.1, cr: 196, egfr: 22, bili: 24 }),
       extra: [['Urinalysis', 'Leucocytes +++, nitrites +, blood ++'], ['Blood cultures', 'Sent ×2 (results at 24–48 h)']],
-      ecg: { desc: 'Sinus tachycardia. Normal axis. No acute ischaemic change.' },
+      ecg: {},
       cxr: { media: 'cxr_normal', report: 'No consolidation, effusion or pneumothorax. Normal cardiomediastinal contour.' },
       ct: [{ label: 'CT abdomen/pelvis (urogram)', media: 'ct_kub', report: 'Obstructing distal ureteric calculus with upstream hydroureter/hydronephrosis, delayed nephrogram and perinephric stranding: obstructed, likely infected kidney. Needs urgent decompression.' }],
       pocus: [
@@ -155,7 +155,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { wcc: 15.2, neut: 12.8, plt: 168, extra: [['Group & save', 'Group O RhD positive — crossmatch sent'], ['Ionised Ca²⁺ (gas)', '1.02 mmol/L (low)']] }),
-      ecg: { desc: 'Sinus tachycardia, no acute changes.' },
+      ecg: {},
       cxr: { media: 'cxr_normal', report: 'Normal trauma chest radiograph. No pneumothorax or haemothorax. Mediastinum not widened.' },
       ct: [{ label: 'AP pelvis X-ray (trauma series)', media: 'xr_pelvis', report: 'Marked widening of the pubic symphysis — open-book (APC) pelvic ring injury. Bind the pelvis.' }, { label: 'CT abdomen/pelvis with contrast', media: null, report: 'Open-book (APC III) pelvic fracture with large pelvic haematoma and active arterial contrast extravasation from a branch of the left internal iliac artery. No solid organ injury.' }],
       pocus: [
@@ -236,7 +236,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { wcc: 12.1 }),
-      ecg: { desc: 'Sinus tachycardia, no ST changes.' },
+      ecg: {},
       cxr: (e) => e.flags.decompressed ? { media: null, report: 'Repeat film (no image available): residual small left pneumothorax, no mediastinal shift, cannula/drain in situ.' } : { media: 'cxr_tension_left', report: 'Large left pneumothorax with complete lung collapse, mediastinal shift to the right and flattening of the left hemidiaphragm — TENSION PNEUMOTHORAX. (This should have been treated clinically.)' },
       ct: [],
       pocus: [
@@ -280,7 +280,7 @@
   add({
     id: 'em-massive-pe', title: 'High-risk (massive) pulmonary embolism', field: 'EM', shock: 'Obstructive', difficulty: 3, setting: 'ed',
     stem: '58-year-old woman, 10 days after a total knee replacement, collapsed at home. Acutely breathless, pleuritic chest pain. No anticoagulation since discharge.',
-    patient: { age: 58, sex: 'F', weight: 82, obstruct: 0.44, deadspace: 0.38, shunt: 0.12, hrBase: 96, rrBase: 28, lactate: 3.8, oedemaProne: 0, cvpExtra: 3, look: { sweaty: true } },
+    patient: { age: 58, sex: 'F', weight: 82, rvLoad: true, obstruct: 0.44, deadspace: 0.38, shunt: 0.12, hrBase: 96, rrBase: 28, lactate: 3.8, oedemaProne: 0, cvpExtra: 3, look: { sweaty: true } },
     tick(e, dt) {
       const p = e.p;
       if (!e.flags.lysed) p.obstruct = Math.min(0.7, p.obstruct + 0.0006 * dt);
@@ -303,7 +303,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { trop: 182, extra: [['D-dimer', '>5000 ng/mL (do not wait for this)'], ['NT-proBNP', '3,450 ng/L']] }),
-      ecg: { desc: 'Sinus tachycardia, S1Q3T3 pattern, T-wave inversion V1–V3 (RV strain), incomplete RBBB.', s1q3t3: true, tinv: ['V1', 'V2', 'V3'] },
+      ecg: { s1q3t3: true, note: 'right-heart strain pattern in the context of suspected PE (S1Q3T3 is neither sensitive nor specific).' },
       cxr: { media: 'cxr_normal', report: 'Clear lung fields (a normal CXR in a hypoxic patient should make you think PE).' },
       ct: [{ label: 'CT pulmonary angiogram', media: 'ctpa_saddle', report: 'Saddle embolus at the pulmonary bifurcation extending into both main pulmonary arteries. RV:LV ratio 1.6 with septal bowing — right heart strain.' }],
       pocus: [
@@ -381,7 +381,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { extra: [['Mast cell tryptase', 'Sample 1 taken (repeat at 1–2 h and >24 h)']] }),
-      ecg: { desc: 'Sinus tachycardia, no ischaemic changes.' },
+      ecg: {},
       cxr: { media: null, report: 'Mildly hyperinflated lungs. No consolidation or pneumothorax. (No openly-licensed example image available for this finding.)' },
       ct: [],
       pocus: [
@@ -450,7 +450,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { trop: 4820, cr: 132, urea: 9.4, extra: [['NT-proBNP', '6,870 ng/L']] }),
-      ecg: { desc: 'Sinus tachycardia. ST elevation V1–V5 and I, aVL with reciprocal ST depression in III, aVF: anterior STEMI (proximal LAD).', st: { V1: 0.35, V2: 0.75, V3: 0.8, V4: 0.65, V5: 0.35, I: 0.2, aVL: 0.25, III: -0.18, aVF: -0.15, II: -0.06 } },
+      ecg: { note: 'ST elevation V1–V5, I and aVL with reciprocal depression in III/aVF — anterior STEMI (proximal LAD).', st: { V1: 0.35, V2: 0.75, V3: 0.8, V4: 0.65, V5: 0.35, I: 0.2, aVL: 0.25, III: -0.18, aVF: -0.15, II: -0.06 } },
       cxr: (e) => ({ media: 'cxr_oedema', report: e.p.pulmOedema > 0.2 ? 'Bilateral perihilar ("bat-wing") airspace shadowing, upper lobe diversion, Kerley B lines and small effusions: pulmonary oedema.' : 'Mild upper lobe diversion only.' }),
       ct: [],
       pocus: [
@@ -518,7 +518,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { plt: 64, urea: 18.6, cr: 98, bili: 68, alt: 54, alb: 27, extra: [['Glasgow-Blatchford score', '15 (high risk)'], ['Group & save', 'Crossmatch 4 units']] }),
-      ecg: { desc: 'Sinus tachycardia.' },
+      ecg: {},
       cxr: { media: 'cxr_normal', report: 'No free subdiaphragmatic gas. Clear lungs.' },
       ct: [{ label: 'CT abdomen (portal venous)', media: 'ct_varices', report: 'Cirrhotic liver, splenomegaly, large oesophageal and gastric varices, moderate ascites. No active extravasation identified.' }],
       pocus: [
@@ -562,7 +562,7 @@
   add({
     id: 'em-hyperkalaemia', title: 'Severe hyperkalaemia with bradycardia', field: 'EM', shock: 'Cardiogenic (arrhythmic)', difficulty: 2, setting: 'ed',
     stem: '70-year-old man on haemodialysis (Mon/Wed/Fri) missed his last two sessions. Generalised weakness and dizziness. Paramedic strip: "slow, broad complexes".',
-    patient: { age: 70, sex: 'M', weight: 78, k: 7.7, hrBase: 40, baro: 0.35, contract: 0.8, atropineResp: 0.4, lactate: 2.1, extraAcid: 5, na: 135, ecg: { tPeak: 2.6, qrsW: 1.8, p: 0.25 } },
+    patient: { age: 70, sex: 'M', weight: 78, k: 7.7, hrBase: 40, baro: 0.35, contract: 0.8, atropineResp: 0.4, lactate: 2.1, extraAcid: 5, na: 135 },
     tick(e, dt) {
       const p = e.p;
       p.k += 0.0012 * dt;
@@ -573,9 +573,6 @@
       const tox = clamp((p.k - 6) / 2.5, 0, 1) * (1 - stab);
       p.hrBase = 76 - 42 * tox;
       p.contract = 1 - 0.3 * tox;
-      p.ecg.qrsW = 1 + 1.0 * tox;
-      p.ecg.tPeak = 1 + 2 * clamp((p.k - 5.5) / 2, 0, 1);
-      p.ecg.p = 1 - 0.8 * tox;
       if (p.k > 8.3 && tox > 0.45) { p.rhythm = 'vf'; e.say('VF arrest — sine-wave rhythm degenerated.', 'bad'); }
     },
     onEvent(e, ev) {
@@ -590,7 +587,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { urea: 38.2, cr: 1040, egfr: 4, na: 135, extra: [['Phosphate', '2.9 mmol/L (high)'], ['Bicarbonate (lab)', '14 mmol/L']] }),
-      ecg: (e) => ({ desc: `K⁺ ${e.p.k.toFixed(1)}: ${e.p.ecg.qrsW > 1.4 ? 'bradycardia, absent P waves, broad QRS, tall tented T waves — pre-sine-wave pattern.' : 'peaked T waves; QRS narrowing after calcium.'}` }),
+      ecg: (e) => ({ note: `K⁺ ${e.p.k.toFixed(1)} mmol/L${e.E('calcium') > 0.2 ? ' — IV calcium has partially stabilised the membrane (QRS narrows, P waves return) but K⁺ is unchanged' : ' — hyperkalaemic ECG: treat immediately'}.` }),
       cxr: { media: null, report: 'Cardiomegaly, mild upper lobe diversion.' },
       ct: [],
       pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Moderately impaired LV, small pericardial rim (no tamponade).' }, { label: 'Lung', media: 'us_blines', report: 'Scattered B-lines bilaterally.' }],
@@ -628,7 +625,7 @@
   add({
     id: 'em-bb-overdose', title: 'β-blocker overdose', field: 'EM', shock: 'Cardiogenic (toxicological)', difficulty: 3, setting: 'ed',
     stem: '45-year-old woman found by her partner 2 hours after taking ~60 × propranolol 40 mg tablets. Drowsy, clammy. Ambulance: HR 38, BP 70/40.',
-    patient: { age: 45, sex: 'F', weight: 65, contract: 0.6, hrBase: 36, catecholResp: 0.3, baro: 0.15, atropineResp: 0.35, vasoplegia: 0.95, glucose: 3.6, lactate: 3.2, gcs: 13, ecg: { qrsW: 1.25 } },
+    patient: { age: 45, sex: 'F', weight: 65, contract: 0.6, hrBase: 36, catecholResp: 0.3, baro: 0.15, atropineResp: 0.35, vasoplegia: 0.95, glucose: 3.6, lactate: 3.2, gcs: 13, naBlock: 0.25, ecg: { pr: 0.245 } },
     tick(e, dt) {
       const p = e.p;
       if (!e.did('hiet') && !e.did('glucagon')) p.contract = Math.max(0.35, p.contract - 0.0003 * dt);
@@ -650,7 +647,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { extra: [['Paracetamol level', '<10 mg/L'], ['Salicylate', 'Not detected']] }),
-      ecg: { desc: 'Sinus bradycardia ~36/min, first-degree AV block (PR 260 ms), QRS 120 ms (propranolol Na-channel effect).' },
+      ecg: { note: 'propranolol — β-blockade (bradycardia, PR prolongation) plus sodium-channel blockade (QRS widening).' },
       cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [],
       pocus: [{ label: 'Parasternal long axis', media: 'us_plax_poor', report: 'Globally reduced LV contractility, no effusion.' }, { label: 'IVC', media: 'us_ivc_normal', report: 'Normal calibre IVC with some variation.' }],
     },
@@ -710,7 +707,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { trop: 48, extra: [['TSH', '1.8 mU/L'], ['Magnesium', '0.82 mmol/L']] }),
-      ecg: (e) => ({ desc: e.p.rhythm === 'svt' ? 'Regular narrow-complex tachycardia ~205/min, no visible P waves, rate-related ST depression — likely AVNRT.' : 'Sinus rhythm, normal PR, no delta wave. Resolved ST depression.' }),
+      ecg: (e) => ({ note: e.p.rhythm === 'svt' ? 'likely AVNRT.' : 'no delta wave (no pre-excitation).' }),
       cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [],
       pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Very rapid rate, reduced filling time, globally hypokinetic during tachycardia.' }],
     },
@@ -770,7 +767,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { wcc: 13.1, extra: [['Peak flow', e.p.bronchEff > 0.4 ? 'Unable to perform' : `${Math.round(450 * (1 - e.p.bronchEff * 0.8))} L/min (best 450)`]] }),
-      ecg: { desc: 'Sinus tachycardia.' },
+      ecg: {},
       cxr: { media: null, report: 'Hyperinflated lungs, no pneumothorax, no consolidation.' }, ct: [],
       pocus: [{ label: 'Lung', media: 'us_sliding', report: 'Bilateral sliding — no pneumothorax.' }],
     },

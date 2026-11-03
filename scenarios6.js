@@ -40,7 +40,7 @@
       if (ev.type === 'vent' && ev.key === 'ventRR' && ev.value >= 22) return { msg: 'Prolonged hyperventilation causes cerebral vasoconstriction/ischaemia — only as a brief bridge for herniation.', kind: 'warn' };
     },
     exam: ex({ A: (e) => (e.p.ventilated ? 'ETT secured; C-spine protected.' : 'Snoring; jaw thrust improves it. C-spine immobilised.'), C: 'No external haemorrhage. Abdomen soft, pelvis stable.', D: (e) => `GCS ${e.p.ventilated ? 'sedated' : e.p.gcs}. Right pupil ${e.p.icp > 35 ? '7 mm fixed' : '6 mm sluggish'}, left 3 mm. Extensor posturing on the left.`, E: 'Boggy right temporal scalp haematoma.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus bradycardia.' }, cxr: cxrN, ct: [{ label: 'CT head + C-spine', media: 'ct_head', report: 'Right temporal extradural haematoma 2.8 cm with 9 mm midline shift and effaced basal cisterns. Overlying skull fracture. C-spine normal.' }], pocus: [{ label: 'eFAST', media: 'us_morison_neg', report: 'Negative.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'CT head + C-spine', media: 'ct_head', report: 'Right temporal extradural haematoma 2.8 cm with 9 mm midline shift and effaced basal cisterns. Overlying skull fracture. C-spine normal.' }], pocus: [{ label: 'eFAST', media: 'us_morison_neg', report: 'Negative.' }] },
     critical: [
       { text: 'RSI with neuroprotective technique', check: (e) => e.p.ventilated },
       { text: 'Normocapnia (PaCO₂ 4.5–5.0 kPa) and SpO₂ ≥ 94%', check: (e) => e.p.ventilated && e.p.paco2 / 7.5 < 5.6 },
@@ -84,7 +84,7 @@
       if (ev.type === 'drug' && ev.id === 'txa') return { msg: 'TXA within 2 h in mild–moderate TBI (CRASH-3) — she is beyond 3 h.', kind: 'info' };
     },
     exam: ex({ C: 'Irregularly irregular.', D: (e) => `GCS ${e.p.gcs}. Left pupil ${e.p.gcs < 10 ? 'dilated' : 'normal'}. Mild right drift.`, E: 'Left frontal bruise and laceration.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['Apixaban level (anti-Xa)', '178 ng/mL'], ['Group & save', 'Sent']] }), gas: true, ecg: { desc: 'AF 88/min.' }, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_head', report: 'Left acute subdural haematoma 14 mm with 7 mm midline shift.' }], pocus: [] },
+    inv: { bloods: (e) => labs(e, { extra: [['Apixaban level (anti-Xa)', '178 ng/mL'], ['Group & save', 'Sent']] }), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_head', report: 'Left acute subdural haematoma 14 mm with 7 mm midline shift.' }], pocus: [] },
     critical: [
       { text: 'CT head within 1 hour (anticoagulated)', check: (e) => e.did('inv_ct') },
       { text: 'Reverse the anticoagulant', check: (e) => e.flags.reversed },
@@ -121,7 +121,7 @@
       return crystalHarm(e, ev);
     },
     exam: ex({ C: 'Cool peripheries, CRT 4 s. Pelvis tender; left thigh swollen and shortened.', D: 'GCS 15.', E: 'Abrasions.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus rhythm 70/min.' }, cxr: cxrN, ct: [{ label: 'CT trauma (whole body)', media: 'xr_pelvis', report: 'Lateral compression pelvic fracture with arterial blush; left femoral shaft fracture; no head or chest injury.' }], pocus: [{ label: 'eFAST', media: 'us_morison_neg', report: 'No intraperitoneal fluid.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'CT trauma (whole body)', media: 'xr_pelvis', report: 'Lateral compression pelvic fracture with arterial blush; left femoral shaft fracture; no head or chest injury.' }], pocus: [{ label: 'eFAST', media: 'us_morison_neg', report: 'No intraperitoneal fluid.' }] },
     critical: [
       { text: 'Recognise shock (lactate / gas)', check: (e) => e.did('inv_gas') },
       { text: 'Pelvic binder', check: (e) => e.flags.binder },
@@ -161,7 +161,7 @@
       return crystalHarm(e, ev);
     },
     exam: ex({ B: 'Left: reduced expansion, dull to percussion, absent breath sounds. Trachea central.', C: 'Cool, pale, CRT 4 s.', D: 'GCS 15, anxious.', E: '2 cm stab wound, left 5th intercostal space, mid-axillary line.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_ct_effusion', report: 'Large left haemothorax (white-out of the lower two-thirds).' }, ct: [], pocus: [{ label: 'eFAST — left thorax', media: 'us_effusion_sub', report: 'Large anechoic left pleural collection with spine sign.' }, { label: 'Subxiphoid', media: 'us_plax_normal', report: 'No pericardial effusion.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: { media: 'cxr_ct_effusion', report: 'Large left haemothorax (white-out of the lower two-thirds).' }, ct: [], pocus: [{ label: 'eFAST — left thorax', media: 'us_effusion_sub', report: 'Large anechoic left pleural collection with spine sign.' }, { label: 'Subxiphoid', media: 'us_plax_normal', report: 'No pericardial effusion.' }] },
     critical: [
       { text: 'Oxygen and eFAST', check: (e) => e.did('inv_pocus') },
       { text: 'Large-bore chest drain', check: (e) => e.flags.drain },
@@ -201,7 +201,7 @@
       return crystalHarm(e, ev, 1500);
     },
     exam: ex({ B: 'Equal air entry, clear chest.', C: 'Raised JVP, muffled heart sounds, pulsus paradoxus.', D: (e) => (e.p.map < 50 ? 'Drowsy.' : 'Agitated.'), E: '2 cm wound, left 4th intercostal space parasternal.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia, low-voltage complexes.' }, cxr: cxrN, ct: [], pocus: [{ label: 'Subxiphoid', media: 'us_tamponade', report: 'Pericardial collection with RV diastolic collapse.' }, { label: 'eFAST lungs', media: 'us_sliding', report: 'Bilateral lung sliding.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'Subxiphoid', media: 'us_tamponade', report: 'Pericardial collection with RV diastolic collapse.' }, { label: 'eFAST lungs', media: 'us_sliding', report: 'Bilateral lung sliding.' }] },
     critical: [
       { text: 'eFAST — pericardial fluid', check: (e) => e.did('inv_pocus') },
       { text: 'Surgical decompression (sternotomy / thoracotomy)', check: (e) => e.flags.relieved },
@@ -239,7 +239,7 @@
       return crystalHarm(e, ev);
     },
     exam: ex({ C: 'Cool, pale, CRT 4 s.', D: 'GCS 15, faint.', E: 'Distended, tender lower abdomen with guarding. Shoulder-tip pain.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['Serum hCG', '3,400 IU/L'], ['Rhesus', 'RhD negative']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: cxrN, ct: [], pocus: [{ label: 'FAST — RUQ', media: 'us_fast_pos', report: 'Free fluid in Morison’s pouch.' }, { label: 'Pelvis', media: 'us_fast_pos', report: 'Empty uterus; large volume free fluid in the pouch of Douglas.' }] },
+    inv: { bloods: (e) => labs(e, { extra: [['Serum hCG', '3,400 IU/L'], ['Rhesus', 'RhD negative']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'FAST — RUQ', media: 'us_fast_pos', report: 'Free fluid in Morison’s pouch.' }, { label: 'Pelvis', media: 'us_fast_pos', report: 'Empty uterus; large volume free fluid in the pouch of Douglas.' }] },
     critical: [
       { text: 'Pregnancy test', check: (e) => e.flags.hcg },
       { text: 'FAST / POCUS', check: (e) => e.did('inv_pocus') },
@@ -277,7 +277,7 @@
       return crystalHarm(e, ev, 1500);
     },
     exam: ex({ C: 'Cool peripheries.', D: 'GCS 15.', E: 'Epigastric tenderness. Melaena on PR.' }),
-    inv: { bloods: (e) => labs(e, { urea: 18.6, extra: [['Group & crossmatch', '4 units']] }), gas: true, ecg: { desc: 'Sinus tachycardia, no ischaemia.' }, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Flat IVC.' }] },
+    inv: { bloods: (e) => labs(e, { urea: 18.6, extra: [['Group & crossmatch', '4 units']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Flat IVC.' }] },
     critical: [
       { text: 'Blood transfusion', check: (e) => bloodGiven(e) },
       { text: 'Urgent endoscopy after resuscitation', check: (e) => e.flags.ctrl },
@@ -325,7 +325,7 @@
       if (ev.type === 'drug' && ev.id === 'suxamethonium' && e.t > 0) return { msg: 'Suxamethonium is safe in the first 24–48 h after burns (hyperkalaemia risk later).', kind: 'info' };
     },
     exam: ex({ A: (e) => (e.p.ventilated ? 'ETT secured (uncut).' : e.p.narrow > 0.6 ? 'Stridor, hoarse, swollen lips and tongue.' : 'Hoarse voice, soot in the oropharynx.'), B: 'Circumferential full-thickness chest burns.', C: 'Peripheries cool.', D: 'GCS 15.', E: 'Burns ~40% TBSA (face, chest, both arms). COHb 18%.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['Carboxyhaemoglobin', '18%'], ['Creatine kinase', '1,900 U/L']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: cxrN, ct: [], pocus: [] },
+    inv: { bloods: (e) => labs(e, { extra: [['Carboxyhaemoglobin', '18%'], ['Creatine kinase', '1,900 U/L']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [] },
     critical: [
       { text: 'High-flow oxygen (CO poisoning)', check: (e) => e.p.fio2 >= 0.6 },
       { text: 'Early intubation before airway oedema progresses', check: (e) => e.p.ventilated },
@@ -377,7 +377,7 @@
       if (ev.type === 'drug' && ev.id === 'magnesium') return { msg: 'Magnesium replaced (fluoride also chelates Mg²⁺).', kind: 'good' };
     },
     exam: ex({ C: 'Ectopics on the monitor.', D: 'GCS 15, perioral paraesthesia, positive Chvostek sign.', E: 'Hands and forearms: blanched, grey areas with severe pain.' }),
-    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), ca: (e.p.ica * 2).toFixed(2), extra: [['Ionised calcium', `${e.p.ica.toFixed(2)} mmol/L`], ['Magnesium', '0.55 mmol/L']] }), gas: true, ecg: (e) => ({ desc: `QTc ${Math.round(440 + (1.15 - e.p.ica) * 220)} ms${e.p.k > 6 ? ', peaked T waves' : ''}.` }), cxr: cxrN, ct: [], pocus: [] },
+    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), ca: (e.p.ica * 2).toFixed(2), extra: [['Ionised calcium', `${e.p.ica.toFixed(2)} mmol/L`], ['Magnesium', '0.55 mmol/L']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [] },
     critical: [
       { text: 'Irrigation (with PPE)', check: (e) => e.flags.irrigated },
       { text: 'Topical calcium gluconate gel', check: (e) => e.flags.gel },
@@ -427,7 +427,7 @@
       if (ev.type === 'drug' && ev.id === 'suxamethonium') return { harm: 'Suxamethonium in organophosphate poisoning (prolonged paralysis — use rocuronium)' };
     },
     exam: ex({ A: 'Copious oral secretions.', B: (e) => (e.p.musc > 0.3 ? 'Widespread wheeze and coarse crackles (bronchorrhoea).' : 'Chest clearing.'), C: 'Bradycardic, sweaty.', D: (e) => `GCS 13. Pupils ${e.p.musc > 0.3 ? '1 mm' : '4 mm'}. Fasciculations.`, E: 'Smells of solvent. Incontinent of urine and faeces.' }),
-    inv: { bloods: (e) => labs(e, { extra: [['Red cell cholinesterase', 'Markedly reduced (sent)']] }), gas: true, ecg: { desc: 'Sinus bradycardia, QTc 490 ms.' }, cxr: { media: 'cxr_ards', report: 'Bilateral perihilar opacities (secretions/aspiration).' }, ct: [], pocus: [] },
+    inv: { bloods: (e) => labs(e, { extra: [['Red cell cholinesterase', 'Markedly reduced (sent)']] }), gas: true, ecg: { morph: { qtc: 0.49 }, note: 'organophosphate: muscarinic bradycardia and QT prolongation.' }, cxr: { media: 'cxr_ards', report: 'Bilateral perihilar opacities (secretions/aspiration).' }, ct: [], pocus: [] },
     critical: [
       { text: 'PPE and decontamination', check: (e) => e.flags.ppe },
       { text: 'Atropine — doubling doses until atropinised (≥ 8 mg here)', check: (e) => e.total('atropine') >= 8000 },
@@ -468,7 +468,7 @@
       if (ev.type === 'action' && ev.id === 'source_control') return { handled: true, harm: 'Incision/suction of the bite wound' };
     },
     exam: ex({ C: 'Warm, vasodilated.', D: 'GCS 15.', E: 'Two puncture marks at the ankle; swelling and bruising to the knee; tender groin nodes.' }),
-    inv: { bloods: (e) => labs(e, { wcc: 18, extra: [['20-min whole-blood clotting test', 'Normal'], ['CK', '640 U/L']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }] },
+    inv: { bloods: (e) => labs(e, { wcc: 18, extra: [['20-min whole-blood clotting test', 'Normal'], ['CK', '640 U/L']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }] },
     critical: [
       { text: 'Fluid resuscitation', check: (e) => e.fluidIn.crystalloid >= 1000 },
       { text: 'Antivenom (ViperaTAb)', check: (e) => e.flags.av },

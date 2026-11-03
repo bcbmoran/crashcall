@@ -25,7 +25,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, {}),
-      ecg: { desc: 'Sinus bradycardia ~46/min.' },
+      ecg: {},
       cxr: { media: 'cxr_normal', report: 'Low lung volumes, otherwise normal.' },
       ct: [{ label: 'CT cervical spine', media: 'ct_cspine', report: 'Flexion-teardrop fracture: anteroinferior vertebral body fragment with retrolisthesis of the body into the canal — unstable, high risk of cord injury. MRI recommended.' }, { label: 'CT head', media: 'ct_head', report: 'No acute intracranial abnormality.' }],
       pocus: [
@@ -88,7 +88,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { urea: 12.6, cr: 132, extra: [['Random cortisol', 'Sent (do not delay treatment)']] }),
-      ecg: { desc: 'Sinus tachycardia, mildly peaked T waves.' },
+      ecg: {},
       cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [],
       pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Flat, collapsing IVC.' }, { label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Small, hyperdynamic LV.' }],
     },
@@ -143,7 +143,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { wcc: 24.3, neut: 21.9, plt: 98, crp: 340, urea: 15.2, cr: 186, bili: 31, alb: 22, extra: [['Procalcitonin', '28 ng/mL'], ['Sputum', 'Streptococcus pneumoniae — sensitive to co-amoxiclav']] }),
-      ecg: { desc: 'Sinus tachycardia.' },
+      ecg: {},
       cxr: { media: 'cxr_ards', report: 'Dense right lower lobe consolidation with bilateral patchy infiltrates (ARDS). ETT 4 cm above carina, CVC tip in SVC.' },
       ct: [{ label: 'CT chest', media: 'ct_pneumonia', report: 'Right lower lobe consolidation with bilateral dependent ground-glass change. No empyema.' }],
       pocus: [
@@ -214,7 +214,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { wcc: 14.2, crp: 120 }),
-      ecg: { desc: 'Sinus tachycardia.' },
+      ecg: {},
       cxr: (e) => e.flags.decompressed ? { media: 'cxr_ards', report: 'Right lung re-expanded, drain in situ. Bilateral ARDS changes.' } : { media: 'cxr_ptx_right', report: 'Large right tension pneumothorax with mediastinal shift to the left.' },
       ct: [],
       pocus: [
@@ -279,7 +279,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { plt: 112, extra: [['ACT', '128 s'], ['ROTEM', 'Normal clot formation']] }),
-      ecg: { desc: 'Sinus tachycardia, low-voltage complexes.', lowVolt: true },
+      ecg: { lowVolt: true },
       cxr: { media: 'cxr_ct_effusion', report: 'Enlarged, globular cardiac silhouette compared with the immediate post-op film — consistent with a pericardial collection.' },
       ct: [{ label: 'CT chest', media: 'cxr_ct_effusion', report: 'Large haemopericardium with clot posterior to the right atrium. (Do not take an unstable patient to CT.)' }],
       pocus: [
@@ -337,7 +337,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { extra: [['Mast cell tryptase', 'Sample 1 taken — repeat at 1–2 h and > 24 h']] }),
-      ecg: { desc: 'Sinus tachycardia.' },
+      ecg: {},
       cxr: { media: 'cxr_normal', report: 'ETT in good position. Clear lungs.' }, ct: [],
       pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Hyperdynamic, empty LV.' }, { label: 'IVC', media: 'us_ivc_flat', report: 'Small IVC.' }],
     },
@@ -388,7 +388,8 @@
       p.hrBase = 80 - 40 * Math.min(la, 1.2);
       p.baro = 1 - 0.6 * Math.min(la, 1);
       p.vasoplegia = 1 - 0.25 * Math.min(la, 1);
-      p.ecg.qrsW = 1 + 0.9 * Math.min(la, 1.2);
+      p.naBlock = 0.78 * Math.min(la, 1.3);                 // ECG: PR↑, QRS↑ (≈160 ms at la 0.8), terminal R aVR
+      p.chrono = 1 - 0.42 * clamp(la, 0, 1.2);             // SA-node depression → bradycardia despite sympathetic drive
       if (la > 1.32) { p.rhythm = 'vf'; e.say('VF — LAST cardiac arrest (start CPR; lipid; prolonged resuscitation may be needed).', 'bad'); }
       if (e.flags.seizing) { p.effort = 0.7; p.vco2 = 1.3; p.gcs = 5; }
       else if (!p.ventilated) { p.effort = 0.9; p.vco2 = 1.1; p.gcs = 11; }
@@ -408,7 +409,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, {}),
-      ecg: (e) => ({ desc: e.p.la > 0.5 ? 'Bradycardia with broad QRS (~160 ms), prolonged PR — sodium channel blockade.' : 'Sinus rhythm; QRS narrowing.' }),
+      ecg: (e) => ({ note: e.p.la > 0.3 ? 'cardiac sodium-channel blockade from local anaesthetic — bradycardia, PR prolongation and QRS widening that narrow as lipid takes effect.' : 'QRS narrowing as local anaesthetic toxicity resolves.' }),
       cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [],
       pocus: [{ label: 'Parasternal long axis', media: 'us_plax_poor', report: 'Globally poor LV contraction.' }],
     },
@@ -475,7 +476,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { extra: [['Creatine kinase', '18,400 U/L'], ['Myoglobin (urine)', 'Positive']] }),
-      ecg: (e) => ({ desc: `Sinus tachycardia with ventricular ectopics${e.p.k > 6 ? ', peaked T waves' : ''}.` }),
+      ecg: {},
       cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [], pocus: [],
     },
     critical: [
@@ -533,7 +534,7 @@
       D: `GCS ${e.p.gcs}. Block to cold: ${e.p.block > 0.85 ? 'C4 — hand grip very weak' : 'T1 — hand weakness'}.`, E: 'Term pregnancy, supine on table.',
     }),
     inv: {
-      bloods: (e) => labs(e, { hb: 112 }), ecg: { desc: 'Sinus bradycardia.' }, cxr: { media: null, report: 'N/A (not indicated).' }, ct: [],
+      bloods: (e) => labs(e, { hb: 112 }), ecg: {}, cxr: { media: null, report: 'N/A (not indicated).' }, ct: [],
       pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Small IVC (aortocaval compression + venodilatation).' }],
     },
     critical: [
@@ -589,7 +590,7 @@
       C: `HR ${e.p.hr}, BP ${Math.round(e.p.sbp)}/${Math.round(e.p.dbp)}.`, D: 'Anaesthetised.', E: 'No rash, no oedema.',
     }),
     inv: {
-      bloods: (e) => labs(e, {}), ecg: { desc: 'Sinus tachycardia.' },
+      bloods: (e) => labs(e, {}), ecg: {},
       cxr: { media: null, report: 'Hyperinflated lungs, ETT above carina, no pneumothorax.' }, ct: [],
       pocus: [{ label: 'Lung (bilateral)', media: 'us_sliding', report: 'Bilateral sliding — no pneumothorax, ETT not endobronchial.' }],
     },
@@ -643,7 +644,7 @@
       A: e.p.ventilated ? 'Cuffed tube via cricothyroidotomy, capnography trace present.' : 'No capnography trace with facemask or SGA. Oedematous, bloody airway.', B: `No chest movement. SpO₂ ${e.p.spo2}%.`,
       C: `HR ${e.p.hr}, BP ${Math.round(e.p.sbp)}/${Math.round(e.p.dbp)}.`, D: 'Paralysed (rocuronium).', E: 'Obese neck; cricothyroid membrane not palpable — use the scalpel–finger–bougie (vertical incision) technique.',
     }),
-    inv: { bloods: (e) => labs(e, {}), ecg: { desc: 'Sinus rhythm, rate falling as hypoxaemia worsens.' }, cxr: { media: null, report: 'Not appropriate now.' }, ct: [], pocus: [] },
+    inv: { bloods: (e) => labs(e, {}), ecg: {}, cxr: { media: null, report: 'Not appropriate now.' }, ct: [], pocus: [] },
     critical: [
       { text: 'Call for help', check: (e) => e.did('call_help') },
       { text: 'Plan B/C: attempt SGA or 2-person facemask', check: (e) => any(e, 'sga', 'bvm') },
@@ -704,7 +705,7 @@
     }),
     inv: {
       bloods: (e) => labs(e, { plt: 132, fib: (en) => Math.max(0.9, 2.4 - en.p.coag * 1.5).toFixed(1), extra: [['Fibrinogen (Clauss)', 'Low-normal for pregnancy — aim > 2 g/L']] }),
-      ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: null, report: 'Not indicated.' }, ct: [],
+      ecg: {}, cxr: { media: null, report: 'Not indicated.' }, ct: [],
       pocus: [{ label: 'Pelvis', media: null, report: 'Bulky uterus with intrauterine clot; no free fluid.' }],
     },
     critical: [
@@ -755,7 +756,7 @@
       if (ev.type === 'action' && (ev.id === 'stop_insufflation' || ev.id === 'stop_surgery')) { e.flags.insufflated = false; return { handled: true, msg: 'Surgeon stops and releases the pneumoperitoneum — vagal stimulus removed.', kind: 'good' }; }
     },
     exam: (e) => ({ A: 'ETT secure.', B: `Ventilated. SpO₂ ${e.p.spo2}%.`, C: `HR ${e.p.hr}, BP ${Math.round(e.p.sbp)}/${Math.round(e.p.dbp)}.`, D: 'Anaesthetised.', E: 'Pneumoperitoneum ' + (e.flags.insufflated ? 'at 15 mmHg.' : 'released.') }),
-    inv: { bloods: (e) => labs(e, {}), ecg: { desc: 'Sinus bradycardia.' }, cxr: { media: 'cxr_normal', report: 'N/A' }, ct: [], pocus: [] },
+    inv: { bloods: (e) => labs(e, {}), ecg: {}, cxr: { media: 'cxr_normal', report: 'N/A' }, ct: [], pocus: [] },
     critical: [
       { text: 'Ask surgeon to stop / release pneumoperitoneum', check: (e) => any(e, 'stop_insufflation', 'stop_surgery') },
       { text: 'Anticholinergic (glycopyrronium / atropine)', check: (e) => any(e, 'atropine', 'glycopyrronium') },

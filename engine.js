@@ -349,10 +349,12 @@
       else if (p.rhythm === 'chb') hr = p.fixedRate + 0.35 * Math.max(0, fx.hr) + 0.1 * fx.vagal;
       else if (p.rhythm === 'svt' || p.rhythm === 'vt') hr = p.fixedRate;
       else if (p.rhythm === 'af') hr = p.fixedRate ? p.fixedRate + 0.3 * fx.hr : sinusHR * 1.1;
-      else if (ARREST_RHYTHMS.includes(p.rhythm)) hr = p.rhythm === 'pea' ? 40 : 0;
+      else if (ARREST_RHYTHMS.includes(p.rhythm)) hr = p.rhythm === 'pea' ? (p.peaRate || 40) : 0;
       else hr = sinusHR;
+      if (['sinus', 'pea', 'junctional'].includes(p.rhythm) || p.rhythm === 'chb') hr *= p.chrono == null ? 1 : p.chrono; // SA/AV-node depression (e.g. LA toxicity)
       hr = clamp(hr, 0, p.paed ? 300 : 220);
       p.hrTrue = hr;
+      p.memStab = clamp(this.E('calcium') * 1.6, 0, 0.85); // IV calcium stabilises the myocardial membrane (ECG)
 
       const hf0 = p.paed ? p.hrBase + 70 : 110, hfL = p.paed ? hf0 * 0.55 : 60;
       const hrFill = hr > hf0 ? clamp(1 - (hr - hf0) / (hf0 * 1.3), 0.35, 1) : hr < hfL ? 1 + Math.min(0.3, (hfL - hr) / 80) : 1;

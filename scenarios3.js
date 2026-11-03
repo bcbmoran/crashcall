@@ -33,7 +33,7 @@
       B: vent(e) + ` Equal, quiet air entry bilaterally. No wheeze. Capnogram: ${e.p.ventObstruct > 0.3 ? 'small, slurred plateau' : 'normal'}.`,
       C: circ(e), D: 'Anaesthetised, BIS 45. Paralysed.', E: 'Pneumoperitoneum 12 mmHg, mild head-down tilt.',
     }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus rhythm.' }, ...noImg, pocus: [{ label: 'Lung ultrasound', media: 'us_sliding', report: 'Bilateral lung sliding — no pneumothorax.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [{ label: 'Lung ultrasound', media: 'us_sliding', report: 'Bilateral lung sliding — no pneumothorax.' }] },
     critical: [
       { text: 'Increase FiO₂ to 1.0', check: fio2High },
       { text: 'Isolate the patient from the machine (self-inflating bag directly on the tube)', check: (e) => e.did('isolate_equipment') },
@@ -87,7 +87,7 @@
       B: vent(e), C: e.p.arrested ? 'No palpable carotid pulse. Arterial line flat apart from compression artefact.' : circ(e) + ' Pulse palpable.',
       D: 'Anaesthetised.', E: 'Laparotomy wound open, minimal bleeding.',
     }),
-    inv: { bloods: (e) => labs(e, { k: 4.6, trop: 2400 }), gas: true, ecg: (e) => ({ desc: e.p.arrested ? 'Coarse ventricular fibrillation.' : 'Sinus rhythm with anterior ST elevation.' }), ...noImg, pocus: [{ label: 'Subcostal (during pulse check)', media: null, report: (e) => 'No pericardial effusion. ' + (e.p.arrested ? 'Fibrillating ventricle.' : 'Poor anterior wall motion.') }] },
+    inv: { bloods: (e) => labs(e, { k: 4.6, trop: 2400 }), gas: true, ecg: (e) => (e.p.arrested ? {} : { note: 'anterior STEMI.', st: { V1: 0.3, V2: 0.65, V3: 0.7, V4: 0.55, V5: 0.3, I: 0.15, aVL: 0.2, III: -0.15, aVF: -0.12 } }), ...noImg, pocus: [{ label: 'Subcostal (during pulse check)', media: null, report: (e) => 'No pericardial effusion. ' + (e.p.arrested ? 'Fibrillating ventricle.' : 'Poor anterior wall motion.') }] },
     critical: [
       { text: 'Start CPR within seconds', check: (e) => e.did('cpr_on') },
       { text: 'Defibrillate (3 shocks)', check: (e) => (e.shocks || 0) >= 3 },
@@ -136,7 +136,7 @@
       B: vent(e) + (e.flags.fixed ? ' Equal air entry bilaterally.' : ' Reduced chest movement and absent breath sounds on the LEFT. Trachea central. No wheeze.'),
       C: circ(e), D: 'Anaesthetised.', E: 'Steep Trendelenburg, pneumoperitoneum 14 mmHg.',
     }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus rhythm.' }, ...noImg, pocus: [{ label: 'Lung ultrasound (left)', media: 'us_sliding', report: (e) => e.flags.fixed ? 'Lung sliding present bilaterally.' : 'Left: no sliding but a lung pulse is present — lung not ventilated (not a pneumothorax).' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [{ label: 'Lung ultrasound (left)', media: 'us_sliding', report: (e) => e.flags.fixed ? 'Lung sliding present bilaterally.' : 'Left: no sliding but a lung pulse is present — lung not ventilated (not a pneumothorax).' }] },
     critical: [
       { text: '100% oxygen', check: fio2High },
       { text: 'Check tube depth / position', check: (e) => e.flags.fixed },
@@ -181,7 +181,7 @@
       B: vent(e) + (e.flags.fixed ? ' Good bilateral air entry, scattered crackles.' : ' Very quiet chest bilaterally, equal. No wheeze. Bag feels “like a brick wall”.'),
       C: circ(e), D: 'Anaesthetised, paralysed (TOF 0).', E: 'Abdomen open, no change in surgical field.',
     }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia.' }, ...noImg, pocus: [{ label: 'Lung ultrasound', media: 'us_sliding', report: 'Sliding present bilaterally (reduced amplitude).' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [{ label: 'Lung ultrasound', media: 'us_sliding', report: 'Sliding present bilaterally (reduced amplitude).' }] },
     critical: [
       { text: '100% oxygen and hand ventilation', check: fio2High },
       { text: 'Isolate equipment to localise the problem', check: (e) => e.did('isolate_equipment') },
@@ -227,7 +227,7 @@
       if (ev.type === 'fluid' && e.fluidIn.crystalloid > 1500) return { msg: 'Large volumes — this is mainly vasodilatation; use a vasopressor.', kind: 'warn' };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e) + ' Clear chest, normal pressures.', C: circ(e) + ' Sinus rhythm.', D: `Anaesthetised, sevoflurane ${e.did('lighten_anaesthesia') ? '0.8' : '1.2'} MAC, BIS ${e.did('lighten_anaesthesia') ? 48 : 31}.`, E: 'Surgery not yet started. No blood loss.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus bradycardia 50/min, LVH.' }, ...noImg, pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Hyperdynamic, under-filled LV; no effusion.' }, { label: 'IVC', media: 'us_ivc_flat', report: 'Small IVC.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { morph: { lvh: true } }, ...noImg, pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Hyperdynamic, under-filled LV; no effusion.' }, { label: 'IVC', media: 'us_ivc_flat', report: 'Small IVC.' }] },
     critical: [
       { text: 'Vasopressor (metaraminol / phenylephrine / ephedrine)', check: vaso },
       { text: 'Treat bradycardia (glycopyrronium / atropine / ephedrine)', check: (e) => any(e, 'glycopyrronium', 'atropine', 'ephedrine') },
@@ -286,7 +286,7 @@
       if (ev.type === 'drug' && (ev.id === 'labetalol' || ev.id === 'esmolol') && !e.flags.refilled && !e.flags.tiva) return { harm: 'β-blocker used to mask signs of inadequate anaesthesia (awareness risk) before excluding the cause' };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e) + ' Clear chest. Patient not breathing against the ventilator.', C: circ(e) + ' Sinus tachycardia.', D: `Pupils ${e.p.stress > 0.4 ? 'dilated, lacrimation' : 'small'}. BIS ${e.p.stress > 0.4 ? 78 : 44}. TOF 0/4.`, E: 'Bladder not palpable. No tourniquet. Afebrile.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia, no ischaemia.' }, ...noImg, pocus: [] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [] },
     critical: [
       { text: 'Check end-tidal agent / vaporiser (find the cause)', check: (e) => e.did('check_agent') },
       { text: 'Re-establish anaesthesia (refill vaporiser or TIVA)', check: (e) => e.flags.refilled || e.flags.tiva },
@@ -341,7 +341,7 @@
       if (ev.type === 'drug' && (ev.id === 'labetalol' || ev.id === 'esmolol') && p.map < 65) return { noHarm: false };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e), C: circ(e) + (e.p.rhythm === 'af' ? ' Irregularly irregular.' : ' Regular.'), D: 'Anaesthetised, adequate depth (BIS 45).', E: 'Estimated blood loss 300 mL. Warm.' }),
-    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), extra: [['Magnesium', '0.58 mmol/L']] }), gas: true, ecg: (e) => ({ desc: e.p.rhythm === 'af' ? `Atrial fibrillation with fast ventricular response ~${e.p.hr}/min, narrow QRS.` : 'Sinus rhythm.' }), ...noImg, pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Tachycardic, under-filled LV; no effusion.' }] },
+    inv: { bloods: (e) => labs(e, { k: e.p.k.toFixed(1), extra: [['Magnesium', '0.58 mmol/L']] }), gas: true, ecg: {}, ...noImg, pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Tachycardic, under-filled LV; no effusion.' }] },
     critical: [
       { text: '12-lead ECG / rhythm identification', check: (e) => e.did('inv_ecg') },
       { text: 'Synchronised DC cardioversion (worsening hypotension)', check: (e) => e.did('sync_dc') },
@@ -395,7 +395,7 @@
       if (ev.type === 'drug' && ev.id === 'chlorpromazine') return { msg: 'Chlorpromazine (QRH 2-8: 25–50 mg IM) for suspected serotonin syndrome — watch for hypotension.', kind: 'good' };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e), C: circ(e) + ' Warm, flushed, vasodilated peripheries.', D: 'Anaesthetised. Pupils dilated. Inducible ankle clonus and hyper-reflexia bilaterally; no masseter or generalised rigidity.', E: `Temp ${e.p.temp.toFixed(1)} °C. ${e.flags.warmerOff ? 'Warmer off.' : 'Forced-air warmer set to 43 °C on the upper body.'} Profuse sweating.` }),
-    inv: { bloods: (e) => labs(e, { k: 4.4, extra: [['Creatine kinase', '420 U/L'], ['Calcium (adjusted)', '2.71 mmol/L']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, ...noImg, pocus: [] },
+    inv: { bloods: (e) => labs(e, { k: 4.4, extra: [['Creatine kinase', '420 U/L'], ['Calcium (adjusted)', '2.71 mmol/L']] }), gas: true, ecg: {}, ...noImg, pocus: [] },
     critical: [
       { text: 'Remove external heating', check: (e) => e.flags.warmerOff },
       { text: 'Stop serotonergic drugs', check: (e) => e.did('stop_trigger') },
@@ -427,7 +427,7 @@
     id: 'an-qrh-gas-embolism', title: 'Collapse during laparoscopic insufflation', field: 'Anaes', shock: 'Obstructive (gas embolism)', difficulty: 3, setting: 'theatre',
     stem: '52-year-old woman for laparoscopic hysterectomy. Seconds after the Veress needle insufflation starts, EtCO₂ falls from 4.8 to 2.1 kPa, SpO₂ drops and BP crashes to 60/30. A central line is in situ for poor access.',
     qrh: ['3-5', '2-1'],
-    patient: { age: 52, sex: 'F', weight: 72, ventilated: true, fio2: 0.5, ventRR: 12, effort: 0, obstruct: 0.55, deadspace: 0.45, shunt: 0.12, cvc: true, artLine: true, hrBase: 94, look: { drapes: true, surgField: 'abdo' } },
+    patient: { rvLoad: true, age: 52, sex: 'F', weight: 72, ventilated: true, fio2: 0.5, ventRR: 12, effort: 0, obstruct: 0.55, deadspace: 0.45, shunt: 0.12, cvc: true, artLine: true, hrBase: 94, look: { drapes: true, surgField: 'abdo' } },
     init(e) { e.flags.paralysed = true; e.flags.insufflating = true; },
     tick(e, dt) {
       const p = e.p;
@@ -444,7 +444,7 @@
       if (ev.type === 'vent' && ev.key === 'fio2' && ev.value >= 0.9) return { msg: 'FiO₂ 1.0 (also stop nitrous oxide if used).', kind: 'good' };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e) + ' Clear chest.', C: circ(e) + (e.p.obstruct > 0.25 ? ' “Mill-wheel” murmur heard. Neck veins distended, CVP high.' : ' Improving.'), D: 'Anaesthetised.', E: e.flags.insufflating ? 'Insufflator running.' : 'Pneumoperitoneum released.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia with right-heart strain.' }, ...noImg, pocus: [{ label: 'Subcostal / TOE', media: null, report: (e) => e.p.obstruct > 0.25 ? 'Echo-bright gas in the right heart; RV dilated and hypokinetic.' : 'RV function recovering, no further gas.' }] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [{ label: 'Subcostal / TOE', media: null, report: (e) => e.p.obstruct > 0.25 ? 'Echo-bright gas in the right heart; RV dilated and hypokinetic.' : 'RV function recovering, no further gas.' }] },
     critical: [
       { text: 'Stop insufflation / release pneumoperitoneum', check: (e) => !e.flags.insufflating },
       { text: 'FiO₂ 1.0', check: fio2High },
@@ -494,7 +494,7 @@
       if (ev.type === 'action' && (ev.id === 'rsi_propofol' || ev.id === 'rsi_ketamine') && !e.did('suxamethonium') && !e.flags.relieved) { e.flags.relieved = true; p.airwayPatent = true; return { msg: 'Re-intubated (larynx relaxed by the induction agent and relaxant).', kind: 'good' }; }
     },
     exam: (e) => ({ A: e.p.airwayPatent ? 'Airway open.' : 'Complete obstruction: no stridor, no gas movement, tracheal tug.', B: `RR ${e.p.rr}, SpO₂ ${e.p.spo2}%. ${e.p.airwayPatent ? 'Air entry bilaterally.' : 'Paradoxical see-saw breathing, no air entry.'}`, C: circ(e), D: 'Semi-conscious, moving.', E: 'Nasal packs in situ; blood in the oropharynx.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia.' }, ...noImg, pocus: [] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [] },
     critical: [
       { text: '100% O₂, jaw thrust and CPAP', check: (e) => e.flags.cpap },
       { text: 'Deepen with propofol or give suxamethonium', check: (e) => any(e, 'propofol', 'suxamethonium') },
@@ -552,7 +552,7 @@
       if (ev.type === 'action' && ['o2_nc', 'o2_nrb', 'hfno'].includes(ev.id) && !f.fire) { p.fio2 = ev.id === 'o2_nc' ? 0.32 : 0.8; p.lastFio2 = p.fio2; return { handled: true, msg: 'Oxygen restarted now the fire is out.', kind: 'good' }; }
     },
     exam: (e) => ({ A: e.flags.airwayBurn ? (e.p.airwayPatent ? 'Hoarse, early stridor.' : 'Severe stridor / obstruction.') : 'Talking (distressed).', B: `RR ${e.p.rr}, SpO₂ ${e.p.spo2}%.`, C: circ(e), D: 'Sedated but rousable, in pain.', E: e.flags.fire ? 'FLAMES around the face and drapes!' : `Fire out. ${e.flags.burn > 25 ? 'Partial-thickness burns to face, singed nasal hair.' : 'Erythema over the cheek.'}` }),
-    inv: { bloods: (e) => labs(e, { extra: [['Carboxyhaemoglobin', e.flags.burn > 25 ? '6%' : '2%']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, ...noImg, pocus: [] },
+    inv: { bloods: (e) => labs(e, { extra: [['Carboxyhaemoglobin', e.flags.burn > 25 ? '6%' : '2%']] }), gas: true, ecg: {}, ...noImg, pocus: [] },
     critical: [
       { text: 'Stop the oxygen flow first', check: (e) => e.did('fire_o2_off') },
       { text: 'Remove burning drapes', check: (e) => e.did('fire_drapes') },
@@ -595,7 +595,7 @@
       if (ev.type === 'action' && ev.id === 'cath_lab') return { handled: true, msg: 'Cardiology: 12-lead shows no ST elevation; they will review for angiography after CT if no non-cardiac cause.', kind: 'info' };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e), C: circ(e), D: 'GCS 3 (sedated). Pupils 3 mm, reactive.', E: `T ${e.p.temp.toFixed(1)} °C. Glucose ${e.p.glucose.toFixed(1)} mmol/L. Hip wound packed.` }),
-    inv: { bloods: (e) => labs(e, { trop: 820, k: 4.1 }), gas: true, ecg: { desc: 'Sinus tachycardia, no ST elevation.' }, cxr: { media: 'cxr_normal', report: 'ETT 4 cm above carina; no pneumothorax.' }, ct: [{ label: 'CT head', media: 'ct_head', report: 'No acute intracranial abnormality; no early hypoxic changes.' }], pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Moderately impaired LV, no effusion, RV normal size.' }] },
+    inv: { bloods: (e) => labs(e, { trop: 820, k: 4.1 }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'ETT 4 cm above carina; no pneumothorax.' }, ct: [{ label: 'CT head', media: 'ct_head', report: 'No acute intracranial abnormality; no early hypoxic changes.' }], pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Moderately impaired LV, no effusion, RV normal size.' }] },
     critical: [
       { text: 'Titrate FiO₂ to SpO₂ 94–98%', check: (e) => e.p.fio2 < 0.7 },
       { text: 'Normocapnia (reduce ventilation)', check: (e) => e.p.ventRR <= 18 },
@@ -661,7 +661,7 @@
       if (ev.type === 'vent' && ev.key === 'fio2') return { msg: 'Turning up the O₂ flowmeter does nothing — there is no oxygen supply.', kind: 'warn' };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e), C: circ(e), D: `Anaesthetised. ${e.flags.tiva ? 'TIVA running.' : 'Volatile delivery dependent on fresh gas flow.'}`, E: 'Pipeline gauge: O₂ 0 kPa; air 400 kPa.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus rhythm.' }, ...noImg, pocus: [] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [] },
     critical: [
       { text: 'Ventilate: open backup cylinder or hand-ventilate with a self-inflating bag', check: (e) => e.flags.cylOpen || e.flags.portable || e.flags.selfBag || e.flags.cylEmpty },
       { text: 'Minimise O₂ consumption (low flow) or use portable supply', check: (e) => e.flags.lowFlow || e.flags.portable },
@@ -722,7 +722,7 @@
       if (ev.type === 'action' && ev.id === 'bvm') { f.handVent = true; p.ventStopped = false; }
     },
     exam: (e) => ({ A: 'ETT secure.', B: e.flags.handVent ? 'Hand-ventilated, good chest movement.' : (e.flags.ventDead ? 'NOT being ventilated — the ventilator has stopped!' : 'Ventilator running on battery.'), C: e.flags.mon ? circ(e) : 'No monitor. Feel a pulse.', D: 'Anaesthetised (TIVA).', E: e.flags.light ? 'Visible by torchlight.' : 'Theatre dark.' }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus rhythm (on transport monitor).' }, ...noImg, pocus: [] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [] },
     critical: [
       { text: 'Light source', check: (e) => e.flags.light },
       { text: 'Ensure ventilation (hand-ventilate)', check: (e) => e.flags.handVent },
@@ -784,7 +784,7 @@
       if (ev.type === 'action' && m[ev.id]) return { handled: true, msg: m[ev.id](), kind: 'good' };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e), C: circ(e), D: e.flags.tiva ? 'TIVA running.' : 'Sevoflurane via the anaesthetic machine.', E: e.flags.evacuated ? 'In a safe compartment.' : `Smoke in theatre (${Math.round(e.flags.smoke)} s).` }),
-    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { desc: 'Sinus rhythm.' }, ...noImg, pocus: [] },
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, ...noImg, pocus: [] },
     critical: [
       { text: 'Declare evacuation and allocate roles', check: (e) => e.flags.decl || e.did('call_help') },
       { text: 'Pack / close the wound', check: (e) => e.flags.pack },

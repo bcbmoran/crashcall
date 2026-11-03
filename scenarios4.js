@@ -50,7 +50,7 @@
     }),
     inv: {
       bloods: (e) => pLabs(e, { wcc: 2.1, plt: 88, crp: 168, extra: [['Blood culture', 'Sent'], ['Meningococcal PCR', 'Sent']] }), gas: true,
-      ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_normal', report: 'Normal.' }, ...noCT,
+      ecg: {}, cxr: { media: 'cxr_normal', report: 'Normal.' }, ...noCT,
       pocus: [{ label: 'Cardiac (subcostal)', media: 'us_plax_normal', report: (e) => (e.p.contract < 0.8 ? 'Under-filled, reduced contractility.' : 'Hyperdynamic, under-filled.') }, { label: 'IVC', media: 'us_ivc_flat', report: (e) => (mlkg(e) > 40 ? 'IVC now distended.' : 'Collapsing IVC.') }],
     },
     critical: [
@@ -100,7 +100,7 @@
       if (ev.type === 'action' && (ev.id === 'rsi_ketamine' || ev.id === 'rsi_propofol')) e.after(1, (en) => en.say('Intubated: low rate, long expiratory time, accept permissive hypercapnia; anaesthetist/PICU involved.', 'warn'));
     },
     exam: (e) => ({ A: 'Patent.', B: resp(e) + ` ${e.p.effort < 0.6 && !e.p.ventilated ? 'Exhausted, SILENT CHEST.' : e.p.bronchEff > 0.3 ? 'Widespread wheeze, marked recession, unable to speak. PEF not possible.' : 'Mild wheeze, talking in sentences.'}`, C: circ(e), D: `${e.p.paco2 > 60 ? 'Drowsy.' : 'Alert, anxious.'}`, E: 'No rash. Afebrile.' }),
-    inv: { bloods: (e) => pLabs(e, { k: 3.4 }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_normal', report: 'Hyperinflated, no pneumothorax.' }, ...noCT, pocus: [{ label: 'Lung ultrasound', media: 'us_sliding', report: 'Lung sliding bilaterally — no pneumothorax.' }] },
+    inv: { bloods: (e) => pLabs(e, { k: 3.4 }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Hyperinflated, no pneumothorax.' }, ...noCT, pocus: [{ label: 'Lung ultrasound', media: 'us_sliding', report: 'Lung sliding bilaterally — no pneumothorax.' }] },
     critical: [
       { text: 'High-flow oxygen (SpO₂ 94–98%)', check: (e) => e.p.fio2 >= 0.6 },
       { text: 'Back-to-back salbutamol nebs', check: (e) => e.count('salbutamol_neb') >= 2 },
@@ -143,7 +143,7 @@
       if (ev.type === 'drug' && ev.id === 'adrenaline' && perKg(e, 'adrenaline') > 3) return { harm: 'Large IV adrenaline bolus in a child with a pulse (use 1 mcg/kg titrated, by experts only)' };
     },
     exam: (e) => ({ A: e.p.med > 0.6 ? 'Lip and tongue swelling, hoarse voice, mild stridor.' : 'Swelling settling.', B: resp(e) + (e.p.bronchEff > 0.25 ? ' Widespread wheeze.' : ' Clear.'), C: circ(e) + ' Pale.', D: e.p.map < 45 ? 'Floppy, responds to pain.' : 'Alert, crying.', E: 'Widespread urticaria.' }),
-    inv: { bloods: (e) => pLabs(e, { extra: [['Mast cell tryptase', 'Sent (repeat at 1–2 h)']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_normal', report: 'Normal.' }, ...noCT, pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }] },
+    inv: { bloods: (e) => pLabs(e, { extra: [['Mast cell tryptase', 'Sent (repeat at 1–2 h)']] }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Normal.' }, ...noCT, pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }] },
     critical: [
       { text: 'IM adrenaline 150 micrograms (age 6 months–6 years)', check: (e) => e.did('adrenaline_im') },
       { text: 'High-flow oxygen', check: (e) => e.p.fio2 >= 0.6 },
@@ -194,7 +194,7 @@
       }
     },
     exam: (e) => ({ A: 'Patent.', B: resp(e) + ' Mild tachypnoea, clear chest.', C: circ(e) + (e.p.rhythm === 'svt' ? ' Liver 3 cm below costal margin. Mottled.' : ' Pink, CRT 2 s.'), D: 'Irritable, fontanelle flat.', E: 'Afebrile.' }),
-    inv: { bloods: (e) => pLabs(e, { glu: 4.1 }), gas: true, ecg: (e) => ({ desc: e.p.rhythm === 'svt' ? 'Regular narrow-complex tachycardia 280/min, no visible P waves (likely AVRT).' : 'Sinus rhythm; no pre-excitation.' }), cxr: { media: 'cxr_normal', report: 'Mild cardiomegaly.' }, ...noCT, pocus: [{ label: 'Cardiac', media: 'us_plax_poor', report: (e) => (e.p.rhythm === 'svt' ? 'Very fast, reduced function.' : 'Function improving.') }] },
+    inv: { bloods: (e) => pLabs(e, { glu: 4.1 }), gas: true, ecg: (e) => ({ note: e.p.rhythm === 'svt' ? 'likely AVRT (commonest infant SVT).' : 'no pre-excitation.' }), cxr: { media: 'cxr_normal', report: 'Mild cardiomegaly.' }, ...noCT, pocus: [{ label: 'Cardiac', media: 'us_plax_poor', report: (e) => (e.p.rhythm === 'svt' ? 'Very fast, reduced function.' : 'Function improving.') }] },
     critical: [
       { text: '12-lead ECG', check: (e) => e.did('inv_ecg') },
       { text: 'Vagal manoeuvre (ice to face)', check: (e) => e.did('vagal') },
@@ -248,7 +248,7 @@
       if (ev.type === 'drug' && ev.id === 'phenytoin') return { msg: 'Phenytoin 20 mg/kg over 20 min with ECG monitoring.', kind: 'good' };
     },
     exam: (e) => ({ A: e.flags.seizing ? 'Secretions, snoring; jaw clenched.' : 'Patent with positioning.', B: resp(e), C: circ(e), D: e.flags.seizing ? 'Generalised rhythmic jerking, eyes deviated, unresponsive.' : 'Post-ictal, responds to voice. Pupils equal.', E: `T ${e.p.temp.toFixed(1)} °C. Glucose ${e.p.glucose.toFixed(1)}. No rash.` }),
-    inv: { bloods: (e) => pLabs(e, { extra: [['Ionised calcium', '1.18 mmol/L'], ['Magnesium', '0.84 mmol/L']] }), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [{ label: 'CT head', media: 'ct_head', report: 'Normal.' }], pocus: [] },
+    inv: { bloods: (e) => pLabs(e, { extra: [['Ionised calcium', '1.18 mmol/L'], ['Magnesium', '0.84 mmol/L']] }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [{ label: 'CT head', media: 'ct_head', report: 'Normal.' }], pocus: [] },
     critical: [
       { text: 'Airway manoeuvre + high-flow oxygen', check: (e) => e.p.fio2 >= 0.6 || any(e, 'airway_manoeuvre', 'bvm') },
       { text: 'Check glucose (blood gas / labs)', check: (e) => e.did('inv_gas') || e.did('inv_bloods') },
@@ -292,7 +292,7 @@
       if (ev.type === 'inv' && ev.id === 'ct' && e.p.map < 45) return { harm: 'CT while haemodynamically unstable' };
     },
     exam: (e) => ({ A: 'Talking.', B: resp(e) + ' Clear, equal chest. Bruising left lower ribs.', C: circ(e) + ' Pale. Abdomen distended, tender left upper quadrant.', D: 'GCS 14, anxious.', E: 'Tyre mark on the left flank. Grazes.' }),
-    inv: { bloods: (e) => pLabs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_normal', report: 'No pneumothorax; left lower rib fractures.' }, ct: [{ label: 'CT abdomen', media: null, report: 'Grade IV splenic laceration with active contrast extravasation, moderate haemoperitoneum.' }], pocus: [{ label: 'eFAST LUQ', media: 'us_fast_pos', report: 'Free fluid around the spleen.' }, { label: 'eFAST RUQ', media: 'us_fast_pos', report: 'Free fluid in Morison’s pouch.' }] },
+    inv: { bloods: (e) => pLabs(e, {}), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'No pneumothorax; left lower rib fractures.' }, ct: [{ label: 'CT abdomen', media: null, report: 'Grade IV splenic laceration with active contrast extravasation, moderate haemoperitoneum.' }], pocus: [{ label: 'eFAST LUQ', media: 'us_fast_pos', report: 'Free fluid around the spleen.' }, { label: 'eFAST RUQ', media: 'us_fast_pos', report: 'Free fluid in Morison’s pouch.' }] },
     critical: [
       { text: 'Activate major haemorrhage protocol', check: (e) => e.did('mhp') },
       { text: 'Blood 10 mL/kg boluses (red cells + FFP)', check: (e) => e.fluidIn.rbc > 0 && e.fluidIn.ffp > 0 },
@@ -337,7 +337,7 @@
       if (ev.type === 'drug' && ev.id === 'atropine') { p.hrBase = Math.max(p.hrBase, 110); return { msg: 'Atropine 20 mcg/kg — HR recovering.', kind: 'good' }; }
     },
     exam: (e) => ({ A: e.p.airwayPatent ? 'Airway open.' : 'Complete obstruction — no stridor now, tracheal tug.', B: resp(e) + (e.p.airwayPatent ? '' : ' See-saw movement, no air entry.'), C: `HR ${e.p.hr}${e.p.hr < 80 ? ' — BRADYCARDIC' : ''}.`, D: 'Under sevoflurane.', E: 'Runny nose.' }),
-    inv: { bloods: (e) => pLabs(e, {}), gas: true, ecg: { desc: 'Sinus rhythm.' }, cxr: { media: 'cxr_normal', report: 'N/A' }, ...noCT, pocus: [] },
+    inv: { bloods: (e) => pLabs(e, {}), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'N/A' }, ...noCT, pocus: [] },
     critical: [
       { text: 'Call for help; CPAP 100% O₂ with jaw thrust', check: (e) => e.flags.cpap },
       { text: 'Propofol 1 mg/kg or suxamethonium', check: (e) => any(e, 'propofol', 'suxamethonium') },
@@ -387,7 +387,7 @@
       if (ev.type === 'drug' && ev.id === 'salbutamol_neb') return { msg: 'Salbutamol does not help croup (no bronchospasm).', kind: 'warn' };
     },
     exam: (e) => ({ A: `${e.p.effort < 0.6 ? 'Loud stridor at rest, tracheal tug.' : e.p.effort < 0.85 ? 'Stridor at rest.' : 'Stridor only when upset.'} Barking cough. Not drooling.`, B: resp(e) + ` ${e.p.effort < 0.6 ? 'Severe sternal and subcostal recession.' : 'Mild recession.'}`, C: circ(e), D: e.p.paco2 > 55 ? 'Drowsy — concerning.' : 'Agitated.', E: 'T 38.0 °C.' }),
-    inv: { bloods: (e) => pLabs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_normal', report: 'Not indicated in croup.' }, ...noCT, pocus: [] },
+    inv: { bloods: (e) => pLabs(e, {}), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Not indicated in croup.' }, ...noCT, pocus: [] },
     critical: [
       { text: 'Dexamethasone 0.15 mg/kg (0.6 mg/kg if severe)', check: (e) => any(e, 'dexamethasone', 'hydrocortisone') },
       { text: 'Nebulised adrenaline 0.4 mL/kg of 1:1000 (max 5 mL)', check: (e) => e.did('adrenaline_neb') },
@@ -444,7 +444,7 @@
       if (ev.type === 'action' && ev.id === 'dka_hts') { if (!f.ce) return { handled: true, harm: 'Hypertonic saline without cerebral oedema' }; f.ce = false; f.ceTreated = true; p.hrBase = 92; p.stress = 0; p.gcs = 14; f.oedemaRisk = 0; return { handled: true, msg: 'Hypertonic saline given, head up 30°, fluids reduced; PICU on the way. Conscious level improving.', kind: 'good' }; }
     },
     exam: (e) => ({ A: 'Patent.', B: resp(e) + ' Deep, sighing (Kussmaul) respiration; ketotic breath.', C: circ(e) + ' Dry mucous membranes; ~5% dehydration.', D: `GCS ${e.p.gcs}. ${e.flags.ce ? 'Headache, irritable, pupils sluggish.' : 'Tired.'}`, E: 'Abdomen soft, mild diffuse tenderness.' }),
-    inv: { bloods: (e) => pLabs(e, { urea: 9.8, cr: 88, extra: [['Blood ketones', `${Math.max(0.4, (e.p.extraAcid / 3)).toFixed(1)} mmol/L`]] }), gas: true, ecg: (e) => ({ desc: e.p.k < 3 ? 'Flat T waves, U waves.' : e.p.k > 5.5 ? 'Peaked T waves.' : 'Sinus tachycardia.' }), cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [{ label: 'CT head', media: 'ct_head', report: (e) => (e.flags.ce ? 'Effacement of sulci and basal cisterns — cerebral oedema.' : 'Normal.') }], pocus: [] },
+    inv: { bloods: (e) => pLabs(e, { urea: 9.8, cr: 88, extra: [['Blood ketones', `${Math.max(0.4, (e.p.extraAcid / 3)).toFixed(1)} mmol/L`]] }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Normal.' }, ct: [{ label: 'CT head', media: 'ct_head', report: (e) => (e.flags.ce ? 'Effacement of sulci and basal cisterns — cerebral oedema.' : 'Normal.') }], pocus: [] },
     critical: [
       { text: 'Blood gas / ketones / potassium', check: (e) => e.did('inv_gas') },
       { text: 'IV fluid: 10 mL/kg bolus then deficit + maintenance with potassium', check: (e) => e.flags.kFluid },
@@ -498,7 +498,7 @@
       if (ev.type === 'drug' && ev.id === 'antibiotics') return { msg: 'Antibiotics are not routinely indicated in bronchiolitis.', kind: 'warn' };
     },
     exam: (e) => ({ A: 'Copious nasal secretions.', B: resp(e) + (e.flags.apnoea ? ' NOT BREATHING.' : ' Head bobbing, subcostal recession, widespread fine crackles and wheeze.'), C: circ(e), D: 'Lethargic, fontanelle normal.', E: 'T 37.8 °C.' }),
-    inv: { bloods: (e) => pLabs(e, {}), gas: true, ecg: { desc: 'Sinus tachycardia.' }, cxr: { media: 'cxr_normal', report: 'Hyperinflation, peribronchial cuffing, patchy atelectasis.' }, ...noCT, pocus: [{ label: 'Lung ultrasound', media: 'us_blines', report: 'Bilateral B-lines and subpleural consolidations.' }] },
+    inv: { bloods: (e) => pLabs(e, {}), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Hyperinflation, peribronchial cuffing, patchy atelectasis.' }, ...noCT, pocus: [{ label: 'Lung ultrasound', media: 'us_blines', report: 'Bilateral B-lines and subpleural consolidations.' }] },
     critical: [
       { text: 'Oxygen / high-flow', check: (e) => e.p.fio2 > 0.3 },
       { text: 'Respond to apnoea (stimulate / bag-mask)', check: (e) => any(e, 'br_stimulate', 'bvm') },
@@ -551,7 +551,7 @@
       if (ev.type === 'fluid' && p.arrested) return { msg: 'Fluid 10 mL/kg for possible hypovolaemia.', kind: 'info' };
     },
     exam: (e) => ({ A: e.p.assisted ? 'Bag-mask, good chest rise.' : 'Not breathing.', B: e.p.arrested ? 'Apnoeic.' : resp(e), C: e.p.arrested ? 'No central pulse (brachial/femoral).' : circ(e), D: 'Unresponsive. Pupils 4 mm.', E: `T ${e.p.temp.toFixed(1)} °C. Wet clothes.` }),
-    inv: { bloods: (e) => pLabs(e, { k: 4.8 }), gas: true, ecg: (e) => ({ desc: e.p.arrested ? 'Asystole.' : 'Sinus tachycardia.' }), cxr: { media: 'cxr_ards', report: 'Bilateral patchy opacities (aspiration).' }, ...noCT, pocus: [{ label: 'Cardiac (during pulse check)', media: null, report: (e) => (e.p.arrested ? 'No cardiac motion.' : 'Moderately impaired function.') }] },
+    inv: { bloods: (e) => pLabs(e, { k: 4.8 }), gas: true, ecg: {}, cxr: { media: 'cxr_ards', report: 'Bilateral patchy opacities (aspiration).' }, ...noCT, pocus: [{ label: 'Cardiac (during pulse check)', media: null, report: (e) => (e.p.arrested ? 'No cardiac motion.' : 'Moderately impaired function.') }] },
     critical: [
       { text: '5 rescue breaths', check: (e) => e.flags.rescue },
       { text: 'CPR 15:2', check: (e) => e.did('cpr_on') },
@@ -620,7 +620,7 @@
       if (ev.type === 'drug' && ev.id === 'adrenaline') { const k = ev.dose / p.weight; if (!f.comp) return { harm: 'Adrenaline before effective ventilation and compressions', noHarm: true }; if (k < 8) return { msg: 'Underdosed — 20 micrograms/kg IV.', kind: 'warn', noHarm: true }; f.adr = true; const pl = e.pools.adrenaline; if (pl) pl.depot *= 0.02; return { msg: 'Adrenaline 20 mcg/kg via UVC.', kind: 'good', noHarm: true }; }
     },
     exam: (e) => ({ A: e.flags.airway ? 'Neutral position.' : 'Head flexed.', B: e.flags.breathing ? 'Crying, breathing regularly.' : e.flags.vent ? 'Ventilated, chest moving.' : 'Apnoeic.', C: `HR ${e.p.hr < 60 ? '< 60' : e.p.hr < 100 ? '60–100' : '> 100'}/min. ${e.p.hr < 100 ? 'Pale.' : 'Pink centrally.'}`, D: e.flags.breathing ? 'Tone improving.' : 'Floppy.', E: `T ${e.p.temp.toFixed(1)} °C. ${e.flags.dried ? 'Wrapped.' : 'Wet.'}` }),
-    inv: { bloods: (e) => pLabs(e, { glu: 2.8, hb: 160 }), gas: true, ecg: { desc: 'Sinus bradycardia.' }, cxr: { media: 'cxr_normal', report: 'N/A' }, ...noCT, pocus: [] },
+    inv: { bloods: (e) => pLabs(e, { glu: 2.8, hb: 160 }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'N/A' }, ...noCT, pocus: [] },
     critical: [
       { text: 'Dry, stimulate, keep warm', check: (e) => e.flags.dried },
       { text: 'Open airway, 5 inflation breaths', check: (e) => e.flags.aerated },

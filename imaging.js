@@ -19,58 +19,43 @@
   I.mediaHTML = mediaHTML;
 
   // ============================== 12-LEAD ECG ==============================
-  const LEADS = {
-    I: { r: 0.7, s: 0.15 }, II: { r: 1, s: 0.2 }, III: { r: 0.45, s: 0.2 }, aVR: { r: 0.8, s: 0.2, inv: true }, aVL: { r: 0.4, s: 0.3 }, aVF: { r: 0.75, s: 0.2 },
-    V1: { r: 0.25, s: 1.6, t: 0.4 }, V2: { r: 0.4, s: 1.7 }, V3: { r: 0.8, s: 0.9 }, V4: { r: 1.4, s: 0.5 }, V5: { r: 1.3, s: 0.25 }, V6: { r: 1.0, s: 0.12 },
+  // Generated from the same vector model as the monitor (ecg.js), from a snapshot of the patient taken
+  // when the ECG was recorded, so the tracing and its report always agree.
+  I.ecgSnapshot = function (eng, spec) {
+    const p = Object.assign({}, eng.p);
+    p.ecg = Object.assign({}, eng.p.ecg || {});
+    if (spec && spec.s1q3t3) p.ecg.s1q3t3 = true;
+    if (spec && spec.lowVolt) p.ecg.lowVolt = true;
+    if (spec && spec.morph) Object.assign(p.ecg, spec.morph);
+    return { p, flags: Object.assign({}, eng.flags), fine: clamp(1 - (eng.arrestT || 0) / 240, 0.3, 1) };
   };
-  function beatTimes(rhythm, rate, dur, seed) {
-    let s = seed || 7; const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
-    const out = []; let t = 0.15; const rr = 60 / Math.max(rate, 10);
-    while (t < dur) { out.push(t); t += rhythm === 'af' ? rr * (0.65 + rnd() * 0.7) : rr; }
-    return out;
-  }
   function ecgSVG(spec, eng) {
-    const p = eng ? eng.p : { rhythm: 'sinus', hrTrue: 80, ecg: {} };
-    const rhythm = spec.rhythm || p.rhythm, rate = spec.rate || Math.max(20, Math.round(p.hrTrue || 80));
-    const auto = S.ecgMorph && eng ? S.ecgMorph(p) : {}; const base = Object.assign({}, p.ecg || {}, auto, spec.morph || {});
+    const snap = spec.snap || (eng ? I.ecgSnapshot(eng, spec) : { p: { rhythm: 'sinus', hrTrue: 75, ecg: {} }, flags: {} });
+    const p = snap.p, M = S.ecgMorph(p);
+    const gen = new S.RhythmGen(12345);
+    gen.advance(10.6, p, M, true);
     const W = 1000, H = 470, colW = 250, rowH = 100;
     const o = [`<svg viewBox="0 0 ${W} ${H}" class="img-svg ecg-svg"><defs><pattern id="sm" width="3.84" height="3.84" patternUnits="userSpaceOnUse"><path d="M3.84 0H0V3.84" fill="none" stroke="#f6c6c6" stroke-width=".4"/></pattern><pattern id="lg" width="19.2" height="19.2" patternUnits="userSpaceOnUse"><rect width="19.2" height="19.2" fill="url(#sm)"/><path d="M19.2 0H0V19.2" fill="none" stroke="#eaa" stroke-width=".8"/></pattern></defs><rect width="${W}" height="${H}" fill="#fff8f8"/><rect width="${W}" height="${H}" fill="url(#lg)"/>`];
-    const pxPerSec = 96, mv = 38.4;
-    const beats = beatTimes(rhythm, rate, 10.5, 11);
-    const pbeats = rhythm === 'chb' ? beatTimes('sinus', 78, 10.5) : [];
-    const leadVal = (lead, t, beatIdxForAlt) => {
-      const L = LEADS[lead];
-      if (rhythm === 'vf') return 0.4 * Math.sin(t * 31 + lead.length) * (0.6 + 0.4 * Math.sin(t * 2.3)) + 0.2 * Math.sin(t * 47);
-      if (rhythm === 'asystole') return 0;
-      let b = null, nb = null, bi = -1;
-      for (let i = beats.length - 1; i >= 0; i--) if (beats[i] <= t) { b = beats[i]; nb = beats[i + 1]; bi = i; break; }
-      let v = 0;
-      if (b != null) {
-        const dst = (auto.st || 0) - ((p.ecg && p.ecg.st) || 0);
-        const st = ((spec.st && spec.st[lead]) || 0) + (lead === 'aVR' ? -dst : dst);
-        const tinv = spec.tinv && spec.tinv.includes(lead) ? -1 : 1;
-        const m = Object.assign({}, base, { rAmp: L.r * (base.rAmp || 1), sAmp: L.s / 0.22 * 0.22 * (base.sAmp || 1) * 4.5, st: st, tPeak: (base.tPeak || 1) * (L.t || 1) * tinv });
-        if (spec.s1q3t3) { if (lead === 'I') m.sAmp *= 3; if (lead === 'III') { m.tPeak = -1; m.qAmp = 1; } }
-        v = S.ecgBeat(t - b, (nb || b + 60 / rate) - b, m, rhythm);
-        if (spec.s1q3t3 && lead === 'III') v -= 0.25 * Math.exp(-Math.pow(t - b - 0.168, 2) / (2 * 0.008 * 0.008));
-        if (spec.lowVolt) v *= 0.45;
-        if ((spec.alternans || base.alt) && bi % 2) v *= 0.6;
-      }
-      if (rhythm === 'chb') { for (let i = pbeats.length - 1; i >= 0; i--) if (pbeats[i] <= t) { v += 0.13 * Math.exp(-Math.pow(t - pbeats[i] - 0.08, 2) / (2 * 0.022 * 0.022)); break; } }
-      if (rhythm === 'af') v += 0.03 * Math.sin(t * 37 + lead.length) + 0.02 * Math.sin(t * 53);
-      return L.inv ? -v : v;
+    const pxPerSec = 96, mv = 38.4; // 25 mm/s, 10 mm/mV
+    const leadVal = (lead, t) => {
+      const opts = { M, fine: snap.fine, tinv: !!(spec.tinv && spec.tinv.includes(lead)) };
+      if (spec.st) opts.st = spec.st[lead] || 0;
+      return S.ecgLead(S.ECG_LEADS[lead], t, gen, p, opts) + S.ecgArtefact(t, p, snap.flags, M);
     };
+    const cal = (x0, y0) => `<path d="M${x0} ${y0} h3 v-${mv} h9.6 v${mv} h3" stroke="#111" stroke-width="1.2" fill="none"/>`;
     const grid = [['I', 'aVR', 'V1', 'V4'], ['II', 'aVL', 'V2', 'V5'], ['III', 'aVF', 'V3', 'V6']];
     grid.forEach((row, ri) => row.forEach((lead, ci) => {
-      const x0 = ci * colW + 10, y0 = ri * rowH + 70, t0 = ci * 2.5;
+      const x0 = ci * colW + 10, y0 = ri * rowH + 80, t0 = ci * 2.5;
       let d = '';
-      for (let px = 0; px < colW - 12; px += 1.5) { const t = t0 + px / pxPerSec; d += (px === 0 ? 'M' : 'L') + (x0 + px).toFixed(1) + ' ' + (y0 - leadVal(lead, t) * mv).toFixed(1); }
-      o.push(`<path d="${d}" stroke="#111" stroke-width="1.3" fill="none"/><text x="${x0 + 4}" y="${y0 - 30}" font-size="13" font-family="Arial" fill="#222">${lead}</text>`);
+      for (let px = 0; px < colW - 12; px += 1.2) { const t = t0 + px / pxPerSec; d += (px === 0 ? 'M' : 'L') + (x0 + px).toFixed(1) + ' ' + (y0 - clamp(leadVal(lead, t), -1.9, 1.9) * mv).toFixed(1); }
+      o.push(`<path d="${d}" stroke="#111" stroke-width="1.2" fill="none" stroke-linejoin="round"/><text x="${x0 + 4}" y="${y0 - 40}" font-size="13" font-family="Arial" fill="#222">${lead}</text>`);
+      if (ci) o.push(`<path d="M${x0 - 1} ${y0 - 8} v16" stroke="#111" stroke-width="1"/>`);
     }));
     let d = '';
-    for (let px = 0; px < W - 20; px += 1.5) { const t = px / pxPerSec; d += (px === 0 ? 'M' : 'L') + (10 + px).toFixed(1) + ' ' + (410 - leadVal('II', t) * mv).toFixed(1); }
-    o.push(`<path d="${d}" stroke="#111" stroke-width="1.3" fill="none"/><text x="14" y="372" font-size="13" font-family="Arial">II</text>`);
-    o.push(`<text x="10" y="22" font-size="13" font-family="Arial" fill="#333">25 mm/s  10 mm/mV   Rate ≈ ${rhythm === 'vf' || rhythm === 'asystole' ? '—' : rate} /min</text></svg>`);
+    for (let px = 0; px < W - 40; px += 1.2) { const t = px / pxPerSec; d += (px === 0 ? 'M' : 'L') + (28 + px).toFixed(1) + ' ' + (420 - clamp(leadVal('II', t), -1.3, 1.3) * mv).toFixed(1); }
+    o.push(cal(8, 420), `<path d="${d}" stroke="#111" stroke-width="1.2" fill="none" stroke-linejoin="round"/><text x="32" y="378" font-size="13" font-family="Arial">II (rhythm strip)</text>`);
+    const hr = Math.round(p.hrTrue || 0);
+    o.push(`<text x="10" y="22" font-size="13" font-family="Arial" fill="#333">25 mm/s  10 mm/mV   Ventricular rate ≈ ${['vf', 'asystole'].includes(p.rhythm) || hr <= 5 ? '—' : hr} /min</text></svg>`);
     return o.join('');
   }
 

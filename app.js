@@ -60,7 +60,7 @@
   function go(id, field) { const s = S.SCENARIOS.find((x) => x.id === id); location.hash = blindOn() && s && !s.tutorial ? 'case/' + caseCode(id) : 'play/' + id; state.fieldMode = field || null; }
 
   // ---------------- sim state ----------------
-  const state = { scn: null, eng: null, mon: null, pv: null, running: false, paused: true, elapsed: 0, last: 0, acc: 0, uiT: 0, hints: 0, results: [], tab: 'drugs', fieldMode: null, stopAnim: null, hintTimer: null };
+  const state = { scn: null, eng: null, mon: null, pv: null, running: false, paused: true, elapsed: 0, last: 0, acc: 0, uiT: 0, hints: 0, results: [], tab: 'exam', fieldMode: null, stopAnim: null, hintTimer: null };
 
   function start(id) {
     const scn = S.SCENARIOS.find((s) => s.id === id);
@@ -69,7 +69,7 @@
     $('#home').classList.remove('active'); $('#sim').classList.add('active');
     window.scrollTo(0, 0);
     const eng = new S.Engine(scn, { level: scn.tutorial ? 'senior' : levelId() });
-    Object.assign(state, { scn, eng, running: true, paused: true, elapsed: 0, acc: 0, hints: 0, results: [], tab: 'drugs', ended: false, blind: blindOn() && !scn.tutorial, nudgeT: 0 });
+    Object.assign(state, { scn, eng, running: true, paused: true, elapsed: 0, acc: 0, hints: 0, results: [], tab: 'exam', ended: false, blind: blindOn() && !scn.tutorial, nudgeT: 0 });
     const lvT = $('#scnLevel'); if (lvT) { lvT.textContent = scn.tutorial ? '' : eng.L.name; lvT.className = 'tag lvl ' + eng.level; lvT.hidden = !!scn.tutorial; }
     $('#scnTitle').textContent = state.blind ? 'Unknown case (blind mode)' : scn.title;
     $('#scnField').textContent = FIELD[scn.field]; $('#scnField').className = 'tag ' + scn.field;
@@ -85,7 +85,7 @@
     $('#soundBtn').textContent = state.mon.sound ? '🔊' : '🔇';
     state.pv = new S.PatientView($('#patientView'), eng, scn);
     eng.on(onEvent);
-    setTab('drugs');
+    setTab('exam', true);
     state.coachI = null; renderCoach();
     renderPumps();
     updateUI(true);
@@ -165,7 +165,7 @@
 
   // ---------------- controls ----------------
   $$('#ctlTabs button').forEach((b) => (b.onclick = () => setTab(b.dataset.tab)));
-  function setTab(t) { state.tab = t; $$('#ctlTabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t)); renderTab(); }
+  function setTab(t, auto) { state.tab = t; state.examPrompt = !!auto && t === 'exam'; $$('#ctlTabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t)); renderTab(); }
   function renderTab() {
     const body = $('#tabBody'), e = state.eng; if (!e) return;
     const t = state.tab;
@@ -238,6 +238,7 @@
       <div class="grp results"><h4>Results</h4>${state.results.length ? state.results.map((r, i) => `<button class="btn sm" data-res="${i}">${esc(r.name)} · ${r.at}</button>`).join('') : '<span class="muted small">No results yet.</span>'}</div>`;
   }
   function examHTML() {
+    if (state.examPrompt) return `<div class="exam"><p class="muted small">Start with an ABCDE assessment.</p><div class="row-end"><button class="btn primary" data-reexam>Examine patient (ABCDE)</button></div></div>`;
     const ex = state.scn.exam ? state.scn.exam(state.eng) : {};
     state.eng.mark('exam');
     return `<div class="exam"><p class="muted small">Examination findings now (${fmt(state.elapsed).slice(0, 5)}). Re-open this tab to re-examine.</p><dl>${['A', 'B', 'C', 'D', 'E'].map((k) => `<dt>${k}</dt><dd>${esc(ex[k] || '—')}</dd>`).join('')}</dl><div class="row-end"><button class="btn sm" data-reexam>Re-examine</button></div></div>`;
@@ -257,7 +258,7 @@
     });
     $$('[data-inv]', body).forEach((b) => (b.onclick = () => guard() && requestInv(b.dataset.inv, b.dataset.i)));
     $$('[data-res]', body).forEach((b) => (b.onclick = () => showResult(state.results[+b.dataset.res])));
-    const rx = $('[data-reexam]', body); if (rx) rx.onclick = () => renderTab();
+    const rx = $('[data-reexam]', body); if (rx) rx.onclick = () => { if (state.paused && !state.eng.outcome) { toast('Press start / resume first.', 'warn'); return; } state.examPrompt = false; renderTab(); };
   }
   function renderPumps() {
     const e = state.eng;
@@ -281,11 +282,11 @@
       e.say('Bloods (incl. cultures, group & save) sent to the lab — results in ~20 s.');
       e.after(20, () => { const rows = inv.bloods ? inv.bloods(e) : S.labs(e); const r = { name: 'Lab bloods', kind: 'labs', rows, extra: inv.extra || [] }; addResult(r); toast('Lab results are back', 'good'); });
     } else if (kind === 'ecg') {
-      const spec = Object.assign({}, val(inv.ecg, e) || { desc: 'Sinus rhythm.' });
-      const fx = S.ecgMorph ? S.ecgMorph(e.p).findings : [];
-      const extra = fx.filter((x) => !(spec.desc || '').toLowerCase().includes(x.split(' ')[0].toLowerCase()));
-      if (extra.length && !['vf', 'asystole'].includes(e.p.rhythm)) spec.desc = (spec.desc || '') + ' Also: ' + extra.join('; ') + '.';
-      spec.kind = 'ecg'; spec.rhythm = e.p.rhythm; spec.rate = Math.round(e.p.hrTrue); spec.morph = Object.assign({}, e.p.ecg);
+      const raw = val(inv.ecg, e) || {};
+      const spec = Object.assign({}, raw);
+      spec.snap = S.Imaging.ecgSnapshot(e, spec);
+      spec.desc = S.ecgReport(spec.snap.p, S.ecgMorph(spec.snap.p), raw.note ? 'Clinical correlation: ' + raw.note : '');
+      spec.kind = 'ecg';
       const r = { name: '12-lead ECG', kind: 'img', spec, report: spec.desc }; addResult(r); showResult(r);
     } else if (kind === 'cxr') {
       e.say('Radiographer coming with the portable X-ray (~15 s).');
