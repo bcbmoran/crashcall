@@ -521,6 +521,9 @@
   if (S.LB) S.LB.init({ openModal, fmt, esc, store });
   const qrhOpen = (ids) => openModal('📕 AoA Quick Reference Handbook', S.QRH.html(ids));
   const qh = $('#qrhHome'); if (qh) qh.onclick = () => qrhOpen([]);
+  const rcukOpen = () => openModal('🫀 Resuscitation Council UK 2025 algorithms', S.RCUK.html(state.scn && state.scn.field));
+  const rh = $('#rcukHome'); if (rh) rh.onclick = () => openModal('🫀 Resuscitation Council UK 2025 algorithms', S.RCUK.html(null));
+  const rb = $('#rcukBtn'); if (rb) rb.onclick = () => { if (state.eng) state.eng.mark('rcuk'); rcukOpen(); };
   const qs = $('#qrhBtn'); if (qs) qs.onclick = () => { if (state.eng) state.eng.mark('qrh'); qrhOpen(state.scn && state.scn.qrh); };
   const lbb = $('#lbBtn'); if (lbb) { if (!(S.LB && S.LB.enabled())) lbb.hidden = true; lbb.onclick = () => S.LB && S.LB.show(); }
   S.app = state; // exposed for testing

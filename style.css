@@ -248,3 +248,10 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .tag.lvl { background: transparent; border: 1px solid var(--border); color: var(--text); }
 .tag.lvl.junior { border-color: #2e7d32; color: #2e7d32; } .tag.lvl.consultant { border-color: #b71c1c; color: #b71c1c; }
 #briefStem { white-space: pre-line; }
+
+/* RCUK 2025 algorithm links */
+.rcuk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin: 10px 0; }
+.rcuk-set h3 { margin: 0 0 6px; }
+.rcuk-set { display: flex; flex-direction: column; gap: 6px; }
+.rcuk-link { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); color: var(--text); text-decoration: none; }
+.rcuk-link:hover { border-color: var(--accent); }
