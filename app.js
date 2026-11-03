@@ -107,6 +107,8 @@
   }
   function toast(text, kind) {
     const d = document.createElement('div'); d.className = 'toast ' + (kind || ''); d.textContent = text;
+    const tb = [...document.querySelectorAll('.topbar')].find((x) => x.offsetParent); // sit just below the visible (sticky) top bar
+    $('#toasts').style.top = (tb ? Math.max(0, tb.getBoundingClientRect().bottom) + 8 : 12) + 'px';
     $('#toasts').append(d);
     setTimeout(() => d.remove(), 4200);
     while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove();
