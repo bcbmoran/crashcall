@@ -79,6 +79,7 @@
     return { scns, byId, at, per, won, fields, gaps, harms, rcuk, totalMs: at.reduce((n, a) => n + (a.ms || 0), 0) };
   }
 
+  P.summarise = summarise;
   // ---------------- page ----------------
   let level = '';
   P.html = function () {

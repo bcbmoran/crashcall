@@ -9,18 +9,27 @@ const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': 
 const V = 'https://www.gstatic.com/firebasejs/10.12.2/';
 if (P && cfg.apiKey) {
   // Firebase is only downloaded when accounts are configured.
-  const [{ initializeApp }, A, F] = await Promise.all([import(V + 'firebase-app.js'), import(V + 'firebase-auth.js'), import(V + 'firebase-firestore.js')]);
+  let mods = null;
+  try { mods = await Promise.all([import(V + 'firebase-app.js'), import(V + 'firebase-auth.js'), import(V + 'firebase-firestore.js')]); } catch (e) { console.warn('Accounts unavailable (could not load Firebase)', e); }
+  if (mods) setup(mods);
+}
+function setup([{ initializeApp }, A, F]) {
   const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, signOut, deleteUser } = A;
-  const { getFirestore, collection, doc, setDoc, getDocs, query, orderBy, limit, writeBatch } = F;
+  const { getFirestore, collection, collectionGroup, doc, setDoc, getDocs, deleteDoc, query, orderBy, limit, writeBatch } = F;
   const app = initializeApp(cfg);
   const auth = getAuth(app);
   const db = getFirestore(app);
   const col = (uid) => collection(db, 'users', uid, 'attempts');
   const clean = (r) => JSON.parse(JSON.stringify(r)); // drop undefined values
 
+  // Site owners who can open the admin page (must match isAdmin() in the Firestore rules).
+  const ADMINS = ['benjamincbmoran@gmail.com'];
+  const isAdmin = () => !!(auth.currentUser && auth.currentUser.emailVerified && ADMINS.includes((auth.currentUser.email || '').toLowerCase()));
+  const touch = (extra) => setDoc(doc(db, 'users', auth.currentUser.uid), clean(Object.assign({ name: auth.currentUser.displayName || '', email: auth.currentUser.email || '', lastActive: new Date().toISOString() }, extra || {})), { merge: true });
+
   P.enabled = true;
   P.remote = {
-    add: (rec) => setDoc(doc(col(auth.currentUser.uid), rec.rid), clean(rec)),
+    add: async (rec) => { await setDoc(doc(col(auth.currentUser.uid), rec.rid), clean(rec)); touch().catch(() => {}); },
     list: async () => (await getDocs(query(col(auth.currentUser.uid), orderBy('at'), limit(3000)))).docs.map((d) => d.data()),
     removeAll: async () => {
       const uid = auth.currentUser.uid;
@@ -29,6 +38,19 @@ if (P && cfg.apiKey) {
         if (snap.empty) break;
         const b = writeBatch(db); snap.docs.forEach((d) => b.delete(d.ref)); await b.commit();
       }
+      await deleteDoc(doc(db, 'users', uid));
+    },
+  };
+  // Admin data access (Firestore rules allow these reads only for the admin accounts).
+  S.AdminData = {
+    isAdmin,
+    load: async () => {
+      const [us, at] = await Promise.all([getDocs(collection(db, 'users')), getDocs(collectionGroup(db, 'attempts'))]);
+      const users = {};
+      us.docs.forEach((d) => (users[d.id] = Object.assign({ uid: d.id }, d.data())));
+      const attempts = at.docs.map((d) => Object.assign({ uid: d.ref.parent.parent.id }, d.data()));
+      attempts.forEach((a) => { if (!users[a.uid]) users[a.uid] = { uid: a.uid, name: '', email: '' }; });
+      return { users: Object.values(users), attempts };
     },
   };
 
@@ -80,7 +102,7 @@ if (P && cfg.apiKey) {
       </form>
       <p class="small">${create ? 'Already have an account? <a href="#" data-m="signin">Sign in</a>' : reset ? '<a href="#" data-m="signin">Back to sign in</a>' : 'New here? <a href="#" data-m="create">Create an account</a> · <a href="#" data-m="reset">Forgot password?</a>'}</p>
       <p class="acct-msg small" role="status"></p>
-      <p class="muted small acct-privacy">We store your name, email and scenario results only — never patient information — using Google Firebase (servers in London). Data is used only to show you your progress and is never shared. You can delete your account and data at any time from this window.</p>
+      <p class="muted small acct-privacy">We store your name, email and scenario results only — never patient information — using Google Firebase (servers in London). Your results are used to show you your progress. The CrashCall site owner can also see results, to improve the simulator and support teaching; they are never sold or shared outside CrashCall. You can delete your account and data at any time from this window.</p>
     </div>`;
   }
 
@@ -132,6 +154,7 @@ if (P && cfg.apiKey) {
   onAuthStateChanged(auth, async (u) => {
     if (u) {
       setUser(u);
+      touch({ provider: (u.providerData[0] || {}).providerId || '', created: u.metadata.creationTime ? new Date(u.metadata.creationTime).toISOString() : '' }).catch((e) => console.warn(e));
       const added = await P.signedIn(P.user);
       if (added) toast(`${added} earlier result${added === 1 ? '' : 's'} from this device added to your account.`);
       if (isOpen()) { if (/Sign in|Create|Reset/.test(document.getElementById('modalTitle').textContent)) { S.ui.closeModal(); toast('Signed in as ' + (P.user.name || P.user.email)); } else open(); }
@@ -143,4 +166,5 @@ if (P && cfg.apiKey) {
 
   S.Account = { open };
   P.refreshUI();
+  onAuthStateChanged(auth, () => { const b = document.getElementById('adminBtn'); if (b) b.hidden = !isAdmin(); if (S.Admin) S.Admin.authChanged(); });
 }

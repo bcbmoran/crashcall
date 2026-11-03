@@ -290,3 +290,6 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .acct-privacy { border-top: 1px solid var(--border); padding-top: .7em; }
 .acct-danger { margin-top: 1.2em; } .acct-danger summary { color: var(--bad); cursor: pointer; }
 @media (max-width: 600px) { .pbar { grid-template-columns: 7.5em 1fr 3em; } .prog-rcuk { columns: 1; } .prog-table { font-size: .8rem; } }
+.adm-users tbody tr { cursor: pointer; } .adm-users tbody tr:hover { background: var(--accent-2); }
+.admin .seg button { font-size: .9rem; }
+[hidden] { display: none !important; }
