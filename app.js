@@ -296,7 +296,7 @@
       e.say(`Transfer to CT for ${c.label} (~40 s).`, e.p.map < 65 ? 'warn' : 'info');
       e.after(40, () => { const spec = Object.assign({ kind: 'ct' }, c); const r = { name: c.label, kind: 'img', spec, report: typeof c.report === 'function' ? c.report(e) : c.report }; addResult(r); toast(`${c.label} reported`, 'good'); showResult(r); });
     } else if (kind === 'pocus') {
-      const r = { name: 'POCUS', kind: 'pocus', views: inv.pocus || [] }; addResult(r); showResult(r);
+      const r = { name: 'POCUS', kind: 'pocus', views: (inv.pocus || []).map((v) => Object.assign({}, v, { report: typeof v.report === 'function' ? v.report(e) : v.report })) }; addResult(r); showResult(r);
     }
   }
   function flag(v, ref) {
@@ -321,18 +321,39 @@
       const rows = r.rows;
       const html = `<div class="lab-cols"><table class="labs">${rows.map((x) => x.length === 1 ? `<tr class="sec"><td colspan="3">${x[0]}</td></tr>` : `<tr><td>${esc(x[0])}</td><td class="v ${flag(x[1], x[3])}">${esc(x[1])} <span class="muted">${esc(x[2] || '')}</span></td><td class="muted">${esc(x[3] || '')}</td></tr>`).join('')}</table>${r.extra.length ? `<table class="labs"><tr class="sec"><td colspan="2">Other results</td></tr>${r.extra.map((x) => `<tr><td>${esc(x[0])}</td><td>${esc(x[1])}</td></tr>`).join('')}</table>` : ''}</div>`;
       openModal(`Laboratory results — reported ${r.at}`, html);
-    } else if (r.kind === 'img') {
-      openModal(r.name + ` — ${r.at}`, `<div class="img-wrap"><div id="imgHost"></div><div class="report"><h4>Report</h4><p>${esc(r.report || '')}</p>${r.spec.kind === 'ecg' ? '<p class="muted small">ECG generated live from the simulated patient.</p>' : '<p class="muted small">The image is a representative, openly-licensed example of the finding — not the simulated patient. The report describes this patient.</p>'}</div></div>`, () => S.Imaging.mount($('#imgHost'), r.spec, state.eng));
-      if (r.spec.kind === 'ecg') $('.img-wrap').style.gridTemplateColumns = '1fr';
-    } else if (r.kind === 'pocus') {
-      const vs = r.views;
-      if (!vs.length) { openModal('POCUS', '<p>No views available.</p>'); return; }
-      openModal('Point-of-care ultrasound', `<div class="view-tabs">${vs.map((v, i) => `<button class="btn sm ${i ? '' : 'on'}" data-view="${i}">${esc(v.label)}</button>`).join('')}</div><div class="img-wrap"><div id="usHost"></div><div class="report"><h4 id="usLab"></h4><p id="usRep"></p><p class="muted small">Representative openly-licensed clip of the finding — not the simulated patient. The report describes this patient.</p></div></div>`, () => {
-        const show = (i) => { if (state.stopAnim) state.stopAnim(); const v = Object.assign({ kind: 'pocus' }, vs[i]); state.stopAnim = S.Imaging.mount($('#usHost'), v, state.eng); $('#usLab').textContent = v.label; $('#usRep').textContent = typeof v.report === 'function' ? v.report(state.eng) : v.report; $$('[data-view]').forEach((b) => b.classList.toggle('on', +b.dataset.view === i)); };
-        $$('[data-view]').forEach((b) => (b.onclick = () => show(+b.dataset.view)));
-        show(0);
-      });
+    } else if (r.kind === 'img' || r.kind === 'pocus') {
+      const title = r.kind === 'pocus' ? 'Point-of-care ultrasound' : r.name + ` — ${r.at}`;
+      openModal(title, '<div class="res-host"></div>', () => resultView($('.res-host'), r, reportMode()));
     }
+  }
+
+  // Report access: junior/senior can choose to reveal the formal report; consultants interpret the image
+  // themselves and see the reports only in the debrief.
+  function reportMode() { return state.ended || (state.eng && state.eng.outcome) ? 'show' : state.eng && state.eng.level === 'consultant' && !state.scn.tutorial ? 'locked' : 'ask'; }
+  function reportBlock(r, text, mode, label) {
+    const h = `<h4>${esc(label || 'Report')}</h4>`;
+    if (mode === 'show' || r.revealed) return h + `<p>${esc(text || '')}</p>`;
+    if (mode === 'locked') return h + '<p class="muted">Consultant grade: interpret this yourself — the formal report is available in the debrief.</p>';
+    return h + '<p class="muted small">Interpret it yourself first.</p><button class="btn sm" data-reveal>Show report</button>';
+  }
+  // Render a result (image/ECG/POCUS) with its report into an element; returns a cleanup function.
+  function resultView(host, r, mode) {
+    if (r.kind === 'img') {
+      const note = r.spec.kind === 'ecg' ? 'ECG generated live from the simulated patient.' : 'The image is a representative, openly-licensed example of the finding — not the simulated patient. The report describes this patient.';
+      const draw = () => { host.querySelector('.rep-txt').innerHTML = reportBlock(r, r.report, mode); const rb = host.querySelector('[data-reveal]'); if (rb) rb.onclick = () => { r.revealed = true; draw(); }; };
+      host.innerHTML = `<div class="img-wrap"${r.spec.kind === 'ecg' ? ' style="grid-template-columns:1fr"' : ''}><div class="img-host"></div><div class="report"><div class="rep-txt"></div><p class="muted small">${note}</p></div></div>`;
+      draw();
+      return S.Imaging.mount(host.querySelector('.img-host'), r.spec, state.eng);
+    }
+    const vs = r.views || [];
+    if (!vs.length) { host.innerHTML = '<p>No views available.</p>'; return () => {}; }
+    host.innerHTML = `<div class="view-tabs">${vs.map((v, i) => `<button class="btn sm ${i ? '' : 'on'}" data-view="${i}">${esc(v.label)}</button>`).join('')}</div><div class="img-wrap"><div class="img-host"></div><div class="report"><div class="rep-txt"></div><p class="muted small">Representative openly-licensed clip of the finding — not the simulated patient. The report describes this patient.</p></div></div>`;
+    let stop = null, cur = 0;
+    const draw = () => { const v = vs[cur]; host.querySelector('.rep-txt').innerHTML = reportBlock(v, v.report, mode, v.label); const rb = host.querySelector('[data-reveal]'); if (rb) rb.onclick = () => { v.revealed = true; draw(); }; };
+    const show = (i) => { if (stop) stop(); cur = i; stop = S.Imaging.mount(host.querySelector('.img-host'), Object.assign({ kind: 'pocus' }, vs[i]), state.eng); draw(); $$('[data-view]', host).forEach((b) => b.classList.toggle('on', +b.dataset.view === i)); };
+    $$('[data-view]', host).forEach((b) => (b.onclick = () => show(+b.dataset.view)));
+    show(0);
+    return () => { if (stop) stop(); };
   }
 
   // ---------------- modal ----------------
@@ -421,6 +442,8 @@
     if (outcome === 'win') { const best = store.get('best', {}); if (!best[s.id] || ms < best[s.id]) { best[s.id] = ms; store.set('best', best); newBest = true; } }
     const cs = (s.critical || []).map((c) => ({ text: c.text, done: !!c.check(e) }));
     const title = outcome === 'win' ? 'Patient stabilised' : outcome === 'arrest' ? 'Cardiac arrest — scenario failed' : 'Scenario ended';
+    const imgRes = state.results.filter((r) => r.kind === 'img' || r.kind === 'pocus');
+    state.ended = true;
     const log = e.log.filter((x) => x.kind === 'act' || x.kind === 'good' || x.kind === 'bad' || x.type === 'inv' || x.type === 'hint');
     const html = `<div class="debrief">
       <div class="banner ${outcome === 'win' ? 'win' : 'lose'}"><span>${title}${s.tutorial ? '' : ' · ' + e.L.name + ' grade'}</span><span>⏱ ${fmt(ms)}${newBest ? ' · new personal best' : ''}</span></div>
@@ -429,12 +452,14 @@
       <h3>Critical actions</h3><ul>${cs.map((c) => `<li class="${c.done ? 'ok' : 'miss'}">${esc(c.text)}</li>`).join('')}</ul>
       ${e.did('complication') ? `<h3>Second problem (consultant grade)</h3><p>${e.flags.compl === 'iv' ? 'The IV cannula tissued mid-resuscitation — infusions and boluses stopped reaching the patient. Watch pump alarms and the response to drugs; re-site access (IO if needed).' : e.flags.compl === 'tube' ? 'The tracheal tube displaced during a move — loss of capnography is a displaced tube until proven otherwise (DAS / AoA QRH 2-2 and 2-3).' : e.flags.compl === 'o2' ? 'The oxygen supply was disconnected — always re-check the delivery chain when saturations fall.' : esc(e.flags.complText || 'A scenario-specific complication occurred.')} ${e.flags.ivDown || e.flags.tubeDisplaced || e.flags.o2Off ? '<b>It was not resolved.</b>' : 'You resolved it.'}</p>` : ''}
       ${e.harms.length ? `<h3>Potential harm</h3><ul>${e.harms.map((h) => `<li class="harm">${esc(h)}</li>`).join('')}</ul>` : ''}
+      ${imgRes.length ? `<h3>Investigation reports</h3><div class="db-res">${imgRes.map((r, i) => `<details data-dbres="${i}"><summary>${esc(r.name)} · ${r.at}</summary><div class="db-res-host"></div></details>`).join('')}</div>` : ''}
       <h3>Learning points</h3><ul>${(s.debrief.points || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       <h3>Guidelines &amp; further reading</h3><ul>${(s.debrief.refs || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       <details><summary>Timeline (${log.length} events)</summary><ol class="log">${log.map((x) => `<li class="${x.kind}"><span class="t">${Math.floor(x.t / 60)}:${String(Math.floor(x.t % 60)).padStart(2, '0')}</span><span>${esc(x.text)}</span></li>`).join('')}</ol><p class="muted small">Timeline shows simulator time.</p></details>
       <div class="row-end"><button class="btn" id="dbMenu">Menu</button><button class="btn" id="dbHint">Review physiology</button><button class="btn" id="dbNext">${state.fieldMode ? 'Next ' + FIELD[state.fieldMode] + ' scenario' : 'Random scenario'}</button><button class="btn primary" id="dbRetry">Retry</button></div></div>`;
     openModal((state.blind ? 'Debrief — it was: ' : 'Debrief: ') + s.title, html);
     if (S.LB) S.LB.debrief($('#lbBox'), { scn: s, outcome, ms, hints: state.hints, harms: e.harms.length, blind: state.blind, level: e.level });
+    $$('[data-dbres]').forEach((d) => d.addEventListener('toggle', () => { if (d.open && !d.dataset.mounted) { d.dataset.mounted = 1; const stop = resultView(d.querySelector('.db-res-host'), imgRes[+d.dataset.dbres], 'show'); const prev = state.stopAnim; state.stopAnim = () => { if (stop) stop(); if (prev) prev(); }; } }));
     $('#dbMenu').onclick = () => { closeModal(); location.hash = ''; };
     $('#dbRetry').onclick = () => { closeModal(); start(s.id); };
     $('#dbHint').onclick = () => { closeModal(); state.hints--; $('#hintBtn').click(); };
