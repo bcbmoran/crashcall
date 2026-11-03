@@ -32,16 +32,24 @@
   function renderHome() {
     chips($('#fieldChips'), ['EM', 'ICU', 'Anaes', 'Paeds'], 'field');
     const best = store.get('best', {});
-    const list = S.SCENARIOS.filter((s) => (filt.field === 'All' || s.field === filt.field) && (filt.shock === 'All' || shockKey(s) === filt.shock));
     const guest = P && P.enabled && !P.user;
+    const si = $('#libSearch'), q = si ? si.value.trim().toLowerCase() : '';
+    const words = q.split(/\s+/).filter(Boolean);
+    // In blind mode only the stem and field are searchable, so titles and diagnoses stay hidden.
+    const hay = (s) => (blindOn() && !s.tutorial ? [s.stem, FIELD[s.field]] : [s.title, s.stem, s.shock, s.category, FIELD[s.field], s.id]).join(' ').toLowerCase();
+    let list = S.SCENARIOS.filter((s) => (filt.field === 'All' || s.field === filt.field) && (filt.shock === 'All' || shockKey(s) === filt.shock) && words.every((w) => hay(s).includes(w)));
+    // Guests: tutorial, then the free scenarios, then everything that needs an account.
+    if (guest) { const rank = (s) => (s.tutorial ? 0 : isLocked(s) ? 2 : 1); list = list.map((s, i) => [s, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map((x) => x[0]); }
+    const cnt = $('#libCount'); if (cnt) cnt.textContent = q || filt.field !== 'All' ? `${list.length} scenario${list.length === 1 ? '' : 's'}` : '';
     const gb = $('#guestBanner'); if (gb) { gb.hidden = !guest; gb.innerHTML = guest ? `<span>👋 <b>Guest mode:</b> try the tutorial and one scenario from each field. <a href="#" data-gsign>Sign in or create a free account</a> to unlock all ${S.SCENARIOS.filter((s) => !s.tutorial).length} scenarios and save your progress.</span>` : ''; const a = gb.querySelector('[data-gsign]'); if (a) a.onclick = (ev) => { ev.preventDefault(); if (P) P.pending = null; S.Account && S.Account.open(); }; }
     $('#scnGrid').innerHTML = list.map((s) => `<button class="scn${isLocked(s) ? ' locked' : ''}" data-id="${s.id}">
         <div class="meta"><span class="tag ${s.field}">${FIELD[s.field]}</span><span>${blindOn() && !s.tutorial ? '' : esc(s.shock || s.category || '')}</span></div>
         <h3>${blindOn() && !s.tutorial ? 'Hidden case ' + caseCode(s.id).toUpperCase() : esc(s.title)}</h3><p>${esc(s.stem)}</p>
-        <div class="meta"><span class="diff" title="Difficulty">${'●'.repeat(s.difficulty)}${'○'.repeat(3 - s.difficulty)}</span>${isLocked(s) ? '<span class="lock-tag">🔒 Sign in</span>' : P && P.enabled && !P.user && !s.tutorial ? '<span class="free-tag">Free to try</span>' : ''}${best[s.id] ? `<span>Best ${fmt(best[s.id])}</span>` : ''}</div></button>`).join('') || '<p class="muted">No scenarios match these filters.</p>';
+        <div class="meta"><span class="diff" title="Difficulty">${'●'.repeat(s.difficulty)}${'○'.repeat(3 - s.difficulty)}</span>${isLocked(s) ? '<span class="lock-tag">🔒 Sign in</span>' : P && P.enabled && !P.user && !s.tutorial ? '<span class="free-tag">Free to try</span>' : ''}${best[s.id] ? `<span>Best ${fmt(best[s.id])}</span>` : ''}</div></button>`).join('') || (q ? `<p class="muted">No scenarios match “${esc(q)}”.</p>` : '<p class="muted">No scenarios match these filters.</p>');
     $$('.scn').forEach((b) => (b.onclick = () => go(b.dataset.id)));
   }
   const blindOn = () => !!store.get('blind', false);
+  const ls = $('#libSearch'); if (ls) { ls.oninput = () => renderHome(); ls.onkeydown = (ev) => { if (ev.key === 'Escape') { ls.value = ''; renderHome(); } }; }
   const caseCode = (id) => (S.SCENARIOS.findIndex((x) => x.id === id) * 7919 + 1013).toString(36);
   const fromCode = (c) => { const i = (parseInt(c, 36) - 1013) / 7919; return S.SCENARIOS[i] ? S.SCENARIOS[i].id : null; };
   // ---- grade-based difficulty ----
