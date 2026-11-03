@@ -203,18 +203,18 @@
         case 'hfno': if (!p.ventilated) { p.fio2 = 0.95; p.lastFio2 = p.fio2; this.flags.hfno = true; } msg('High-flow nasal oxygen running at 60 L/min, FiO₂ 1.0.'); break;
         case 'airway_manoeuvre': msg('Head tilt–chin lift / jaw thrust performed and adjunct inserted.'); break;
         case 'bvm':
-          if (p.airwayPatent) { p.assisted = true; p.fio2 = 1; p.lastFio2 = 1; msg('Two-person BVM ventilation with good chest rise.', 'good'); }
+          if (p.airwayPatent) { p.assisted = true; p.fio2 = 1; p.lastFio2 = 1; this.flags.airway = this.flags.airway || 'bvm'; msg('Two-person BVM ventilation with good chest rise.', 'good'); }
           else msg('Unable to ventilate — no chest rise despite optimal technique.', 'bad');
           break;
         case 'sga':
-          if (p.airwayPatent) { p.sga = true; p.assisted = true; p.fio2 = 1; p.lastFio2 = 1; msg('i-gel inserted, ventilating with capnography trace.', 'good'); }
+          if (p.airwayPatent) { p.sga = true; p.assisted = true; p.fio2 = 1; p.lastFio2 = 1; this.flags.airway = this.flags.airway || 'sga'; msg('i-gel inserted, ventilating with capnography trace.', 'good'); }
           else msg('SGA inserted but no capnography trace and no chest rise.', 'bad');
           break;
         case 'rsi_ketamine': case 'rsi_propofol': {
           if (p.ventilated) { msg('Patient is already intubated.'); break; }
           if (!p.airwayPatent && !this.flags.canIntubate) { msg('Grade 4 view — failed intubation. Declare failed intubation, oxygenate.', 'bad'); p.effort = 0; this.flags.paralysed = true; break; }
           p.ventilated = true; p.assisted = false; p.effort = 0; p.fio2 = 1; p.lastFio2 = 1; p.peep = 5; p.ventRR = 14;
-          this.flags.paralysed = true;
+          this.flags.paralysed = true; this.flags.airway = 'ett'; this.flags.induction = id;
           const prop = id === 'rsi_propofol';
           this.pool(prop ? '_propofol' : '_ketamine');
           const pl = this.pools[prop ? '_propofol' : '_ketamine'];
@@ -227,7 +227,7 @@
           break;
         }
         case 'fona':
-          p.ventilated = true; p.airwayPatent = true; p.effort = 0; p.fio2 = 1; p.lastFio2 = 1; p.assisted = false;
+          p.ventilated = true; p.airwayPatent = true; p.effort = 0; p.fio2 = 1; p.lastFio2 = 1; p.assisted = false; this.flags.airway = 'fona';
           msg('Scalpel–bougie–tube cricothyroidotomy performed. Cuffed 6.0 tube, capnography confirms placement.', 'good');
           break;
         case 'vent_disconnect':

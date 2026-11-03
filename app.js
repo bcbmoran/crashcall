@@ -239,9 +239,40 @@
       </div></div>
       <div class="grp results"><h4>Results</h4>${state.results.length ? state.results.map((r, i) => `<button class="btn sm" data-res="${i}">${esc(r.name)} · ${r.at}</button>`).join('') : '<span class="muted small">No results yet.</span>'}</div>`;
   }
+  // Keep the ABCDE exam consistent with airway interventions made during the scenario
+  // (scenario exam text is written for the patient as they arrive).
+  function adjustExam(ex, e) {
+    const p = e.p, f = e.flags, how = f.airway;
+    if (!how) return ex;
+    const kPa = (p.etco2 / 7.5).toFixed(1);
+    const tube = how === 'ett' || how === 'fona';
+    const already = (k, re) => re.test(ex[k] || '');
+    if (tube) {
+      if (f.tubeDisplaced) ex.A = 'Tube appears to have moved — no capnography trace, air leak and gurgling at the mouth, ventilator high/low-pressure alarms.';
+      else if (!already('A', /tube|ETT|intubat|cric/i)) ex.A = how === 'fona' ? `Cricothyroidotomy (cuffed 6.0 tube) in situ, secured; capnography trace present (EtCO₂ ${kPa} kPa).` : `Cuffed tracheal tube in situ, ${p.paed ? Math.round((p.age || 4) / 2 + 12) : p.sex === 'F' ? 21 : 23} cm at the lips, secured; square-wave capnography trace (EtCO₂ ${kPa} kPa).`;
+      if (!already('B', /ventilat/i)) {
+        const selfVent = /\bRR\b|SpO|accessory|sentence|speak|talk|distress|PEF|tachypn|work of breathing|recession|tracheal tug|stridor|drool|nasal flar|grunt|head bob|tiring|exhaust/i;
+        const keep = String(ex.B || '').split(/(?<=\.)\s+/).map((s) => s.replace(/\.$/, '').split(/,\s+/).filter((c) => c && !selfVent.test(c)).join(', ')).filter(Boolean).map((s) => s[0].toUpperCase() + s.slice(1) + '.');
+        ex.B = `Ventilated: FiO₂ ${p.fio2.toFixed(2)}, RR ${p.ventRR}, PEEP ${p.peep}, peak pressure ${Math.round(p.paw || 20)} cmH₂O. SpO₂ ${p.spo2}%. ${keep.join(' ') || 'Bilateral chest expansion, equal air entry.'}`.trim();
+      }
+      const paralysed = f.paralysed && !(e.total('sugammadex') > 0);
+      if (!already('D', /anaesthetis|sedat|paraly|GCS 3/i)) {
+        const own = String(ex.D || '').split(/(?<=\.)\s+/).filter((x) => /pupil|fontanelle|glucose|BM\b/i.test(x)).map((x) => x.replace(/^.*?(?=(Left|Right|Pupil|Fontanelle|Glucose|BM))/i, ''));
+        const pupils = own.length ? own.join(' ') : 'Pupils 3 mm, equal and reactive.';
+        ex.D = paralysed
+          ? `Anaesthetised and paralysed after RSI (${f.induction === 'rsi_ketamine' ? 'ketamine' : f.induction === 'rsi_propofol' ? 'propofol' : 'induction agent'} + rocuronium): GCS 3T (E1 VT M1) — not assessable. ${pupils} Any seizure activity would be masked by the neuromuscular blocker.`
+          : `Intubated and sedated: GCS ${Math.min(p.gcs || 3, 8)}T. ${pupils}`;
+      }
+    } else if (how === 'sga') {
+      if (!already('A', /i-gel|supraglottic|SGA/i)) ex.A = `i-gel in situ; capnography trace present (EtCO₂ ${kPa} kPa).`;
+    } else if (how === 'bvm' && p.assisted && !p.ventilated && !already('A', /BVM|bag/i)) {
+      ex.A = 'Airway supported: two-person bag-valve-mask with adjuncts, good chest rise.';
+    }
+    return ex;
+  }
   function examHTML() {
     if (state.examPrompt) return `<div class="exam"><p class="muted small">Start with an ABCDE assessment.</p><div class="row-end"><button class="btn primary" data-reexam>Examine patient (ABCDE)</button></div></div>`;
-    const ex = state.scn.exam ? state.scn.exam(state.eng) : {};
+    const ex = adjustExam(state.scn.exam ? Object.assign({}, state.scn.exam(state.eng)) : {}, state.eng);
     state.eng.mark('exam');
     return `<div class="exam"><p class="muted small">Examination findings now (${fmt(state.elapsed).slice(0, 5)}). Re-open this tab to re-examine.</p><dl>${['A', 'B', 'C', 'D', 'E'].map((k) => `<dt>${k}</dt><dd>${esc(ex[k] || '—')}</dd>`).join('')}</dl><div class="row-end"><button class="btn sm" data-reexam>Re-examine</button></div></div>`;
   }
