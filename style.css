@@ -261,3 +261,32 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .rcuk-link:hover { border-color: var(--accent); }
 .rcuk-prac { display: flex; flex-wrap: wrap; gap: 4px; margin: -2px 0 4px 6px; }
 .rcuk-prac .btn { font-size: .78rem; padding: 3px 8px; }
+
+/* ---------- progress & account ---------- */
+.prog h3 { margin: 1.1em 0 .4em; }
+.prog-filter { display: flex; gap: .6em; align-items: center; justify-content: space-between; flex-wrap: wrap; margin: .4em 0 .8em; }
+.prog-filter select { font: inherit; padding: .3em .5em; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.prog-bars { display: grid; gap: .45em; }
+.pbar { display: grid; grid-template-columns: 11em 1fr 3.5em; gap: .6em; align-items: center; }
+.pbar-track { height: 10px; border-radius: 5px; background: var(--surface2); overflow: hidden; }
+.pbar-fill { height: 100%; background: var(--accent); border-radius: 5px; }
+.prog-rcuk { columns: 2; padding-left: 1.2em; margin: .3em 0; }
+.prog-rcuk li { color: var(--muted); }
+.prog-rcuk li.ok { color: var(--good); list-style: '✓  '; }
+.prog-rcuk li.part { color: var(--warn); list-style: '◐  '; }
+.prog-gaps li { margin: .25em 0; }
+.prog-table { width: 100%; border-collapse: collapse; font-size: .9rem; margin: .3em 0 .8em; }
+.prog-table th, .prog-table td { text-align: left; padding: .35em .5em; border-bottom: 1px solid var(--border); }
+.prog-table td.ok { color: var(--good); } .prog-table td.miss { color: var(--bad); }
+.prog-todo { display: flex; flex-wrap: wrap; gap: .35em; margin-top: .5em; }
+.acct { max-width: 420px; }
+.acct-google { width: 100%; justify-content: center; gap: .6em; display: inline-flex; align-items: center; }
+.acct-or { display: flex; align-items: center; gap: .6em; color: var(--muted); font-size: .85rem; margin: .9em 0; }
+.acct-or::before, .acct-or::after { content: ''; flex: 1; border-top: 1px solid var(--border); }
+.acct-form { display: grid; gap: .6em; }
+.acct-form label { display: grid; gap: .2em; font-size: .9rem; }
+.acct-form input { font: inherit; padding: .5em .65em; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
+.acct-msg { min-height: 1.2em; color: var(--good); } .acct-msg.bad { color: var(--bad); }
+.acct-privacy { border-top: 1px solid var(--border); padding-top: .7em; }
+.acct-danger { margin-top: 1.2em; } .acct-danger summary { color: var(--bad); cursor: pointer; }
+@media (max-width: 600px) { .pbar { grid-template-columns: 7.5em 1fr 3em; } .prog-rcuk { columns: 1; } .prog-table { font-size: .8rem; } }

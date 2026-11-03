@@ -510,6 +510,7 @@
     let newBest = false;
     if (outcome === 'win') { const best = store.get('best', {}); if (!best[s.id] || ms < best[s.id]) { best[s.id] = ms; store.set('best', best); newBest = true; } }
     const cs = (s.critical || []).map((c) => ({ text: c.text, done: !!c.check(e) }));
+    const saved = !s.tutorial && S.Progress ? S.Progress.record({ sid: s.id, level: e.level, outcome, ms: Math.round(ms), hints: state.hints, harms: e.harms.length, blind: !!state.blind, crit: cs.map((c) => ({ t: c.text, d: c.done })), at: new Date().toISOString() }) : null;
     const title = outcome === 'win' ? 'Patient stabilised' : outcome === 'arrest' ? 'Cardiac arrest — scenario failed' : 'Scenario ended';
     const imgRes = state.results.filter((r) => r.kind === 'img' || r.kind === 'pocus');
     state.ended = true;
@@ -518,6 +519,7 @@
       <div class="banner ${outcome === 'win' ? 'win' : 'lose'}"><span>${title}${s.tutorial ? '' : ' · ' + e.L.name + ' grade'}</span><span>⏱ ${fmt(ms)}${newBest ? ' · new personal best' : ''}</span></div>
       <div class="stat-row"><div class="stat"><span class="muted small">Time</span><b>${fmt(ms)}</b></div><div class="stat"><span class="muted small">Critical actions</span><b>${cs.filter((c) => c.done).length}/${cs.length}</b></div><div class="stat"><span class="muted small">Harmful actions</span><b>${e.harms.length}</b></div><div class="stat"><span class="muted small">Hints used</span><b>${state.hints}</b></div><div class="stat"><span class="muted small">Final MAP / SpO₂</span><b>${Math.round(e.p.map)} / ${e.p.spo2}%</b></div></div>
       <div id="lbBox" class="lb-box"></div>
+      ${saved ? '<p class="muted small" id="saveNote"></p>' : ''}
       <h3>Critical actions</h3><ul>${cs.map((c) => `<li class="${c.done ? 'ok' : 'miss'}">${esc(c.text)}</li>`).join('')}</ul>
       ${e.did('complication') ? `<h3>Second problem (consultant grade)</h3><p>${e.flags.compl === 'iv' ? 'The IV cannula tissued mid-resuscitation — infusions and boluses stopped reaching the patient. Watch pump alarms and the response to drugs; re-site access (IO if needed).' : e.flags.compl === 'tube' ? 'The tracheal tube displaced during a move — loss of capnography is a displaced tube until proven otherwise (DAS / AoA QRH 2-2 and 2-3).' : e.flags.compl === 'o2' ? 'The oxygen supply was disconnected — always re-check the delivery chain when saturations fall.' : esc(e.flags.complText || 'A scenario-specific complication occurred.')} ${e.flags.ivDown || e.flags.tubeDisplaced || e.flags.o2Off ? '<b>It was not resolved.</b>' : 'You resolved it.'}</p>` : ''}
       ${e.harms.length ? `<h3>Potential harm</h3><ul>${e.harms.map((h) => `<li class="harm">${esc(h)}</li>`).join('')}</ul>` : ''}
@@ -527,6 +529,7 @@
       <details><summary>Timeline (${log.length} events)</summary><ol class="log">${log.map((x) => `<li class="${x.kind}"><span class="t">${Math.floor(x.t / 60)}:${String(Math.floor(x.t % 60)).padStart(2, '0')}</span><span>${esc(x.text)}</span></li>`).join('')}</ol><p class="muted small">Timeline shows simulator time.</p></details>
       <div class="row-end"><button class="btn" id="dbMenu">Menu</button><button class="btn" id="dbHint">Review physiology</button><button class="btn" id="dbNext">${state.fieldMode ? 'Next ' + FIELD[state.fieldMode] + ' scenario' : 'Random scenario'}</button><button class="btn primary" id="dbRetry">Retry</button></div></div>`;
     openModal((state.blind ? 'Debrief — it was: ' : 'Debrief: ') + s.title, html);
+    if (saved) saved.then((w) => { const n = $('#saveNote'); if (!n) return; const P = S.Progress; n.innerHTML = w === 'cloud' ? `✓ Saved to your progress (${esc(P.user.name || P.user.email)}). <a href="#" data-prog>View progress</a>` : `Saved on this device. ${P.enabled ? '<a href="#" data-acct>Sign in</a> to keep your progress across devices · ' : ''}<a href="#" data-prog>View progress</a>`; const a = n.querySelector('[data-acct]'); if (a) a.onclick = (ev) => { ev.preventDefault(); S.Account.open(); }; n.querySelector('[data-prog]').onclick = (ev) => { ev.preventDefault(); P.open(); }; });
     if (S.LB) S.LB.debrief($('#lbBox'), { scn: s, outcome, ms, hints: state.hints, harms: e.harms.length, blind: state.blind, level: e.level });
     $$('[data-dbres]').forEach((d) => d.addEventListener('toggle', () => { if (d.open && !d.dataset.mounted) { d.dataset.mounted = 1; const stop = resultView(d.querySelector('.db-res-host'), imgRes[+d.dataset.dbres], 'show'); const prev = state.stopAnim; state.stopAnim = () => { if (stop) stop(); if (prev) prev(); }; } }));
     $('#dbMenu').onclick = () => { closeModal(); location.hash = ''; };
@@ -560,4 +563,6 @@
   const qs = $('#qrhBtn'); if (qs) qs.onclick = () => { if (state.eng) state.eng.mark('qrh'); qrhOpen(state.scn && state.scn.qrh); };
   const lbb = $('#lbBtn'); if (lbb) { if (!(S.LB && S.LB.enabled())) lbb.hidden = true; lbb.onclick = () => S.LB && S.LB.show(); }
   S.app = state; // exposed for testing
+  S.ui = { openModal, closeModal, toast: (t) => toast(t), go };
+  if (S.Progress) S.Progress.refreshUI();
 })();
