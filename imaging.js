@@ -8,13 +8,18 @@
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const I = (S.Imaging = {});
 
-  function mediaHTML(key) {
+  // hide: true conceals what the example image shows (description, file name, alt text) until the report is revealed;
+  // author and licence attribution are always shown.
+  function mediaHTML(key, hide) {
     const m = S.mediaInfo(key);
     if (!m) return '<div class="no-img">No openly-licensed example image is available for this finding — see the report.</div>';
+    const alt = hide ? 'Example image' : m.d;
     const viewer = m.video
       ? `<video class="med-video" autoplay loop muted playsinline controls preload="auto">${m.video.map((v) => `<source src="${v.src}" type="${v.type}">`).join('')}</video>`
-      : `<img class="med-img" src="${m.img}" alt="${esc(m.d)}" loading="eager" referrerpolicy="no-referrer">`;
-    return `<figure class="med">${viewer}<figcaption><b>Example image:</b> ${esc(m.d)}.<br><a href="${m.page}" target="_blank" rel="noopener">${esc(m.f)}</a> — ${esc(m.by)}, <a href="${m.lu}" target="_blank" rel="noopener">${esc(m.lic)}</a>, via Wikimedia Commons.</figcaption></figure>`;
+      : `<img class="med-img" src="${m.img}" alt="${esc(alt)}" data-alt="${esc(m.d)}" loading="eager" referrerpolicy="no-referrer">`;
+    const full = `<b>Example image:</b> ${esc(m.d)}.<br><a href="${m.page}" target="_blank" rel="noopener">${esc(m.f)}</a> — ${esc(m.by)}, <a href="${m.lu}" target="_blank" rel="noopener">${esc(m.lic)}</a>, via Wikimedia Commons.`;
+    const brief = `<b>Example image</b> (what it shows is revealed with the report) — ${esc(m.by)}, <a href="${m.lu}" target="_blank" rel="noopener">${esc(m.lic)}</a>, via Wikimedia Commons.`;
+    return `<figure class="med">${viewer}<figcaption><span class="cap-brief"${hide ? '' : ' hidden'}>${brief}</span><span class="cap-full"${hide ? ' hidden' : ''}>${full}</span></figcaption></figure>`;
   }
   I.mediaHTML = mediaHTML;
 
@@ -59,9 +64,11 @@
     return o.join('');
   }
 
-  I.mount = function (el, spec, eng) {
+  // reveal the hidden caption of an already-mounted example image
+  I.revealCaption = function (el) { if (!el) return; el.querySelectorAll('.cap-brief').forEach((x) => (x.hidden = true)); el.querySelectorAll('.cap-full').forEach((x) => (x.hidden = false)); const m = el.querySelector('.med-img'); if (m && m.dataset.alt) m.alt = m.dataset.alt; };
+  I.mount = function (el, spec, eng, opts) {
     if (spec.kind === 'ecg') { el.innerHTML = ecgSVG(spec, eng); return () => {}; }
-    el.innerHTML = mediaHTML(spec.media);
+    el.innerHTML = mediaHTML(spec.media, opts && opts.hideCaption);
     const v = el.querySelector('video');
     if (v) { v.play && v.play().catch(() => {}); return () => { try { v.pause(); v.removeAttribute('src'); v.load(); } catch (e) { /* ignore */ } }; }
     const img = el.querySelector('img');

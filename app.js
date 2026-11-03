@@ -340,17 +340,20 @@
   function resultView(host, r, mode) {
     if (r.kind === 'img') {
       const note = r.spec.kind === 'ecg' ? 'ECG generated live from the simulated patient.' : 'The image is a representative, openly-licensed example of the finding — not the simulated patient. The report describes this patient.';
-      const draw = () => { host.querySelector('.rep-txt').innerHTML = reportBlock(r, r.report, mode); const rb = host.querySelector('[data-reveal]'); if (rb) rb.onclick = () => { r.revealed = true; draw(); }; };
+      const hidden = () => mode !== 'show' && !r.revealed;
+      const draw = () => { host.querySelector('.rep-txt').innerHTML = reportBlock(r, r.report, mode); if (!hidden()) S.Imaging.revealCaption(host); const rb = host.querySelector('[data-reveal]'); if (rb) rb.onclick = () => { r.revealed = true; draw(); }; };
       host.innerHTML = `<div class="img-wrap"${r.spec.kind === 'ecg' ? ' style="grid-template-columns:1fr"' : ''}><div class="img-host"></div><div class="report"><div class="rep-txt"></div><p class="muted small">${note}</p></div></div>`;
+      const stop = S.Imaging.mount(host.querySelector('.img-host'), r.spec, state.eng, { hideCaption: hidden() });
       draw();
-      return S.Imaging.mount(host.querySelector('.img-host'), r.spec, state.eng);
+      return stop;
     }
     const vs = r.views || [];
     if (!vs.length) { host.innerHTML = '<p>No views available.</p>'; return () => {}; }
     host.innerHTML = `<div class="view-tabs">${vs.map((v, i) => `<button class="btn sm ${i ? '' : 'on'}" data-view="${i}">${esc(v.label)}</button>`).join('')}</div><div class="img-wrap"><div class="img-host"></div><div class="report"><div class="rep-txt"></div><p class="muted small">Representative openly-licensed clip of the finding — not the simulated patient. The report describes this patient.</p></div></div>`;
     let stop = null, cur = 0;
-    const draw = () => { const v = vs[cur]; host.querySelector('.rep-txt').innerHTML = reportBlock(v, v.report, mode, v.label); const rb = host.querySelector('[data-reveal]'); if (rb) rb.onclick = () => { v.revealed = true; draw(); }; };
-    const show = (i) => { if (stop) stop(); cur = i; stop = S.Imaging.mount(host.querySelector('.img-host'), Object.assign({ kind: 'pocus' }, vs[i]), state.eng); draw(); $$('[data-view]', host).forEach((b) => b.classList.toggle('on', +b.dataset.view === i)); };
+    const hid = (v) => mode !== 'show' && !v.revealed;
+    const draw = () => { const v = vs[cur]; host.querySelector('.rep-txt').innerHTML = reportBlock(v, v.report, mode, v.label); if (!hid(v)) S.Imaging.revealCaption(host); const rb = host.querySelector('[data-reveal]'); if (rb) rb.onclick = () => { v.revealed = true; draw(); }; };
+    const show = (i) => { if (stop) stop(); cur = i; stop = S.Imaging.mount(host.querySelector('.img-host'), Object.assign({ kind: 'pocus' }, vs[i]), state.eng, { hideCaption: hid(vs[i]) }); draw(); $$('[data-view]', host).forEach((b) => b.classList.toggle('on', +b.dataset.view === i)); };
     $$('[data-view]', host).forEach((b) => (b.onclick = () => show(+b.dataset.view)));
     show(0);
     return () => { if (stop) stop(); };
