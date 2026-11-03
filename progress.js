@@ -19,6 +19,13 @@
     enabled: false, // true once Firebase is configured
   });
 
+  // Guest access: without an account, only the tutorial and these scenarios (one per field) can be played.
+  P.FREE = ['em-sepsis-uro', 'icu-adrenal-crisis', 'an-anaphylaxis', 'paed-asthma'];
+  let readyRes; P.ready = new Promise((r) => (readyRes = r)); P.setReady = () => readyRes();
+  setTimeout(() => readyRes(), 6000); // never wait for sign-in to resolve for longer than this
+  P.locked = (s) => !!(s && P.enabled && !P.user && !s.tutorial && !P.FREE.includes(s.id));
+  P.pending = null; // scenario to start once the user signs in
+
   P.attempts = () => (P.user && P.cloud ? P.cloud : load().filter((a) => !a.owner || !P.user || a.owner === P.user.uid));
 
   P.record = async function (rec) {
@@ -55,6 +62,7 @@
     const b = document.getElementById('acctBtn');
     if (b) { b.hidden = !P.enabled; b.textContent = P.user ? '👤 ' + (P.user.name || P.user.email || 'Account').split(' ')[0] : '👤 Sign in'; }
     if (P.isOpen && P.isOpen()) P.open();
+    if (S.ui && S.ui.renderHome) S.ui.renderHome();
   };
 
   // ---------------- summary maths ----------------

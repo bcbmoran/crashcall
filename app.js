@@ -33,10 +33,12 @@
     chips($('#fieldChips'), ['EM', 'ICU', 'Anaes', 'Paeds'], 'field');
     const best = store.get('best', {});
     const list = S.SCENARIOS.filter((s) => (filt.field === 'All' || s.field === filt.field) && (filt.shock === 'All' || shockKey(s) === filt.shock));
-    $('#scnGrid').innerHTML = list.map((s) => `<button class="scn" data-id="${s.id}">
+    const guest = P && P.enabled && !P.user;
+    const gb = $('#guestBanner'); if (gb) { gb.hidden = !guest; gb.innerHTML = guest ? `<span>👋 <b>Guest mode:</b> try the tutorial and one scenario from each field. <a href="#" data-gsign>Sign in or create a free account</a> to unlock all ${S.SCENARIOS.filter((s) => !s.tutorial).length} scenarios and save your progress.</span>` : ''; const a = gb.querySelector('[data-gsign]'); if (a) a.onclick = (ev) => { ev.preventDefault(); if (P) P.pending = null; S.Account && S.Account.open(); }; }
+    $('#scnGrid').innerHTML = list.map((s) => `<button class="scn${isLocked(s) ? ' locked' : ''}" data-id="${s.id}">
         <div class="meta"><span class="tag ${s.field}">${FIELD[s.field]}</span><span>${blindOn() && !s.tutorial ? '' : esc(s.shock || s.category || '')}</span></div>
         <h3>${blindOn() && !s.tutorial ? 'Hidden case ' + caseCode(s.id).toUpperCase() : esc(s.title)}</h3><p>${esc(s.stem)}</p>
-        <div class="meta"><span class="diff" title="Difficulty">${'●'.repeat(s.difficulty)}${'○'.repeat(3 - s.difficulty)}</span>${best[s.id] ? `<span>Best ${fmt(best[s.id])}</span>` : ''}</div></button>`).join('') || '<p class="muted">No scenarios match these filters.</p>';
+        <div class="meta"><span class="diff" title="Difficulty">${'●'.repeat(s.difficulty)}${'○'.repeat(3 - s.difficulty)}</span>${isLocked(s) ? '<span class="lock-tag">🔒 Sign in</span>' : P && P.enabled && !P.user && !s.tutorial ? '<span class="free-tag">Free to try</span>' : ''}${best[s.id] ? `<span>Best ${fmt(best[s.id])}</span>` : ''}</div></button>`).join('') || '<p class="muted">No scenarios match these filters.</p>';
     $$('.scn').forEach((b) => (b.onclick = () => go(b.dataset.id)));
   }
   const blindOn = () => !!store.get('blind', false);
@@ -53,17 +55,32 @@
   renderLevels();
   const bt = $('#blindToggle'); if (bt) { bt.checked = blindOn(); bt.onchange = () => { store.set('blind', bt.checked); renderHome(); }; }
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  $('#randomAll').onclick = () => go(pick(S.SCENARIOS.filter((s) => !s.tutorial)).id);
+  $('#randomAll').onclick = () => go(pick(playable(S.SCENARIOS.filter((s) => !s.tutorial))).id);
   const tb = $('#tutBtn'); if (tb) tb.onclick = () => go('tutorial');
-  $$('[data-field]').forEach((b) => (b.onclick = () => go(pick(S.SCENARIOS.filter((s) => s.field === b.dataset.field)).id, b.dataset.field)));
+  $$('[data-field]').forEach((b) => (b.onclick = () => go(pick(playable(S.SCENARIOS.filter((s) => s.field === b.dataset.field && !s.tutorial))).id, b.dataset.field)));
   function go(id, field) { const s = S.SCENARIOS.find((x) => x.id === id); location.hash = blindOn() && s && !s.tutorial ? 'case/' + caseCode(id) : 'play/' + id; state.fieldMode = field || null; }
 
   // ---------------- sim state ----------------
   const state = { scn: null, eng: null, mon: null, pv: null, running: false, paused: true, elapsed: 0, last: 0, acc: 0, uiT: 0, hints: 0, results: [], tab: 'exam', fieldMode: null, stopAnim: null, hintTimer: null };
 
-  function start(id) {
+  const P = S.Progress;
+  const isLocked = (s) => !!(P && P.locked(s));
+  const playable = (list) => list.filter((s) => !isLocked(s));
+  function lockPrompt(scn) {
+    if (P) P.pending = scn ? scn.id : null;
+    const free = S.SCENARIOS.filter((s) => P && P.FREE.includes(s.id));
+    openModal('Sign in to unlock', `<div class="lock-box"><p>🔒 ${scn && !blindOn() ? '<b>' + esc(scn.title) + '</b> is' : 'This scenario is'} available with a free CrashCall account. Signing in unlocks all ${S.SCENARIOS.filter((s) => !s.tutorial).length} scenarios and saves your progress across devices.</p>
+      <p><button class="btn primary" data-lsign>Sign in or create a free account</button></p>
+      <p class="muted small">Without an account you can try the tutorial and one scenario from each field:</p>
+      <div class="row-btns">${free.map((s) => `<button class="btn sm" data-lfree="${s.id}">${FIELD[s.field]}${blindOn() ? '' : ': ' + esc(s.title)}</button>`).join('')}</div></div>`);
+    $('[data-lsign]').onclick = () => S.Account && S.Account.open();
+    $$('[data-lfree]').forEach((b) => (b.onclick = () => { if (P) P.pending = null; closeModal(); go(b.dataset.lfree); }));
+  }
+  async function start(id) {
     const scn = S.SCENARIOS.find((s) => s.id === id);
     if (!scn) { location.hash = ''; return; }
+    if (P && !P.user && !scn.tutorial && !P.FREE.includes(scn.id)) await P.ready; // let a saved sign-in finish restoring first
+    if (isLocked(scn)) { history.replaceState(null, '', location.pathname + location.search); route(); lockPrompt(scn); return; }
     closeModal();
     $('#home').classList.remove('active'); $('#sim').classList.add('active');
     window.scrollTo(0, 0);
@@ -535,7 +552,7 @@
     $('#dbMenu').onclick = () => { closeModal(); location.hash = ''; };
     $('#dbRetry').onclick = () => { closeModal(); start(s.id); };
     $('#dbHint').onclick = () => { closeModal(); state.hints--; $('#hintBtn').click(); };
-    $('#dbNext').onclick = () => { const pool = S.SCENARIOS.filter((x) => (!state.fieldMode || x.field === state.fieldMode) && x.id !== s.id && !x.tutorial); const f = state.fieldMode; closeModal(); go(pick(pool).id, f); };
+    $('#dbNext').onclick = () => { const pool = playable(S.SCENARIOS.filter((x) => (!state.fieldMode || x.field === state.fieldMode) && x.id !== s.id && !x.tutorial)); const f = state.fieldMode; closeModal(); if (!pool.length) { location.hash = ''; lockPrompt(null); return; } go(pick(pool).id, f); };
   }
 
   // ---------------- routing ----------------
@@ -563,6 +580,6 @@
   const qs = $('#qrhBtn'); if (qs) qs.onclick = () => { if (state.eng) state.eng.mark('qrh'); qrhOpen(state.scn && state.scn.qrh); };
   const lbb = $('#lbBtn'); if (lbb) { if (!(S.LB && S.LB.enabled())) lbb.hidden = true; lbb.onclick = () => S.LB && S.LB.show(); }
   S.app = state; // exposed for testing
-  S.ui = { openModal, closeModal, toast: (t) => toast(t), go };
+  S.ui = { openModal, closeModal, toast: (t) => toast(t), go, renderHome };
   if (S.Progress) S.Progress.refreshUI();
 })();

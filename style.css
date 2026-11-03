@@ -293,3 +293,8 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .adm-users tbody tr { cursor: pointer; } .adm-users tbody tr:hover { background: var(--accent-2); }
 .admin .seg button { font-size: .9rem; }
 [hidden] { display: none !important; }
+.guest-banner { background: var(--accent-2); border: 1px solid var(--border); border-radius: 10px; padding: .7em 1em; margin: 0 0 1em; font-size: .95rem; }
+.scn.locked { opacity: .62; } .scn.locked:hover { opacity: .85; }
+.lock-tag, .free-tag { font-size: .75rem; font-weight: 600; border-radius: 6px; padding: .1em .45em; }
+.lock-tag { background: var(--surface2); color: var(--muted); } .free-tag { background: var(--sch-rx-bg); color: var(--good); }
+.lock-box { max-width: 560px; }

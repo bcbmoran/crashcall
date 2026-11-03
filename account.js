@@ -11,8 +11,8 @@ if (P && cfg.apiKey) {
   // Firebase is only downloaded when accounts are configured.
   let mods = null;
   try { mods = await Promise.all([import(V + 'firebase-app.js'), import(V + 'firebase-auth.js'), import(V + 'firebase-firestore.js')]); } catch (e) { console.warn('Accounts unavailable (could not load Firebase)', e); }
-  if (mods) setup(mods);
-}
+  if (mods) setup(mods); else P.setReady();
+} else if (P) P.setReady();
 function setup([{ initializeApp }, A, F]) {
   const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, signOut, deleteUser } = A;
   const { getFirestore, collection, collectionGroup, doc, setDoc, getDocs, deleteDoc, query, orderBy, limit, writeBatch } = F;
@@ -153,13 +153,14 @@ function setup([{ initializeApp }, A, F]) {
 
   onAuthStateChanged(auth, async (u) => {
     if (u) {
-      setUser(u);
+      setUser(u); P.setReady();
       touch({ provider: (u.providerData[0] || {}).providerId || '', created: u.metadata.creationTime ? new Date(u.metadata.creationTime).toISOString() : '' }).catch((e) => console.warn(e));
       const added = await P.signedIn(P.user);
       if (added) toast(`${added} earlier result${added === 1 ? '' : 's'} from this device added to your account.`);
       if (isOpen()) { if (/Sign in|Create|Reset/.test(document.getElementById('modalTitle').textContent)) { S.ui.closeModal(); toast('Signed in as ' + (P.user.name || P.user.email)); } else open(); }
+      if (P.pending) { const id = P.pending; P.pending = null; S.ui.closeModal(); S.ui.go(id); }
     } else {
-      P.signedOut(); mode = 'signin';
+      P.setReady(); P.signedOut(); mode = 'signin';
       if (isOpen()) open();
     }
   });
