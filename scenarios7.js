@@ -32,7 +32,7 @@
   add({
     id: 'em-tca', title: 'Traumatic cardiac arrest', field: 'EM', shock: 'Obstructive + hypovolaemic (arrest)', difficulty: 3, setting: 'ed', als: true, arrestLimit: 360,
     stem: 'Pre-alert: 26-year-old motorcyclist versus car at 50 mph. Lost output in the ambulance 4 minutes ago — CPR in progress. On arrival: PEA ~130/min, arterial bleeding from an open left thigh wound, absent breath sounds on the right, unstable pelvis.',
-    patient: { age: 26, sex: 'M', weight: 80, rhythm: 'pea', peaRate: 130, vol: 0.42, obstruct: 0.5, bleed: 0.0012, hb: 78, coag: 0.5, effort: 0, gcs: 3, lactate: 9, temp: 35.4, look: { wound: true, collar: true } },
+    patient: { age: 26, sex: 'M', weight: 80, rhythm: 'pea', peaRate: 130, vol: 0.42, obstruct: 0.5, bleed: 0.0012, hb: 78, coag: 0.5, effort: 0, gcs: 3, lactate: 9, temp: 35.4, look: { collar: true, legs: { left: { wound: true, tourniquetIf: 'tca_haem' } } } },
     arrestRhythm: () => 'pea',
     roscRhythm: 'sinus',
     extraActions: [
@@ -356,7 +356,7 @@
   add({
     id: 'em-stable-af', title: 'Fast irregular heartbeat', field: 'EM', shock: null, category: 'Cardiac (arrhythmia)', difficulty: 1, setting: 'ed',
     stem: '72-year-old man with 3 days of palpitations and mild breathlessness on exertion. Hypertension; no known heart failure. Not anticoagulated.',
-    patient: { age: 72, sex: 'M', weight: 84, rhythm: 'af', fixedRate: 148, contract: 0.95, hrBase: 76, look: {} },
+    patient: { age: 72, sex: 'M', weight: 84, rhythm: 'af', fixedRate: 148, contract: 0.95, hrBase: 76, look: { legs: { oedema: true } } },
     extraActions: [{ id: 'af_anticoag', name: 'Assess stroke risk (CHA₂DS₂-VA) and start anticoagulation' }],
     tick(e, dt) { const p = e.p; if (p.rhythm === 'af') p.fixedRate = toward(p.fixedRate, 148 - Math.min(62, 6.5 * e.total('metoprolol')), 0.03, dt); },
     onEvent(e, ev) {

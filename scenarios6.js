@@ -112,7 +112,7 @@
   add({
     id: 'em-elderly-trauma', title: 'Elderly pedestrian struck by a car', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
     stem: '79-year-old man struck by a car at low speed. Complaining of pelvic and left thigh pain. HR 72, BP 104/66 — “looks stable”. He takes bisoprolol and ramipril.',
-    patient: { age: 79, sex: 'M', weight: 72, vol: 0.76, bleed: 0.0008, hrBase: 64, hrGain: 12, baro: 0.6, lactate: 5.6, hb: 104, look: { wound: true } },
+    patient: { age: 79, sex: 'M', weight: 72, vol: 0.76, bleed: 0.0008, hrBase: 64, hrGain: 12, baro: 0.6, lactate: 5.6, hb: 104, look: { wound: true, legs: { left: { shortRot: true, bruise: true } } } },
     tick(e, dt) { if (e.flags.ctrl) e.p.bleed = toward(e.p.bleed, 0, 0.05, dt); else if (e.flags.binder) e.p.bleed = Math.max(0.0005, e.p.bleed - 0.00002 * dt); },
     onEvent(e, ev) {
       if (ev.type === 'action' && ev.id === 'pelvic_binder') { e.flags.binder = true; return { msg: 'Binder applied; the left leg is also splinted in traction.', kind: 'good' }; }
@@ -457,7 +457,7 @@
   add({
     id: 'em-adder-bite', title: 'Snake bite on a country walk', field: 'EM', shock: 'Distributive (envenomation)', difficulty: 2, setting: 'ed',
     stem: '32-year-old woman bitten on the ankle by a snake (zig-zag markings) while walking in the New Forest 45 minutes ago. Vomiting, abdominal pain, faint, lips swelling. Leg swollen to the knee. BP 76/40.',
-    patient: { age: 32, sex: 'F', weight: 60, vasoplegia: 0.5, venodil: 0.18, leak: 0.0007, lactate: 3.2, look: { facialOedema: true } },
+    patient: { age: 32, sex: 'F', weight: 60, vasoplegia: 0.5, venodil: 0.18, leak: 0.0007, lactate: 3.2, look: { facialOedema: true, legs: { left: { bite: true, swollen: true } } } },
     tick(e, dt) { const p = e.p; if (e.flags.av) { p.vasoplegia = toward(p.vasoplegia, 0.92, 0.01, dt); p.venodil = toward(p.venodil, 0, 0.01, dt); p.leak = 0.0001; } else p.vasoplegia = Math.max(0.35, p.vasoplegia - 0.0002 * dt); },
     extraActions: [{ id: 'av_vipera', name: 'ViperaTAb antivenom 8 mL IV' }, { id: 'av_tox', name: 'TOXBASE / NPIS' }, { id: 'av_immob', name: 'Immobilise and elevate limb; mark swelling' }],
     onEvent(e, ev) {

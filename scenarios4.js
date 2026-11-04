@@ -29,7 +29,7 @@
     id: 'paed-septic-shock', title: 'Septic shock in an infant', field: 'Paeds', shock: 'Distributive (septic)', difficulty: 2, setting: 'ed',
     stem: '9-month-old boy (8.5 kg), 12 hours of fever, now floppy and mottled with a few non-blanching spots on the legs. Parents say he has not had a wet nappy since this morning.',
     qrh: [],
-    patient: paed(8.5, 0.75, { vol: 0.74, leak: 0.0009, contract: 0.78, vasoplegia: 1.05, lactate: 5.4, lacGen: 0.0015, temp: 39.4, glucose: 2.6, shunt: 0.05, gcs: 11, look: { urticaria: false } }),
+    patient: paed(8.5, 0.75, { vol: 0.74, leak: 0.0009, contract: 0.78, vasoplegia: 1.05, lactate: 5.4, lacGen: 0.0015, temp: 39.4, glucose: 2.6, shunt: 0.05, gcs: 11, sex: 'M', look: { urticaria: false, legs: { purpura: true } } }),
     tick(e, dt) {
       const p = e.p, t0 = e.firstTime('antibiotics');
       if (t0 != null && e.t - t0 > 40) { p.leak = 0.0002; p.lacGen = 0; p.contract = toward(p.contract, 0.95, 0.004, dt); }

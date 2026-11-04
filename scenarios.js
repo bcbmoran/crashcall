@@ -126,7 +126,7 @@
   add({
     id: 'em-trauma-pelvis', qrh: ['3-2'], title: 'Major trauma: pelvic fracture haemorrhage', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
     stem: '34-year-old male motorcyclist, ~60 mph collision with a car. Pre-alert: "pelvic pain, HR 125, SBP 90". On arrival he is pale and clammy. Trauma team activated.',
-    patient: { age: 34, sex: 'M', weight: 80, vol: 0.6, bleed: 0.0011, coag: 0.5, hb: 108, lactate: 5.2, temp: 35.3, hrBase: 78, rrBase: 24, gcs: 14, look: { sweaty: true } },
+    patient: { age: 34, sex: 'M', weight: 80, vol: 0.6, bleed: 0.0011, coag: 0.5, hb: 108, lactate: 5.2, temp: 35.3, hrBase: 78, rrBase: 24, gcs: 14, look: { sweaty: true, legs: { left: { shortRot: true, bruise: true } } } },
     init(e) { e.flags.bleedMult = 1; },
     tick(e, dt) {
       if (e.flags.ctrlAt && e.t >= e.flags.ctrlAt && e.p.bleed > 0) { e.p.bleed = 0; e.say('IR: bleeding branch of left internal iliac artery embolised — haemorrhage controlled.', 'good'); }
@@ -280,7 +280,7 @@
   add({
     id: 'em-massive-pe', title: 'High-risk (massive) pulmonary embolism', field: 'EM', shock: 'Obstructive', difficulty: 3, setting: 'ed',
     stem: '58-year-old woman, 10 days after a total knee replacement, collapsed at home. Acutely breathless, pleuritic chest pain. No anticoagulation since discharge.',
-    patient: { age: 58, sex: 'F', weight: 82, rvLoad: true, obstruct: 0.44, deadspace: 0.38, shunt: 0.12, hrBase: 96, rrBase: 28, lactate: 3.8, oedemaProne: 0, cvpExtra: 3, look: { sweaty: true } },
+    patient: { age: 58, sex: 'F', weight: 82, rvLoad: true, obstruct: 0.44, deadspace: 0.38, shunt: 0.12, hrBase: 96, rrBase: 28, lactate: 3.8, oedemaProne: 0, cvpExtra: 3, look: { sweaty: true, legs: { left: { swollen: true, kneeDressing: true } } } },
     tick(e, dt) {
       const p = e.p;
       if (!e.flags.lysed) p.obstruct = Math.min(0.7, p.obstruct + 0.0006 * dt);
@@ -562,7 +562,7 @@
   add({
     id: 'em-hyperkalaemia', title: 'Severe hyperkalaemia with bradycardia', field: 'EM', shock: 'Cardiogenic (arrhythmic)', difficulty: 2, setting: 'ed',
     stem: '70-year-old man on haemodialysis (Mon/Wed/Fri) missed his last two sessions. Generalised weakness and dizziness. Paramedic strip: "slow, broad complexes".',
-    patient: { age: 70, sex: 'M', weight: 78, k: 7.7, hrBase: 40, baro: 0.35, contract: 0.8, atropineResp: 0.4, lactate: 2.1, extraAcid: 5, na: 135 },
+    patient: { age: 70, sex: 'M', weight: 78, k: 7.7, hrBase: 40, baro: 0.35, contract: 0.8, atropineResp: 0.4, lactate: 2.1, extraAcid: 5, na: 135, look: { legs: { oedema: true } } },
     tick(e, dt) {
       const p = e.p;
       p.k += 0.0012 * dt;
