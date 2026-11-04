@@ -301,3 +301,28 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .lib-search { display: flex; align-items: center; gap: .6em; }
 .lib-search input { flex: 1; min-width: min(340px, 80vw); padding: .55em .8em; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
 .lib-search input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+/* ---- Routine anaesthesia (Anaesthetic tab) ---- */
+.ga-phases { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: .6em; }
+.ga-phases span { flex: 1 1 auto; text-align: center; font-size: .75rem; font-weight: 600; padding: .35em .5em; border-radius: 6px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+.ga-phases span.done { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, var(--border)); }
+.ga-phases span.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.ga-steps { margin: 0 0 .7em; font-size: .85rem; border: 1px solid var(--border); border-radius: 8px; padding: .4em .7em; background: var(--surface2); }
+.ga-steps summary { cursor: pointer; font-weight: 600; }
+.ga-steps ol { margin: .4em 0 .2em 1.2em; padding: 0; columns: 2 260px; column-gap: 2em; }
+.ga-steps li { margin: .12em 0; break-inside: avoid; }
+.ga-steps li.ok { color: var(--good); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--good) 50%, transparent); }
+.ga-readouts { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; margin-bottom: .7em; }
+.ga-rd { display: flex; flex-direction: column; padding: .4em .55em; border-radius: 8px; border: 1px solid var(--border); background: #05070a; color: #e8f0f6; }
+.ga-rd span { font-size: .68rem; color: #9fb0bf; text-transform: uppercase; letter-spacing: .03em; }
+.ga-rd b { font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace; font-size: 1.02rem; }
+.ga-rd.warn { border-color: var(--warn); }
+.ga-rd.warn b { color: var(--warn); }
+.ga-machine { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .5em 1.2em; }
+.ga-machine label { display: flex; flex-direction: column; gap: 2px; font-size: .82rem; color: var(--muted); }
+.ga-machine output { color: var(--text); font-weight: 700; }
+.ga-tci { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .6em; }
+.ga-pump { display: flex; flex-wrap: wrap; align-items: center; gap: .4em .6em; padding: .55em .7em; border: 1px solid var(--border); border-radius: 8px; background: var(--surface2); }
+.ga-pump b { width: 100%; }
+.ga-pump input[type=number] { width: 4.5em; padding: .25em .35em; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+.ga-pump select { padding: .25em .35em; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+.brief-mode { display: flex; flex-wrap: wrap; align-items: center; gap: .5em; margin: .2em 0 .8em; }

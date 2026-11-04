@@ -8,7 +8,7 @@
 (function () {
   const S = (window.Sim = window.Sim || {});
 
-  S.DRUG_CATS = ['Vasopressors', 'Inotropes & chronotropes', 'Fluids & blood', 'Specific therapies', 'Respiratory', 'Antiarrhythmics & electrolytes'];
+  S.DRUG_CATS = ['Anaesthesia', 'Vasopressors', 'Inotropes & chronotropes', 'Fluids & blood', 'Specific therapies', 'Respiratory', 'Antiarrhythmics & electrolytes'];
 
   S.DRUGS = [
     // ---------------- Vasopressors ----------------
@@ -100,9 +100,9 @@
     { id: 'midazolam', pd: [0.1, 0.15], pdMax: 10, name: 'Midazolam', cat: 'Specific therapies', catechol: false,
       bolus: { unit: 'mg', doses: [2, 5, 10], E: 0.03 }, half: 600, onset: 8, eff: { svr: [-0.12, 0.3] },
       info: 'Benzodiazepine for seizures (e.g. LAST, status epilepticus). Small titrated doses in shocked patients.' },
-    { id: 'sugammadex', name: 'Sugammadex', cat: 'Specific therapies', catechol: false,
-      bolus: { unit: 'mg/kg', doses: [16], E: 0.06 }, half: 900, onset: 20, eff: {},
-      info: 'Reverses rocuronium/vecuronium. 16 mg/kg for immediate reversal. Waking the patient may not restore a patent airway.' },
+    { id: 'sugammadex', name: 'Sugammadex', cat: 'Anaesthesia', catechol: false,
+      bolus: { unit: 'mg/kg', doses: [2, 4, 16], E: 0.06 }, half: 900, onset: 20, eff: {},
+      info: 'Reverses rocuronium/vecuronium by encapsulation. 2 mg/kg if TOF count ≥ 2; 4 mg/kg for deep block (post-tetanic count 1–2); 16 mg/kg for immediate reversal. Waking the patient may not restore a patent airway.' },
     { id: 'chlorphenamine', pdAbs: [1, 2.5, 5], name: 'Chlorphenamine', cat: 'Specific therapies', catechol: false,
       bolus: { unit: 'mg', doses: [10], E: 0.01 }, half: 900, onset: 30, eff: {},
       info: 'H1 antihistamine. Second-line in anaphylaxis — treats skin symptoms only, after stabilisation.' },
@@ -142,13 +142,28 @@
       info: 'Dissociative anaesthetic, bronchodilator, relatively cardiovascularly stable (sympathomimetic).' },
 
     // ---------------- Added: anaesthesia, neurology, paediatrics ----------------
-    { id: 'propofol', name: 'Propofol (bolus)', cat: 'Specific therapies', catechol: false, pd: [0.5, 1], pdMax: 100,
-      bolus: { unit: 'mg', doses: [20, 50, 100], E: 0.01 }, half: 120, onset: 4, eff: { svr: [-0.4, 0.4], ven: [-0.35, 0.4], contract: [-0.2, 0.4] },
+    { id: 'propofol', name: 'Propofol (bolus)', cat: 'Anaesthesia', catechol: false, pd: [0.5, 1], pdMax: 100,
+      bolus: { unit: 'mg', doses: [20, 50, 100, 150, 200], E: 0.01 }, half: 120, onset: 4, eff: { svr: [-0.4, 0.4], ven: [-0.35, 0.4], contract: [-0.2, 0.4] },
       info: 'Deepens anaesthesia, terminates seizures and laryngospasm (QRH 3-6: 0.25–0.5 mg/kg). Causes vasodilatation and hypotension.' },
-    { id: 'suxamethonium', name: 'Suxamethonium', cat: 'Specific therapies', catechol: false, pd: [0.5, 1, 2], pdMax: 100,
+    { id: 'fentanyl', name: 'Fentanyl', cat: 'Anaesthesia', catechol: false, pd: [1], pdMax: 100,
+      bolus: { unit: 'mcg', doses: [25, 50, 100, 150], E: 0.0006 }, half: 400, onset: 4, eff: { hr: [-6, 0.3], svr: [-0.06, 0.3] },
+      info: 'Opioid: 1–2 mcg/kg at induction blunts the response to laryngoscopy; 25–50 mcg increments intra-operatively. Peak effect ~4 min, apnoea and chest-wall rigidity with large doses.' },
+    { id: 'morphine', name: 'Morphine', cat: 'Anaesthesia', catechol: false, pd: [0.1], pdMax: 10,
+      bolus: { unit: 'mg', doses: [2, 5, 10], E: 0.02 }, half: 1200, onset: 20, eff: { svr: [-0.06, 0.3] },
+      info: 'Longer-acting opioid (0.1–0.15 mg/kg) for post-operative analgesia — give it before emergence, especially after remifentanil, which leaves no analgesia once stopped. Peak effect 15–20 min.' },
+    { id: 'rocuronium', name: 'Rocuronium', cat: 'Anaesthesia', catechol: false, pd: [0.6, 1.2], pdMax: 100,
+      bolus: { unit: 'mg', doses: [10, 30, 50, 70, 100], E: 0.0001 }, half: 600, onset: 10, eff: {},
+      info: 'Non-depolarising neuromuscular blocker. 0.6 mg/kg for intubation (TOF 0 in ~90 s), 1.2 mg/kg for RSI. Only give once the patient is anaesthetised — check you can mask-ventilate, and monitor with train-of-four.' },
+    { id: 'neostigmine', name: 'Neostigmine + glycopyrronium', cat: 'Anaesthesia', catechol: false, pd: [0.05], pdMax: 2.5,
+      bolus: { unit: 'mg', doses: [2.5], E: 0.001 }, half: 600, onset: 25, eff: { hr: [-4, 0.3] },
+      info: 'Anticholinesterase reversal (50 mcg/kg, max 2.5 mg — here pre-mixed with glycopyrronium 0.5 mg). Only works if the block is already recovering (TOF count ≥ 2, ideally 4). Ceiling effect; slower than sugammadex.' },
+    { id: 'ondansetron', name: 'Ondansetron', cat: 'Anaesthesia', catechol: false, pd: [0.1], pdMax: 4,
+      bolus: { unit: 'mg', doses: [4], E: 0.001 }, half: 900, onset: 10, eff: {},
+      info: '5-HT₃ antagonist antiemetic, 4 mg IV towards the end of surgery. Combine with dexamethasone for patients at moderate–high PONV risk (Apfel score ≥ 2).' },
+    { id: 'suxamethonium', name: 'Suxamethonium', cat: 'Anaesthesia', catechol: false, pd: [0.5, 1, 2], pdMax: 100,
       bolus: { unit: 'mg', doses: [25, 50, 100], E: 0.01 }, half: 240, onset: 3, eff: { vagal: [-25, 0.3] },
       info: 'Laryngospasm: 0.25–0.5 mg/kg IV (or 4 mg/kg IM) per QRH 3-6; 1–2 mg/kg for intubation. Bradycardia in children — have atropine ready.' },
-    { id: 'alfentanil', name: 'Alfentanil', cat: 'Specific therapies', catechol: false, pd: [10], pdMax: 1000,
+    { id: 'alfentanil', name: 'Alfentanil', cat: 'Anaesthesia', catechol: false, pd: [10], pdMax: 1000,
       bolus: { unit: 'mcg', doses: [250, 500, 1000], E: 0.0004 }, half: 300, onset: 3, eff: { hr: [-6, 0.3], svr: [-0.08, 0.3] },
       info: 'Short-acting opioid; QRH 2-5: 10 mcg/kg (adult 0.5–1 mg) — a response suggests inadequate analgesia.' },
     { id: 'labetalol', name: 'Labetalol', cat: 'Specific therapies', catechol: false, pd: [0.5], pdMax: 50,

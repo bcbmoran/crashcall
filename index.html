@@ -6,7 +6,7 @@
   <title>CrashCall</title>
   <meta name="description" content="Free interactive simulator for emergency medicine, critical care and anaesthesia: shock, airway and anaesthetic emergencies with live monitoring, drugs, imaging and physiology hints.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b5cad'/%3E%3Cpath d='M8 34h12l5-12 8 24 6-16 4 4h13' stroke='%23fff' stroke-width='5' fill='none' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="style.css?v=20261103f">
+  <link rel="stylesheet" href="style.css?v=20261104a">
 </head>
 <body>
   <!-- ================= HOME ================= -->
@@ -99,6 +99,7 @@
         <div class="card pumps-card" id="pumpsCard" hidden><h3>Running infusions</h3><div id="pumps"></div></div>
         <div class="card controls">
           <nav class="tabs" role="tablist" id="ctlTabs">
+            <button role="tab" data-tab="ga" hidden>Anaesthetic</button>
             <button role="tab" data-tab="exam" class="active">Examine</button>
             <button role="tab" data-tab="actions">Airway &amp; procedures</button>
             <button role="tab" data-tab="inv">Investigations</button>
@@ -116,6 +117,7 @@
         <div class="tag" id="briefField"></div>
         <h2 id="briefTitle"></h2>
         <p id="briefStem"></p>
+        <div class="brief-mode" id="briefMode" hidden></div>
         <p class="muted small">Stabilise the patient: complete the critical actions and hold the physiological targets for 20 seconds. The stopwatch starts when you press start. Time in the simulator is compressed.</p>
         <button class="btn primary big" id="startBtn">Start scenario ▶</button>
       </div>
@@ -130,29 +132,31 @@
     </div>
   </div>
 
-  <script src="drugs.js?v=20261103f"></script>
-  <script src="engine.js?v=20261103f"></script>
-  <script src="ecg.js?v=20261103f"></script>
-  <script src="monitor.js?v=20261103f"></script>
-  <script src="patient.js?v=20261103f"></script>
-  <script src="media.js?v=20261103f"></script>
-  <script src="imaging.js?v=20261103f"></script>
-  <script src="schematics.js?v=20261103f"></script>
-  <script src="qrh.js?v=20261103f"></script>
-  <script src="rcuk.js?v=20261103f"></script>
-  <script src="scenarios.js?v=20261103f"></script>
-  <script src="scenarios2.js?v=20261103f"></script>
-  <script src="scenarios3.js?v=20261103f"></script>
-  <script src="scenarios4.js?v=20261103f"></script>
-  <script src="scenarios5.js?v=20261103f"></script>
-  <script src="scenarios6.js?v=20261103f"></script>
-  <script src="scenarios7.js?v=20261103f"></script>
-  <script src="tutorial.js?v=20261103f"></script>
-  <script src="leaderboard.js?v=20261103f"></script>
-  <script src="progress.js?v=20261103f"></script>
-  <script src="app.js?v=20261103f"></script>
-  <script src="admin.js?v=20261103f"></script>
-  <script src="firebase-config.js?v=20261103f"></script>
-  <script type="module" src="account.js?v=20261103f"></script>
+  <script src="drugs.js?v=20261104a"></script>
+  <script src="engine.js?v=20261104a"></script>
+  <script src="ecg.js?v=20261104a"></script>
+  <script src="monitor.js?v=20261104a"></script>
+  <script src="patient.js?v=20261104a"></script>
+  <script src="media.js?v=20261104a"></script>
+  <script src="imaging.js?v=20261104a"></script>
+  <script src="schematics.js?v=20261104a"></script>
+  <script src="qrh.js?v=20261104a"></script>
+  <script src="rcuk.js?v=20261104a"></script>
+  <script src="scenarios.js?v=20261104a"></script>
+  <script src="scenarios2.js?v=20261104a"></script>
+  <script src="scenarios3.js?v=20261104a"></script>
+  <script src="scenarios4.js?v=20261104a"></script>
+  <script src="scenarios5.js?v=20261104a"></script>
+  <script src="scenarios6.js?v=20261104a"></script>
+  <script src="scenarios7.js?v=20261104a"></script>
+  <script src="ga.js?v=20261104a"></script>
+  <script src="scenarios8.js?v=20261104a"></script>
+  <script src="tutorial.js?v=20261104a"></script>
+  <script src="leaderboard.js?v=20261104a"></script>
+  <script src="progress.js?v=20261104a"></script>
+  <script src="app.js?v=20261104a"></script>
+  <script src="admin.js?v=20261104a"></script>
+  <script src="firebase-config.js?v=20261104a"></script>
+  <script type="module" src="account.js?v=20261104a"></script>
 </body>
 </html>

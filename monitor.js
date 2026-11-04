@@ -210,6 +210,13 @@
       items.push({ lab: 'SpO₂', val: lowPerf ? '?' : String(p.spo2), col: '#3ee6ff', alarm: p.spo2 < 90 || lowPerf, unit: '%' });
       items.push({ lab: 'EtCO₂', val: (p.etco2 / 7.5).toFixed(1), sub: `RR ${p.rr}`, col: '#ffe14d', alarm: p.rr < 6 || p.rr > 30, unit: 'kPa' });
       items.push({ lab: 'Temp', val: p.temp.toFixed(1), col: '#e0a3ff', alarm: p.temp > 38.5 || p.temp < 35, unit: '°C', small: true });
+      const g = this.eng.ga;
+      if (g && S.GA) {
+        const mac = S.GA.macAge(p);
+        if (g.dial > 0 || g.et > 0.05) items.push({ lab: 'Sevo', val: g.et.toFixed(1), sub: `Fi ${g.fi.toFixed(1)} · MAC ${(g.et / mac).toFixed(1)}`, col: '#ffffff', unit: '% Et', small: true, alarm: g.et / mac > 2 });
+        if (g.monitors.bis) items.push({ lab: 'BIS', val: String(Math.round(g.bis)), col: '#9effd1', small: true, alarm: g.phase === 'maintenance' && g.bis > 60 });
+        if (g.monitors.nmt) { const t = S.GA.tof(g); items.push({ lab: 'TOF', val: t.count < 4 ? `${t.count}/4` : `${Math.round(t.ratio * 100)}%`, sub: t.count < 4 ? 'count' : 'ratio', col: '#c9b6ff', small: true }); }
+      }
       if (p.cvc) items.push({ lab: 'CVP', val: String(Math.round(p.cvp)), col: '#7aa7ff', unit: 'mmHg', small: true });
       const h = this.H / items.length;
       items.forEach((it, i) => {

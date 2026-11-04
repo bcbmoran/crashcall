@@ -92,7 +92,8 @@
     closeModal();
     $('#home').classList.remove('active'); $('#sim').classList.add('active');
     window.scrollTo(0, 0);
-    const eng = new S.Engine(scn, { level: scn.tutorial ? 'senior' : levelId() });
+    const gaMode = scn.ga ? store.get('gaMode', 'routine') : undefined;
+    const eng = new S.Engine(scn, { level: scn.tutorial ? 'senior' : levelId(), mode: gaMode });
     Object.assign(state, { scn, eng, running: true, paused: true, elapsed: 0, acc: 0, hints: 0, results: [], tab: 'exam', ended: false, blind: blindOn() && !scn.tutorial, nudgeT: 0 });
     const lvT = $('#scnLevel'); if (lvT) { lvT.textContent = scn.tutorial ? '' : eng.L.name; lvT.className = 'tag lvl ' + eng.level; lvT.hidden = !!scn.tutorial; }
     $('#scnTitle').textContent = state.blind ? 'Unknown case (blind mode)' : scn.title;
@@ -101,6 +102,15 @@
     $('#briefField').textContent = FIELD[scn.field] + (state.blind ? '' : scn.shock ? ' · ' + scn.shock : scn.category ? ' · ' + scn.category : '');
     $('#briefField').className = 'tag ' + scn.field;
     $('#briefTitle').textContent = state.blind ? 'Unknown case' : scn.title; $('#briefStem').textContent = scn.stem + (scn.tutorial ? '' : `\n\nGrade: ${eng.L.name} — ${eng.L.blurb}`);
+    const bm = $('#briefMode');
+    if (bm) {
+      bm.hidden = !scn.ga;
+      if (scn.ga) {
+        bm.innerHTML = `<span class="muted small">Mode</span><button class="btn sm ${gaMode === 'routine' ? 'primary' : ''}" data-gamode="routine">Routine — practise the steps</button><button class="btn sm ${gaMode === 'comp' ? 'primary' : ''}" data-gamode="comp">With complications</button>`;
+        $$('[data-gamode]', bm).forEach((b) => (b.onclick = () => { if (b.dataset.gamode === gaMode) return; store.set('gaMode', b.dataset.gamode); start(id); }));
+        $('#briefStem').textContent += '\n\n' + (gaMode === 'comp' ? (scn.briefComp || 'With complications: one problem will arise during each stage — induction, maintenance and emergence. Recognise it and manage it.') : (scn.briefHow || 'Routine mode: no complications — work through each step of the anaesthetic in order.'));
+      }
+    }
     $('#briefing').hidden = false;
     $('#log').innerHTML = '';
     $('#toasts').innerHTML = '';
@@ -109,7 +119,8 @@
     $('#soundBtn').textContent = state.mon.sound ? '🔊' : '🔇';
     state.pv = new S.PatientView($('#patientView'), eng, scn);
     eng.on(onEvent);
-    setTab('exam', true);
+    const gaTab = $('#ctlTabs [data-tab="ga"]'); if (gaTab) gaTab.hidden = !scn.ga;
+    setTab(scn.ga ? 'ga' : 'exam', !scn.ga);
     state.coachI = null; renderCoach();
     renderPumps();
     updateUI(true);
@@ -169,6 +180,7 @@
     const tg = e.targetStatus();
     $('#targets').innerHTML = e.L.showTargets || state.scn.tutorial ? tg.map((t) => `<span class="tgt ${t.ok ? 'ok' : 'no'}">${t.k}</span>`).join('') : '<span class="tgt">Consultant grade: targets hidden — decide your own end-points</span>';
     nudge(e);
+    if (state.tab === 'ga' && e.ga && S.GA && !srch()) { state.gaT = (state.gaT || 0) + 1; if (state.gaT % 4 === 0 || force) { const lv = $('#tabBody .ga-live'); if (lv) lv.innerHTML = S.GA.liveHTML(e, e.level); } }
     const cs = e.critStatus(), done = cs.filter((c) => c.done).length;
     $('#critCount').textContent = `Critical actions completed: ${done} / ${cs.length} (revealed in the debrief)`;
     const need = e.needStable();
@@ -180,12 +192,15 @@
 
   // Junior grade: a senior nurse prompts the next outstanding critical action when you stall.
   function nudge(e) {
-    if (!e.L.nudge || state.paused || e.outcome || state.scn.tutorial) return;
+    const scn = state.scn, every = scn.nudgeBy ? scn.nudgeBy[e.level] || 0 : e.L.nudge;
+    if (!every || state.paused || e.outcome || scn.tutorial) return;
     const t = e.t, lastAct = e.log.filter((x) => x.kind === 'act').reduce((m, x) => Math.max(m, x.t), 0);
-    if (t - Math.max(lastAct, state.nudgeT || 0) < e.L.nudge) return;
+    if (t - Math.max(lastAct, state.nudgeT || 0) < every) return;
     const next = e.critStatus().find((c) => !c.done);
     state.nudgeT = t;
-    if (next) e.say(`Senior nurse: "Do you want to think about this — ${next.text.replace(/\s*\(.*\)\s*$/, '').toLowerCase()}?"`, 'warn');
+    const who = scn.nudgeWho || 'Senior nurse';
+    if (next && scn.nudgeWho) e.say(`${who}: "Next step? ${next.text.replace(/\s*\(.*\)\s*$/, '')}."`, 'warn');
+    else if (next) e.say(`Senior nurse: "Do you want to think about this — ${next.text.replace(/\s*\(.*\)\s*$/, '').toLowerCase()}?"`, 'warn');
     else if (!e.targetsMet()) e.say(`Senior nurse: "Everything's done — what physiological targets are we still missing? ${e.targetStatus().filter((x) => !x.ok).map((x) => x.k).join(', ')}"`, 'warn');
   }
 
@@ -230,15 +245,22 @@
     else if (t === 'actions') body.innerHTML = actionsHTML();
     else if (t === 'inv') body.innerHTML = invHTML();
     else if (t === 'exam') body.innerHTML = examHTML();
+    else if (t === 'ga' && S.GA && e.ga) body.innerHTML = S.GA.panelHTML(e, e.level);
     wireTab(body);
+    if (t === 'ga' && S.GA && e.ga) S.GA.wire(body, e, () => { if (state.paused || e.outcome) { toast(e.outcome ? 'Scenario has ended.' : 'Press start / resume first.', 'warn'); return false; } return true; }, renderTab);
   }
   function fmtDose(d) { return d >= 1000 && d % 1000 === 0 ? d / 1000 + ' ' : String(d); }
   function drugsHTML() {
     if (state.scn.kit && state.scn.kit.drugs === false) return `<p class="muted">${esc(state.scn.kit.note || 'No drugs are available in this setting.')}</p>`;
     const e = state.eng;
-    const cats = S.DRUG_CATS.filter((c) => c !== 'Fluids & blood');
+    const GAX = ['paracetamol', 'dexamethasone', 'ephedrine', 'metaraminol', 'glycopyrronium', 'atropine'];
+    const isGA = !!state.scn.ga;
+    let cats = S.DRUG_CATS.filter((c) => c !== 'Fluids & blood');
+    if (!isGA) { cats = cats.filter((c) => c !== 'Anaesthesia'); cats.splice(cats.indexOf('Specific therapies') + 1, 0, 'Anaesthesia'); }
     return cats.map((c) => {
-      const ds = S.DRUGS.filter((d) => d.cat === c);
+      const ORD = ['propofol', 'fentanyl', 'alfentanil', 'morphine', 'rocuronium', 'suxamethonium', 'sugammadex', 'neostigmine', 'ondansetron', 'dexamethasone', 'paracetamol', 'metaraminol', 'ephedrine', 'glycopyrronium', 'atropine'];
+      const rank = (d) => { const i = ORD.indexOf(d.id); return i < 0 ? 99 : i; };
+      const ds = S.DRUGS.filter((d) => (isGA && GAX.includes(d.id) ? c === 'Anaesthesia' : d.cat === c)).sort((a, b) => (c === 'Anaesthesia' ? rank(a) - rank(b) : 0));
       if (!ds.length) return '';
       return `<div class="grp"><h4>${c}</h4>${ds.map((d) => {
         const rate = e.rate(d.id);

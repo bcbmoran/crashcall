@@ -62,6 +62,7 @@
       this.scn = scn;
       this.L = S.LEVELS[(opts && opts.level) || 'senior'] || S.LEVELS.senior;
       this.level = this.L.id;
+      this.mode = (opts && opts.mode) || 'routine'; // routine-anaesthesia cases: 'routine' | 'comp'
       this.t = 0;
       this.log = [];
       this.done = {};
@@ -86,7 +87,7 @@
       if (scn.init) scn.init(this);
       this.settle();
       if (scn.start) scn.start(this);
-      if (this.L.complication && !scn.tutorial) this.after(70 + Math.random() * 50, (en) => en.complicate(), 'complication');
+      if (this.L.complication && !scn.tutorial && !scn.ga && !this.noAutoComplication) this.after(70 + Math.random() * 50, (en) => en.complicate(), 'complication');
     }
 
     // ---- consultant level: a second, unannounced problem arises mid-case ----
@@ -537,7 +538,7 @@
     shockable() { return ['vf', 'vt'].includes(this.p.rhythm) && this.p.arrested; }
 
     critStatus() {
-      return (this.scn.critical || []).map((c) => ({ text: c.text, done: !!c.check(this), id: c.id }));
+      return (this.scn.critical || []).filter((c) => !c.skip || !c.skip(this)).map((c) => ({ text: c.text, done: !!c.check(this), id: c.id }));
     }
     targetStatus() {
       const p = this.p, tg = Object.assign({ map: p.paed ? Math.round(p.mapNormal * 0.85) : 65, spo2: 94 }, this.scn.targets || {});
