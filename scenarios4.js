@@ -86,18 +86,34 @@
     stem: '6-year-old girl (20 kg) with known asthma. 2 days of coryza, now too breathless to talk, using accessory muscles. Ten puffs of salbutamol via spacer at home have not helped.',
     patient: paed(20, 6, { sex: 'F', bronchospasm: 0.7, shunt: 0.07, lactate: 2.0, stress: 0.3, look: { sweaty: true } }),
     init(e) { e.p.load = 1; },
+    // Consultant grade: refractory asthma — despite full medical therapy she tires and needs intubating.
     tick(e, dt) {
-      const p = e.p;
-      if (any(e, 'hydrocortisone', 'dexamethasone') && e.t - Math.min(...['hydrocortisone', 'dexamethasone'].map((d) => e.firstTime(d) ?? 1e9)) > 60) p.load = Math.max(0.3, p.load - 0.002 * dt);
-      if (e.did('magnesium') && e.t - e.firstTime('magnesium') > 20) p.load = Math.max(0.3, p.load - 0.0008 * dt);
+      const p = e.p, f = e.flags, refr = e.level === 'consultant';
+      const floor = refr ? 0.85 : 0.3;
+      if (refr) p.bronchRefractory = 0.5;
+      if (any(e, 'hydrocortisone', 'dexamethasone') && e.t - Math.min(...['hydrocortisone', 'dexamethasone'].map((d) => e.firstTime(d) ?? 1e9)) > 60) p.load = Math.max(floor, p.load - 0.002 * dt);
+      if (e.did('magnesium') && e.t - e.firstTime('magnesium') > 20) p.load = Math.max(floor, p.load - 0.0008 * dt);
+      // Dynamic hyperinflation on the ventilator: progressive auto-PEEP → falling venous return → PEA arrest
+      if (refr && p.ventilated && !p.arrested) {
+        if (p.autoPEEP > 6) { f.trapT = (f.trapT || 0) + dt; if (f.trapT > 25 && !f.trapMsg) { f.trapMsg = true; e.say('Airway pressures climbing, the capnograph never returns to baseline and the BP is falling — gas trapping.', 'bad'); } if (f.trapT > 40) p.obstruct = Math.min(0.75, p.obstruct + 0.004 * dt); }
+        else { f.trapT = Math.max(0, (f.trapT || 0) - dt * 2); p.obstruct = Math.max(0, p.obstruct - 0.01 * dt); }
+      }
+      if (refr && !p.ventilated && !p.arrested && e.t > 80) {
+        p.effort = Math.max(0.06, p.effort - 0.0022 * dt);
+        if (p.effort < 0.6 && !f.tiring) { f.tiring = true; e.say('She is tiring: quieter chest, head bobbing, harder to rouse. CO₂ is climbing.', 'bad'); }
+        if (p.effort < 0.25 && !f.preArrest) { f.preArrest = true; e.say('Nurse: "Her breathing is very shallow now — I can hardly hear anything on the chest."', 'bad'); }
+      }
       if (!e.did('hydrocortisone') && !e.did('dexamethasone')) p.load = Math.min(1.2, p.load + 0.0002 * dt);
-      p.bronchospasm = 0.7 * p.load;
-      if (!p.ventilated) { if (p.bronchEff > 0.42) p.effort = Math.max(0.3, p.effort - 0.0016 * dt); else if (p.bronchEff < 0.3) p.effort = Math.min(1, p.effort + 0.003 * dt); }
+      p.bronchospasm = 0.7 * p.load * (refr && p.ventilated ? 1.45 : 1); // refractory: severe gas trapping once on positive pressure
+      if (!p.ventilated && !refr) { if (p.bronchEff > 0.42) p.effort = Math.max(0.3, p.effort - 0.0016 * dt); else if (p.bronchEff < 0.3) p.effort = Math.min(1, p.effort + 0.003 * dt); }
     },
     onEvent(e, ev) {
       if (ev.type === 'drug' && ev.id === 'magnesium' && perKg(e, 'magnesium') > 0.06) return { harm: 'Magnesium above 40 mg/kg (max 2 g)' };
       if (ev.type === 'action' && ev.id === 'rsi_propofol') return { harm: 'Propofol RSI in severe asthma — ketamine is preferred' };
-      if (ev.type === 'action' && (ev.id === 'rsi_ketamine' || ev.id === 'rsi_propofol')) e.after(1, (en) => en.say('Intubated: low rate, long expiratory time, accept permissive hypercapnia; anaesthetist/PICU involved.', 'warn'));
+      if (ev.type === 'action' && (ev.id === 'rsi_ketamine' || ev.id === 'rsi_propofol')) {
+        if (e.level === 'consultant') e.after(1, (en) => { en.p.ventRR = 24; en.say('Ventilator connected on the default paediatric settings: RR 24, PEEP 5. Watch the capnograph, airway pressures and blood pressure.', 'warn'); });
+        else e.after(1, (en) => en.say('Intubated: low rate, long expiratory time, accept permissive hypercapnia; anaesthetist/PICU involved.', 'warn'));
+      }
     },
     exam: (e) => ({ A: 'Patent.', B: resp(e) + ` ${e.p.effort < 0.6 && !e.p.ventilated ? 'Exhausted, SILENT CHEST.' : e.p.bronchEff > 0.3 ? 'Widespread wheeze, marked recession, unable to speak. PEF not possible.' : 'Mild wheeze, talking in sentences.'}`, C: circ(e), D: `${e.p.paco2 > 60 ? 'Drowsy.' : 'Alert, anxious.'}`, E: 'No rash. Afebrile.' }),
     inv: { bloods: (e) => pLabs(e, { k: 3.4 }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Hyperinflated, no pneumothorax.' }, ...noCT, pocus: [{ label: 'Lung ultrasound', media: 'us_sliding', report: 'Lung sliding bilaterally — no pneumothorax.' }] },
@@ -107,6 +123,9 @@
       { text: 'Ipratropium bromide', check: (e) => e.did('ipratropium') },
       { text: 'Steroid (prednisolone / IV hydrocortisone 4 mg/kg)', check: (e) => any(e, 'hydrocortisone', 'dexamethasone') },
       { text: 'IV magnesium 40 mg/kg (max 2 g)', check: (e) => e.did('magnesium') },
+      { text: 'IV salbutamol bolus 15 micrograms/kg', check: (e) => e.did('salbutamol_iv'), skip: (e) => e.level !== 'consultant' },
+      { text: 'Recognise exhaustion / rising CO₂: call anaesthetist & PICU, ketamine RSI', check: (e) => e.did('rsi_ketamine') || e.did('rsi_propofol'), skip: (e) => e.level !== 'consultant' },
+      { text: 'Ventilate for gas trapping: low rate (≤ 16), long expiration, accept permissive hypercapnia', check: (e) => e.p.ventilated && e.p.ventRR <= 16, skip: (e) => e.level !== 'consultant' },
     ],
     targets: { spo2: 94 },
     hint: { steps: [
@@ -122,6 +141,7 @@
         'Steroids early: prednisolone (1–2 mg/kg, max 40 mg) or IV hydrocortisone 4 mg/kg.',
         'IV magnesium sulfate 40 mg/kg (max 2 g) over 20 min; IV salbutamol 15 micrograms/kg bolus is second-line; aminophylline only in PICU-led care.',
         'Exhaustion, silent chest or rising PaCO₂ → senior anaesthetic/PICU help; ketamine RSI with low ventilator rate.',
+        'Some children deteriorate despite maximal medical therapy. Intubation in severe asthma is high-risk: ketamine is preferred, and ventilating at a normal paediatric rate causes gas trapping (auto-PEEP) → falling venous return, hypotension and arrest. Use a low rate, long expiratory time and accept a high CO₂; disconnect and decompress the chest if the blood pressure falls.',
       ],
       refs: ['BTS/SIGN 158: British guideline on the management of asthma (2019)', 'BTS/NICE/SIGN NG245: Asthma — diagnosis, monitoring and chronic asthma management (2024)', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)'],
     },

@@ -57,6 +57,48 @@
       blurb: 'Faster deterioration, less margin, targets hidden — stabilise to the standard you would expect, then declare the patient stable and hand over (a premature declaration is penalised). A second problem will arise mid-case.' },
   };
 
+  // ---- Physiological consequences of harmful actions ----
+  // Every harm costs 30 s on the score, but where an action would really hurt the patient it also changes the
+  // physiology here, so repeated or uncorrected errors can tip the patient into arrest. Each rule fires once per
+  // distinct harm (harms are de-duplicated). Rules that a scenario already models itself are left out.
+  const vtBurst = (e, secs, rate) => { const p = e.p; if (p.arrested || p.rhythm === 'vf') return; const prev = p.rhythm, pr = p.fixedRate; p.rhythm = 'vt'; p.fixedRate = rate || (p.paed ? 230 : 190); e.after(secs, (en) => { if (en.p.rhythm === 'vt' && !en.p.arrested) { en.p.rhythm = prev === 'vt' ? 'sinus' : prev; en.p.fixedRate = pr; } }); };
+  S.HARM_FX = [
+    [/crystalloid.*(haemorrhag|bleed|trauma|obstetric)|crystalloid in variceal|More than 10 mL\/kg crystalloid/i, (e) => { e.p.coag = Math.min(1.5, e.p.coag + 0.25); e.p.bleed *= 1.15; return 'dilutional coagulopathy — bleeding faster'; }],
+    [/fluid.*(cardiogenic|pulmonary oedema|ARDS|leaky|neurogenic|fluid overload)|60 mL\/kg fluid/i, (e) => { e.p.pulmOedema = Math.min(1, e.p.pulmOedema + 0.18); return 'pulmonary oedema worsening — oxygenation falling'; }],
+    [/Vasopressor used as a substitute/i, (e) => { e.p.lacGen = (e.p.lacGen || 0) + 0.0006; e.p.bleed *= 1.1; return 'peripheral vasoconstriction while still bleeding — lactate rising'; }],
+    [/(CT|Transfer).*(hypotens|unstable|shocked|instability)/i, (e) => { e.after(15, (en) => { if (en.outcome) return; en.p.contract *= 0.92; en.p.lactate += 1; en.p.vol = Math.max(0.3, en.p.vol - 0.04); en.say('In the scanner, away from resuscitation, the patient deteriorates.', 'bad'); }); return 'the patient deteriorates during the transfer'; }],
+    [/Waiting for a CXR before decompressing/i, (e) => { e.p.obstruct = Math.min(0.9, e.p.obstruct + 0.12); return 'tension worsening while waiting'; }],
+    [/positive-pressure ventilation in acute RV failure/i, (e) => { e.p.obstruct = Math.min(0.9, e.p.obstruct + 0.2); e.anaesSuppress = Math.max(e.anaesSuppress, 0.65); return 'loss of sympathetic drive and raised intrathoracic pressure — the RV is failing'; }],
+    [/Large IV adrenaline bolus in a child|Arrest-dose adrenaline in a child|IM adrenaline dose too high|Large adrenaline doses impair/i, (e) => { vtBurst(e, 20); e.p.contract *= 0.95; return 'ventricular tachycardia and myocardial strain'; }],
+    [/Nitrate|Vasodilator in tamponade/i, (e) => { e.p.venodil = Math.min(0.6, e.p.venodil + 0.15); return 'venodilatation — preload and blood pressure falling'; }],
+    [/Diuretic in preload-dependent/i, (e) => { e.p.vol = Math.max(0.4, e.p.vol - 0.1); return 'diuresis — the preload-dependent RV is filling less'; }],
+    [/Over-transfusion/i, (e) => { e.p.bleed *= 1.3; return 'portal pressure up — re-bleeding'; }],
+    [/DC cardioversion (of|for) sinus rhythm|Defibrillation of a non-shockable/i, (e) => { e.p.contract *= 0.94; return 'myocardial stunning from an unnecessary shock'; }],
+    [/Propofol (RSI )?in (a hypovolaemic|severe asthma)/i, (e) => { e.anaesSuppress = Math.max(e.anaesSuppress, 0.75); e.p.vol = Math.max(0.4, e.p.vol - 0.05); return 'profound hypotension after propofol with gas trapping'; }],
+    [/Repeated intubation attempts/i, (e) => { e.p.shunt = Math.min(0.5, e.p.shunt + 0.1); return 'airway trauma and oedema — oxygenation worsening'; }],
+    [/Vasopressin is not recommended in LAST/i, (e) => { e.p.contract *= 0.9; return 'myocardial depression worsens'; }],
+    [/Deepening anaesthesia in a hypotensive/i, (e) => { e.anaesSuppress = Math.min(0.9, e.anaesSuppress + 0.3); return 'deeper anaesthesia — blood pressure falls further'; }],
+    [/Oxygen re-applied while the fire/i, (e) => { e.p.shunt = Math.min(0.6, e.p.shunt + 0.15); e.p.bronchospasm = Math.min(1, (e.p.bronchospasm || 0) + 0.3); return 'airway burn — bronchospasm and hypoxaemia'; }],
+    [/Patient moved without portable oxygen/i, (e) => { const p = e.p, f0 = p.fio2; p.fio2 = 0.21; p.lastFio2 = 0.21; e.after(20, (en) => { en.p.fio2 = Math.max(en.p.fio2, f0); en.p.lastFio2 = en.p.fio2; }); return 'no oxygen during the move — desaturating'; }],
+    [/Magnesium above 40 mg\/kg/i, (e) => { e.p.vasoplegia *= 0.85; e.p.effort = Math.max(0.2, e.p.effort * 0.7); e.p.hrBase -= 10; return 'magnesium toxicity — hypotension, bradycardia and weak respiratory effort'; }],
+    [/More than two doses of benzodiazepine/i, (e) => { e.p.effort = Math.max(0.15, e.p.effort * 0.6); return 'respiratory depression'; }],
+    [/Insulin (bolus|above 0\.1)/i, (e) => { e.p.k = Math.max(2.2, e.p.k - 0.7); e.p.glucose = Math.max(2, e.p.glucose * 0.8); return 'potassium and glucose falling quickly'; }],
+    [/^Bicarbonate in DKA/i, (e) => { e.p.k = Math.max(2.2, e.p.k - 0.5); return 'potassium falling (intracellular shift)'; }],
+    [/DC cardioversion in digoxin toxicity/i, (e) => { e.after(3, (en) => { if (!en.outcome) { en.p.rhythm = 'vf'; en.say('The shock has precipitated ventricular fibrillation!', 'bad'); } }); return 'refractory VF after cardioversion'; }],
+    [/Amiodarone prolongs QT/i, (e) => { e.p.ecg.qtc = (e.p.ecg.qtc || 480) + 40; vtBurst(e, 15, 230); return 'QT lengthens — another run of torsades'; }],
+    [/Catecholamine in electrical storm/i, (e) => { vtBurst(e, 25, 210); return 'VT recurs'; }],
+    [/Antiplatelets in suspected aortic dissection|Thrombolysis in aortic dissection/i, (e) => { e.p.bleed += 0.0005; e.p.obstruct = Math.min(0.8, e.p.obstruct + 0.1); return 'the dissection bleeds into the pericardium'; }],
+    [/MAP reduced by more than/i, (e) => { e.p.gcs = Math.min(e.p.gcs, 11); return 'cerebral hypoperfusion — conscious level falls'; }],
+    [/Potassium added with K/i, (e) => { e.p.k += 0.8; return 'potassium rising'; }],
+    [/Antibiotics not given within 1 hour/i, (e) => { e.p.vasoplegia *= 0.9; e.p.lacGen = (e.p.lacGen || 0) + 0.0004; return 'sepsis progressing'; }],
+    [/Thrombolysis (before CT|with BP above)/i, (e) => { e.after(25, (en) => { if (en.outcome) return; en.p.gcs = Math.min(en.p.gcs, 8); en.say('Sudden headache, vomiting and falling GCS — haemorrhagic transformation.', 'bad'); }); return 'intracranial haemorrhage risk'; }],
+    [/Incision\/suction of the bite/i, (e) => { e.p.bleed += 0.0003; return 'bleeding from the wound (venom coagulopathy)'; }],
+    [/Abdominal thrusts in an infant/i, (e) => { e.p.bleed += 0.0003; return 'liver injury — internal bleeding'; }],
+    [/Electrical cardioversion of stable AF of > 48 h/i, (e) => { e.after(20, (en) => { if (en.outcome) return; en.p.gcs = Math.min(en.p.gcs, 12); en.say('New right-sided weakness and slurred speech — embolic stroke.', 'bad'); }); return 'embolic stroke'; }],
+    [/without sedation/i, (e) => { e.p.stress = Math.min(0.6, (e.p.stress || 0) + 0.3); e.after(30, (en) => { en.p.stress = Math.max(0, en.p.stress - 0.3); }); return 'pain and distress — catecholamine surge'; }],
+    [/Chest compressions on a patient with a pulse/i, (e) => { e.p.contract *= 0.97; return 'rib fractures and myocardial contusion'; }],
+  ];
+
   class Engine {
     constructor(scn, opts) {
       this.scn = scn;
@@ -119,7 +161,13 @@
       this.timers.push({ at: this.t + sec, fn, key });
     }
     say(text, kind = 'info') { this.emit({ type: 'msg', text, kind }); }
-    harm(text) { if (!this.harms.includes(text)) { this.harms.push(text); this.say('⚠ ' + text, 'bad'); } }
+    harm(text) {
+      if (this.harms.includes(text)) return;
+      this.harms.push(text); this.say('⚠ ' + text, 'bad');
+      if (this.outcome) return;
+      const rule = (S.HARM_FX || []).find(([re]) => re.test(text));
+      if (rule) { const what = rule[1](this); if (what) { (this.harmFx = this.harmFx || []).push({ harm: text, fx: what }); this.say('↳ ' + what.charAt(0).toUpperCase() + what.slice(1) + '.', 'bad'); } }
+    }
     temp(key, amount, sec) { this.temps = this.temps.filter((x) => x.key !== key); this.temps.push({ key, amount, until: this.t + sec }); }
     tempVal(key) { return this.temps.filter((x) => x.key === key && x.until > this.t).reduce((a, b) => a + b.amount, 0); }
     on(fn) { this.listeners.push(fn); }
@@ -386,7 +434,7 @@
       if (p.map < 8) { p.sbp = p.map; p.dbp = p.map; }
 
       // ---- Ventilation & oxygenation ----
-      const bronchEff = clamp(p.bronchospasm * (1 - fx.bronch), 0, 1);
+      const bronchEff = clamp(p.bronchospasm * (1 - fx.bronch * (1 - (p.bronchRefractory || 0))), 0, 1); // bronchRefractory: share of bronchospasm that drugs cannot relieve
       p.bronchEff = bronchEff;
       const acidDrive = clamp((24 - p.hco3) / 14, 0, 1);
       let V;
