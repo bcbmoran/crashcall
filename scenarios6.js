@@ -77,9 +77,9 @@
       f.gcsF = clamp((f.gcsF ?? 13) - rate * dt, 3, 15); p.gcs = Math.round(f.gcsF);
       if (!p.ventilated) { p.effort = p.gcs <= 6 ? 0.45 : 1; p.airwayPatent = p.gcs > 5 || e.did('airway_manoeuvre'); }
     },
-    extraActions: [{ id: 'doac_reverse', name: 'Reverse apixaban (andexanet alfa / PCC)' }, { id: 'sdh_neuro', name: 'Neurosurgical referral' }],
+    extraActions: [{ id: 'doac_reverse', name: 'Reverse apixaban (PCC ± andexanet if locally approved)' }, { id: 'sdh_neuro', name: 'Neurosurgical referral' }],
     onEvent(e, ev) {
-      if (ev.type === 'action' && ev.id === 'doac_reverse') { if (!e.did('inv_ct')) return { handled: true, msg: 'Haematology: confirm the bleed on CT, but do not delay if deteriorating.' }; e.flags.reversed = true; return { handled: true, msg: 'Andexanet alfa given (NICE TA697) — anticoagulation reversed.', kind: 'good' }; }
+      if (ev.type === 'action' && ev.id === 'doac_reverse') { if (!e.did('inv_ct')) return { handled: true, msg: 'Haematology: confirm the bleed on CT, but do not delay if deteriorating.' }; e.flags.reversed = true; return { handled: true, msg: 'Prothrombin complex concentrate 50 units/kg given — anticoagulation reversed.', kind: 'good' }; }
       if (ev.type === 'action' && (ev.id === 'sdh_neuro' || ev.id === 'theatre')) { if (!e.flags.reversed) return { handled: true, msg: 'Neurosurgery will operate once anticoagulation is reversed.' }; e.flags.neuro = true; return { handled: true, msg: 'Neurosurgery accept for burr-hole / craniotomy.', kind: 'good' }; }
       if (ev.type === 'drug' && ev.id === 'txa') return { msg: 'TXA within 2 h in mild–moderate TBI (CRASH-3) — she is beyond 3 h.', kind: 'info' };
     },
@@ -92,17 +92,17 @@
     ],
     targets: { map: 65, spo2: 94 },
     hint: { steps: [
-      { t: 'Bridging vein tear + anticoagulation', kind: 'cause', rx: 'Reverse (andexanet / PCC)' },
+      { t: 'Bridging vein tear + anticoagulation', kind: 'cause', rx: 'Reverse (PCC / andexanet)' },
       { t: 'Expanding subdural → ICP ↑', rx: 'Neurosurgery' },
       { t: 'Falling GCS, pupil change', kind: 'end' },
     ] },
     debrief: {
       points: [
         'NICE NG232: anticoagulated patients with any head injury need CT within 8 h; within 1 h if GCS < 15, deterioration or other risk features.',
-        'Reverse anticoagulation for intracranial haemorrhage: andexanet alfa (apixaban/rivaroxaban, NICE TA697) or PCC; idarucizumab for dabigatran; PCC + vitamin K for warfarin.',
+        'Reverse anticoagulation for intracranial haemorrhage: for apixaban/rivaroxaban give PCC 50 units/kg (andexanet alfa only where locally approved — NICE TA697 covers life-threatening GI bleeding, not ICH); idarucizumab for dabigatran; PCC + IV vitamin K for warfarin.',
         'Early neurosurgical discussion; watch for deterioration and airway compromise.',
       ],
-      refs: ['NICE NG232: Head injury (2023)', 'NICE TA697: Andexanet alfa for reversing anticoagulation (2021)', 'British Society for Haematology: Reversal of anticoagulation guidance'],
+      refs: ['NICE NG232: Head injury (2023)', 'British Society for Haematology: Guideline on the reversal of antithrombotic drugs in major bleeding', 'NICE TA697: Andexanet alfa (2021) — recommended for life-threatening GI bleeding only'],
     },
   });
 

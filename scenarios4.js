@@ -74,7 +74,7 @@
         'Give IV/IO antibiotics within 1 hour (ceftriaxone 80 mg/kg); check and treat glucose (2 mL/kg 10% glucose).',
         'SSC children 2026: where intensive care is available, up to 40–60 mL/kg in the first hour (ideal body weight), balanced crystalloid, reassessing for overload; start vasoactives peripherally rather than waiting for central access; antibiotics within 1 h in septic shock (within 3 h after rapid assessment if sepsis without shock). Sepsis is now defined by the Phoenix criteria (organ dysfunction).',
       ],
-      refs: ['NICE NG51: Suspected sepsis — recognition, diagnosis and early management (2024 update)', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (including maternity) & HSE Paediatric Sepsis Form', 'Surviving Sepsis Campaign International Guidelines for the management of sepsis and septic shock in children (2026), co-sponsored by ESICM'],
+      refs: ['NICE NG51: Suspected sepsis — recognition, diagnosis and early management (2024 update)', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)', 'HSE National Clinical Programme for Paediatrics: Paediatric sepsis pathway and Paediatric Sepsis Form (Ireland)', 'Surviving Sepsis Campaign International Guidelines for the management of sepsis and septic shock in children (2026), co-sponsored by ESICM'],
     },
   });
 

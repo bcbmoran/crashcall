@@ -484,7 +484,7 @@
         'Noradrenaline is preferred to maintain MAP; add an inotrope (dobutamine) for low output. Consider mechanical support (Impella/IABP) in specialist centres.',
         'Avoid nitrates and β-blockers in hypotension.',
       ],
-      refs: ['NICE NG185: Acute coronary syndromes (2020)', 'ESC 2023 Guidelines for the management of acute coronary syndromes (adopted by the British Cardiovascular Society)', 'NICE NG106: Chronic heart failure / ESC 2021 HF guidelines — cardiogenic shock', 'AoA QRH 3-12: Massive myocardial ischaemia'],
+      refs: ['NICE NG185: Acute coronary syndromes (2020)', 'ESC 2023 Guidelines for the management of acute coronary syndromes (adopted by the British Cardiovascular Society)', 'NICE CG187: Acute heart failure (2014, updated 2021)', 'ESC 2021 Heart failure guidelines and 2023 focused update — cardiogenic shock', 'AoA QRH 3-12: Massive myocardial ischaemia'],
     },
   });
 
