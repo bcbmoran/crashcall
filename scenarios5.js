@@ -690,11 +690,11 @@
     ] },
     debrief: {
       points: [
-        'NICE NG138/NG250 & BTS: high-severity CAP (CURB-65 3–5) — co-amoxiclav plus clarithromycin IV, within 4 h (1 h if septic).',
+        'NICE NG250: high-severity CAP (CURB-65 3–5) — co-amoxiclav plus clarithromycin IV, within 4 h (1 h if septic).',
         'Target SpO₂ 94–98% (88–92% if at risk of hypercapnia); escalate to HFNO and involve critical care early.',
         'Signs of failure on HFNO (rising RR, falling SpO₂, exhaustion, ROX index) → intubation should not be delayed.',
       ],
-      refs: ['NICE NG250: Pneumonia — diagnosis and management (2025) / NICE NG138', 'BTS Guideline for the management of community-acquired pneumonia in adults (2009, annotated 2015)', 'BTS Guideline for oxygen use in healthcare and emergency settings (2017)'],
+      refs: ['NICE NG250: Pneumonia — diagnosis and management (2025; replaces NG138 and the BTS 2009 CAP guideline)', 'BTS Guideline for oxygen use in healthcare and emergency settings (2017)'],
     },
   });
 
@@ -746,7 +746,7 @@
         'Assess with nasendoscopy and plan the airway early with senior anaesthetics and ENT; awake tracheal intubation with FONA backup (DAS).',
         'Icatibant or C1-esterase inhibitor may be considered (off-label); stop the ACE inhibitor permanently.',
       ],
-      refs: ['Difficult Airway Society: Guidelines for awake tracheal intubation in adults (2020)', 'Difficult Airway Society 2015: unanticipated difficult intubation / CICO', 'MHRA/BNF: ACE inhibitors — angioedema'],
+      refs: ['Difficult Airway Society: Guidelines for awake tracheal intubation in adults (2020)', 'Difficult Airway Society 2025: unanticipated difficult tracheal intubation in adults / CICO', 'MHRA/BNF: ACE inhibitors — angioedema'],
     },
   });
 

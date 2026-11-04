@@ -615,8 +615,8 @@
     ] },
     debrief: {
       points: [
-        'QRH 3-13 / RCUK 2025 post-resuscitation care: ABCDE, SpO₂ 94–98%, normocapnia (PaCO₂ 4.5–6.0 kPa), systolic BP > 100 mmHg (MAP ≥ 65 here), and temperature control — prevent fever (keep ≤ 37.5 °C) for 36–72 h in comatose patients.',
-        'Maintain glucose ≤ 10 mmol/L, treat seizures, avoid hypotension and hypoxaemia.',
+        'QRH 3-13 / RCUK 2025 post-resuscitation care: ABCDE, SpO₂ 94–98%, normocapnia (PaCO₂ 4.5–6.0 kPa), MAP > 60–65 mmHg and systolic BP > 100 mmHg, and prevent fever for at least 72 h in patients who remain comatose.',
+        'Maintain normoglycaemia, diagnose and treat seizures (EEG), avoid hypotension and hypoxaemia.',
         '12-lead ECG; emergency coronary angiography if ST elevation or high suspicion of coronary occlusion; whole-body CT if no obvious cardiac cause. Treat seizures with levetiracetam or sodium valproate.',
         'Delay prognostication for at least 72 h (multimodal).',
       ],

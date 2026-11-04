@@ -70,11 +70,11 @@
     debrief: {
       points: [
         'Recognise shock by tachycardia, prolonged CRT, mottling and altered conscious level — hypotension is a pre-terminal sign in children.',
-        'NICE NG51 / APLS: give 10 mL/kg crystalloid boluses, reassess after each; after 40–60 mL/kg start inotropes (adrenaline peripherally is acceptable) and involve PICU/retrieval early.',
+        'NICE NG51 / APLS: give 10 mL/kg crystalloid boluses, reassess after each; by 40–60 mL/kg start inotropes (adrenaline peripherally is acceptable) and involve PICU/retrieval early.',
         'Give IV/IO antibiotics within 1 hour (ceftriaxone 80 mg/kg); check and treat glucose (2 mL/kg 10% glucose).',
-        'The Surviving Sepsis Campaign paediatric guideline (adopted by the HSE) recommends 10–20 mL/kg boluses up to 40–60 mL/kg with frequent reassessment for overload.',
+        'SSC children 2026: where intensive care is available, up to 40–60 mL/kg in the first hour (ideal body weight), balanced crystalloid, reassessing for overload; start vasoactives peripherally rather than waiting for central access; antibiotics within 1 h in septic shock (within 3 h after rapid assessment if sepsis without shock). Sepsis is now defined by the Phoenix criteria (organ dysfunction).',
       ],
-      refs: ['NICE NG51: Suspected sepsis — recognition, diagnosis and early management (2024 update)', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (including maternity) & HSE Paediatric Sepsis Form', 'Surviving Sepsis Campaign International Guidelines for children (2020), co-sponsored by ESICM'],
+      refs: ['NICE NG51: Suspected sepsis — recognition, diagnosis and early management (2024 update)', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (including maternity) & HSE Paediatric Sepsis Form', 'Surviving Sepsis Campaign International Guidelines for the management of sepsis and septic shock in children (2026), co-sponsored by ESICM'],
     },
   });
 
@@ -184,9 +184,9 @@
         'RCUK 2021 IM adrenaline doses: < 6 months 100–150 micrograms, 6 months–6 years 150 micrograms, 6–12 years 300 micrograms, > 12 years 500 micrograms. Repeat after 5 min if not improving.',
         'Refractory anaphylaxis (no response after two IM doses): adrenaline infusion with expert help, plus fluid 10 mL/kg boluses.',
         'Antihistamines and steroids are no longer part of emergency treatment.',
-        'Observe, measure tryptase, prescribe two auto-injectors and refer to a paediatric allergy service (NICE CG134).',
+        'Observe, measure tryptase, prescribe two auto-injectors and refer to a paediatric allergy service (NICE NG258, 2026).',
       ],
-      refs: ['Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'Resuscitation Council UK: Refractory anaphylaxis algorithm (2021)', 'NICE CG134: Anaphylaxis — assessment and referral after emergency treatment'],
+      refs: ['Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'Resuscitation Council UK: Refractory anaphylaxis algorithm (2021)', 'NICE NG258: Anaphylaxis — assessment and referral after emergency treatment (2026)'],
     },
   });
 
@@ -483,12 +483,12 @@
     ] },
     debrief: {
       points: [
-        'BSPED 2021: give a 10 mL/kg 0.9% saline bolus to all DKA (20 mL/kg only if shocked, up to 40 mL/kg with senior review); then deficit over 48 h plus maintenance, with 40 mmol/L KCl.',
-        'Start insulin 0.05–0.1 units/kg/h 1–2 hours after IV fluids begin; never give an insulin bolus. Avoid bicarbonate.',
-        'Watch for cerebral oedema (headache, bradycardia, hypertension, falling GCS): hypertonic saline 2.7% 2.5–5 mL/kg or mannitol 0.5–1 g/kg immediately, then PICU.',
+        'BSPED 2021 (v3): if IV fluids are needed and not shocked, give 10 mL/kg 0.9% saline over 30 min (subtracted from the deficit). If shocked, 10 mL/kg over 15 min, reassess and repeat; consider inotropes at 40 mL/kg. Then deficit (5% mild/moderate, 10% severe) over 48 h plus Holliday–Segar maintenance, with 40 mmol/L KCl.',
+        'Start insulin 0.05 units/kg/h (0.1 if severe or per local policy) 1–2 hours after IV fluids begin; never give an insulin bolus. Defer insulin if K⁺ < 3.0. Do not give bicarbonate (only after intensivist discussion for life-threatening hyperkalaemia or severe acidosis with poor contractility).',
+        'Watch for cerebral oedema (headache, bradycardia, hypertension, falling GCS): hypertonic saline 2.7% or 3% 2.5–5 mL/kg over 10–15 min or mannitol 20% 0.5–1 g/kg, restrict fluids to half maintenance, then PICU.',
         'Monitor K⁺ hourly at first — insulin drives it into cells.',
       ],
-      refs: ['BSPED: Interim guideline for the management of children and young people under 18 with DKA (2021)', 'NICE NG18: Diabetes (type 1 and type 2) in children and young people (2023)'],
+      refs: ['BSPED: Guideline for the management of children and young people under 18 years with DKA (2021, v3 updated November 2024)', 'NICE NG18: Diabetes (type 1 and type 2) in children and young people (2023)'],
     },
   });
 

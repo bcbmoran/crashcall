@@ -172,12 +172,12 @@
     },
     debrief: {
       points: [
-        'SSC 2021: add vasopressin when noradrenaline is 0.25–0.5 mcg/kg/min rather than escalating noradrenaline alone.',
-        'Hydrocortisone 200 mg/day for patients with ongoing vasopressor requirement (ADRENAL, APROCCHSS trials).',
+        'SSC 2026: add vasopressin when noradrenaline is 0.25–0.5 mcg/kg/min rather than escalating noradrenaline alone; add adrenaline only if MAP is still inadequate (very low certainty).',
+        'Hydrocortisone 200 mg/day is suggested for ongoing vasopressor requirement (ADRENAL, APROCCHSS; SSC 2026 lowered the certainty to low).',
         'Echo to look for septic cardiomyopathy — add an inotrope (dobutamine) or switch to adrenaline if CO is low.',
-        'Stop fluids when no longer fluid responsive; positive balance worsens ARDS.',
+        'Stop fluids when no longer fluid responsive; positive balance worsens ARDS. SSC 2026 recommends active fluid removal once the shock has resolved.',
       ],
-      refs: ['Surviving Sepsis Campaign 2021 (co-sponsored by ESICM; endorsed by the ICS/FICM)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (2021)', 'VANISH trial (JAMA 2016, UK)', 'FICM/ICS: Guidelines on the management of ARDS (2018)', 'AoA QRH 3-14: Sepsis'],
+      refs: ['Surviving Sepsis Campaign: International guidelines for management of sepsis and septic shock 2026 (co-sponsored by ESICM; endorsed by the ICS/FICM)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (2021)', 'VANISH trial (JAMA 2016, UK)', 'FICM/ICS: Guidelines on the management of ARDS (2018)', 'AoA QRH 3-14: Sepsis'],
     },
   });
 
@@ -346,7 +346,7 @@
       { text: 'Remove triggers (stop gelatin / drugs)', check: (e) => e.did('stop_trigger') },
       { text: 'FiO₂ 1.0', check: fio2High },
       { text: 'Adrenaline IV 50 mcg boluses (± infusion)', check: (e) => e.did('adrenaline') },
-      { text: 'Rapid crystalloid (20 mL/kg)', check: (e) => e.fluidIn.crystalloid >= 1000 },
+      { text: 'Rapid crystalloid bolus 500–1000 mL, repeated as needed', check: (e) => e.fluidIn.crystalloid >= 1000 },
       { text: 'Mast cell tryptase sample', check: (e) => e.did('inv_bloods') },
     ],
     targets: { map: 65, spo2: 94 },
@@ -362,12 +362,12 @@
     },
     debrief: {
       points: [
-        'AoA QRH 3-1: declare emergency, remove triggers, 100% O₂, adrenaline 50 mcg IV boluses, crystalloid 20 mL/kg, consider early infusion.',
-        'If EtCO₂ falls below 2 kPa, start CPR (cardiac arrest drill).',
-        'Refractory: adrenaline infusion, noradrenaline, vasopressin, glucagon if on β-blockers.',
-        'Send tryptase (immediately, 1–2 h, >24 h) and refer to an allergy clinic; report to MHRA Yellow Card. NAP6 data: antibiotics and NMBAs are the commonest triggers.',
+        'RCUK peri-operative anaphylaxis algorithm (2024) / AoA QRH 3-1: call for help, stop surgery, remove triggers, 100% O₂, adrenaline 50 mcg IV boluses ("if in doubt, give adrenaline"), rapid crystalloid 500–1000 mL repeated (3–5 L may be needed; avoid colloids), raise the legs.',
+        'Start CPR if systolic BP < 50 mmHg or cardiac arrest — do not wait for pulselessness.',
+        'Poor response to boluses: adrenaline infusion (0.5 mg in 50 mL at 0.5–1 mL/kg/h, peripheral if needed). Refractory: add a second vasopressor (noradrenaline or vasopressin), glucagon 1 mg IV if on β-blockers, steroids only for refractory reactions or shock, consider ECLS.',
+        'Mast cell tryptase once stable, again 1–4 h after onset and ≥ 24 h later; refer to an allergy clinic, report to MHRA Yellow Card (UKFAR if fatal). NAP6: antibiotics and NMBAs are the commonest triggers — also chlorhexidine, dyes, colloids and latex.',
       ],
-      refs: ['AoA QRH 3-1: Anaphylaxis', 'NAP6: Perioperative anaphylaxis (RCoA, 2018)', 'Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'AAGBI/BSACI: Suspected anaphylactic reactions associated with anaesthesia (2009)'],
+      refs: ['AoA QRH 3-1: Anaphylaxis', 'NAP6: Perioperative anaphylaxis (RCoA, 2018)', 'Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'Resuscitation Council UK: Emergency treatment of peri-operative anaphylaxis — algorithm for anaesthetists (2024)'],
     },
   });
 
@@ -662,12 +662,12 @@
     },
     debrief: {
       points: [
-        'DAS 2015: Plan A (≤3+1 attempts at intubation) → Plan B (SGA, max 3 attempts) → Plan C (facemask) → Plan D (CICO: FONA).',
+        'DAS 2025: Plan A — videolaryngoscope first-line, maximum three attempts (a fourth only by a more experienced colleague); declare failed intubation and open (prime) the eFONA kit → Plan B (second-generation SAD, max three attempts) → Plan C (final two-person facemask attempt with adjuncts, full block) → Plan D (CICO: eFONA).',
         'Declare CICO out loud; give 100% O₂ via the upper airway; ensure neuromuscular blockade; extend the neck.',
-        'Scalpel technique: transverse stab through cricothyroid membrane, rotate 90°, bougie, 6.0 cuffed tube. If impalpable, 8–10 cm vertical incision first.',
+        'eFONA (DAS 2025): scalpel (No. 10 blade), bougie, size 6.0 cuffed tube. A vertical skin incision is now the default unless the cricothyroid membrane was clearly identified (palpation or ultrasound-marked) — then a transverse stab is acceptable. Continuous oxygen throughout (HFNO for peroxygenation) and capnography to confirm.',
         'Sugammadex may be considered but waking does not guarantee airway patency.',
       ],
-      refs: ['Difficult Airway Society: Guidelines for management of unanticipated difficult intubation in adults (2015)', 'AoA QRH 3-3: Can\'t intubate, can\'t oxygenate (CICO)', 'NAP4: Major complications of airway management (RCoA/DAS, 2011)'],
+      refs: ['Difficult Airway Society 2025 guidelines for management of unanticipated difficult tracheal intubation in adults (Br J Anaesth 2026)', 'AoA QRH 3-3: Can\'t intubate, can\'t oxygenate (CICO)', 'NAP4: Major complications of airway management (RCoA/DAS, 2011)'],
     },
   });
 

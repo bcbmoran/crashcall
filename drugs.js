@@ -227,7 +227,7 @@
       info: '10 mL 10% CaCl₂ (≈ 30 mL Ca gluconate 10%). Hyperkalaemia with ECG changes, CCB toxicity, massive transfusion.' },
     { id: 'insulin_glucose', name: 'Insulin–glucose (10 units Actrapid)', cat: 'Antiarrhythmics & electrolytes', catechol: false,
       bolus: { unit: 'dose', doses: [1], E: 1 }, half: 900, onset: 40, eff: {},
-      info: '10 units soluble insulin in 25 g glucose (UK Kidney Association). Lowers K⁺ by ~1 mmol/L within 30–60 min.' },
+      info: '10 units soluble insulin in 25 g glucose (UK Kidney Association 2023, updated 2026); 10% glucose 50 mL/h for 5 h if pre-treatment glucose < 7 mmol/L; monitor glucose for 6 h. Lowers K⁺ by ~1 mmol/L within 30–60 min.' },
     { id: 'bicarbonate', name: 'Sodium bicarbonate 8.4%', cat: 'Antiarrhythmics & electrolytes', catechol: false,
       bolus: { unit: 'mL', doses: [50], E: 0.02 }, half: 900, onset: 10, eff: {},
       info: '50 mEq. For TCA toxicity / severe acidosis with hyperkalaemia. Generates CO₂ — ensure ventilation.' },

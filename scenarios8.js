@@ -25,7 +25,7 @@
   const REFS = [
     'Royal College of Anaesthetists: Initial Assessment of Competence (IAC) — 2021 curriculum, Stage 1',
     'AAGBI/AoA: Recommendations for standards of monitoring during anaesthesia and recovery (2021)',
-    'AAGBI/AoA: Checking anaesthetic equipment (2012, and the 2019 checklist)',
+    'Association of Anaesthetists: Checking anaesthetic equipment (2019)',
     'WHO Surgical Safety Checklist (UK version)',
     'NAP5: Accidental awareness during general anaesthesia (RCoA/AAGBI, 2014)',
     'Association of Anaesthetists Quick Reference Handbook (QRH)',
@@ -174,7 +174,7 @@
         'Extubate when awake, obeying, breathing regularly and with a TOF ratio ≥ 0.9.',
         'Pneumoperitoneum can cause profound vagal bradycardia: tell the surgeon to release the gas, then give an anticholinergic.',
       ],
-      refs: REFS.concat(['Association of Anaesthetists: Recommendations for standards of monitoring (quantitative NMT, 2021)', 'AoA QRH 2-6 Bradycardia', 'Difficult Airway Society guidelines (2015)']),
+      refs: REFS.concat(['Association of Anaesthetists: Recommendations for standards of monitoring (quantitative NMT, 2021)', 'AoA QRH 2-6 Bradycardia', 'Difficult Airway Society 2025 guidelines for unanticipated difficult tracheal intubation in adults']),
     },
   }));
 

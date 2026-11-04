@@ -111,12 +111,12 @@
     debrief: {
       points: [
         'Septic shock = sepsis + vasopressor requirement to keep MAP ≥ 65 mmHg and lactate > 2 mmol/L despite adequate fluid.',
-        'Give broad-spectrum antibiotics within 1 hour of recognising high-risk sepsis/septic shock (NICE NG51, SSC 2021).',
-        'Fluids: crystalloid boluses with frequent reassessment (SSC suggests 30 mL/kg in the first 3 h). Use dynamic measures (PLR, IVC) to guide further fluid.',
-        'Start noradrenaline early if hypotension persists — peripheral administration is acceptable short-term.',
+        'Give broad-spectrum antibiotics within 1 hour of recognising high-risk sepsis/septic shock (NICE NG51, SSC 2026); de-escalate once cultures are back.',
+        'Fluids: balanced crystalloid boluses with frequent reassessment (SSC 2026 still suggests at least 30 mL/kg in the first 3 h; crystalloid alone rather than adding albumin). Use dynamic measures (PLR, IVC) to guide further fluid, and remove excess fluid once resuscitated.',
+        'Start noradrenaline early if hypotension persists — peripheral administration is acceptable short-term. SSC 2026: target MAP about 65 mmHg managed as a range (±5); 60–65 mmHg is suggested in adults aged 65 and over.',
         'Source control matters: an obstructed infected kidney needs urgent decompression (nephrostomy / stent).',
       ],
-      refs: ['NICE NG51: Suspected sepsis — recognition, diagnosis and early management (2024 update)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (including maternity) (2021)', 'RCEM: Sepsis best practice guideline', 'Surviving Sepsis Campaign 2021 (co-sponsored by ESICM; endorsed by the ICS/FICM)', 'AoA QRH 3-14: Sepsis'],
+      refs: ['NICE NG51: Suspected sepsis — recognition, diagnosis and early management (2024 update)', 'HSE National Clinical Guideline No. 26: Sepsis Management for Adults (including maternity) (2021)', 'RCEM: Sepsis best practice guideline', 'Surviving Sepsis Campaign: International guidelines for management of sepsis and septic shock 2026 (co-sponsored by ESICM; endorsed by the ICS/FICM)', 'AoA QRH 3-14: Sepsis'],
     },
   });
 
@@ -414,7 +414,7 @@
         'Antihistamines are for skin symptoms only and steroids are no longer routinely recommended in the acute phase (RCUK 2021).',
         'Take mast cell tryptase samples: as soon as possible, at 1–2 h, and > 24 h.',
       ],
-      refs: ['Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'Resuscitation Council UK: Refractory anaphylaxis algorithm (2021)', 'NICE CG134: Anaphylaxis — assessment and referral after emergency treatment'],
+      refs: ['Resuscitation Council UK: Emergency treatment of anaphylaxis (2021)', 'Resuscitation Council UK: Refractory anaphylaxis algorithm (2021)', 'NICE NG258: Anaphylaxis — assessment and referral after emergency treatment (2026)'],
     },
   });
 
@@ -611,11 +611,12 @@
     debrief: {
       points: [
         'Protect the heart (calcium), shift K⁺ (insulin–glucose ± salbutamol), remove K⁺ (dialysis), monitor K⁺ and glucose.',
-        '10 mL 10% calcium chloride or 30 mL 10% calcium gluconate IV; repeat if ECG changes persist.',
-        'Insulin 10 units with 25 g glucose — hypoglycaemia is common; monitor glucose for 6 h.',
+        'With ECG changes: IV calcium 6.8 mmol — 30 mL 10% calcium gluconate over 10 min, or 10 mL 10% calcium chloride over 5 min in (peri-)arrest; repeat if ECG changes persist (UKKA July 2026 downgraded this to a suggestion after the 2025 ILCOR review).',
+        'Insulin 10 units with 25 g glucose IV; if pre-treatment glucose < 7.0 mmol/L follow with 10% glucose 50 mL/h for 5 h. Check glucose at 0, 30, 60, 90, 120, 180, 240, 300 and 360 min. Nebulised salbutamol 10–20 mg as an adjunct (never alone in severe hyperkalaemia).',
+        'Remove K⁺: sodium zirconium cyclosilicate for severe hyperkalaemia (calcium resonium is no longer used acutely); dialysis if refractory or anuric. Recheck K⁺ at 1, 2, 4, 6 and 24 h for rebound.',
         'Pacing and atropine are often ineffective until K⁺ is treated.',
       ],
-      refs: ['UK Kidney Association: Clinical practice guideline — Treatment of acute hyperkalaemia in adults (2023)', 'Resuscitation Council UK 2025 Guidelines: Special circumstances — hyperkalaemia'],
+      refs: ['UK Kidney Association: Clinical practice guideline — Management of hyperkalaemia in adults (2023, updated July 2026)', 'Resuscitation Council UK 2025 Guidelines: Special circumstances — hyperkalaemia'],
     },
   });
 
