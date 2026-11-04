@@ -617,7 +617,7 @@
         'Ventilate with low RR, long expiratory time; accept permissive hypercapnia.',
         'Consider anaphylaxis — look for rash, hypotension.',
       ],
-      refs: ['AoA QRH 3-4: Bronchospasm', 'BTS/SIGN 158: Acute asthma (2019)'],
+      refs: ['AoA QRH 3-4: Bronchospasm', 'BTS/SIGN 158: British guideline on the management of asthma — acute asthma (revised November 2024, corrections May 2025)'],
     },
   });
 

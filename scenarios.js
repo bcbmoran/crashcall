@@ -746,7 +746,8 @@
     init(e) { e.p.load = 1; },
     tick(e, dt) {
       const p = e.p;
-      if (e.did('hydrocortisone') && e.t - e.firstTime('hydrocortisone') > 60) p.load = Math.max(0.35, p.load - 0.002 * dt);
+      const st = ['hydrocortisone', 'prednisolone'].map((d) => e.firstTime(d) ?? 1e9).reduce((a, b) => Math.min(a, b));
+      if (e.t - st > 60) p.load = Math.max(0.35, p.load - 0.002 * dt);
       if (e.did('magnesium') && e.t - e.firstTime('magnesium') > 20) p.load = Math.max(0.35, p.load - 0.0006 * dt);
       p.bronchospasm = 0.72 * p.load;
       if (!p.ventilated) {
@@ -774,9 +775,9 @@
     critical: [
       { text: 'Oxygen to SpO₂ 94–98%', check: oxygen },
       { text: 'Nebulised salbutamol (back-to-back)', check: (e) => e.count('salbutamol_neb') >= 1 || e.did('salbutamol_iv') },
-      { text: 'Nebulised ipratropium', check: (e) => e.did('ipratropium') },
-      { text: 'Corticosteroid (hydrocortisone 100 mg IV / prednisolone)', check: (e) => e.did('hydrocortisone') },
-      { text: 'IV magnesium sulfate 2 g', check: (e) => e.did('magnesium') },
+      { text: 'Nebulised ipratropium 0.5 mg', check: (e) => e.did('ipratropium') },
+      { text: 'Steroid immediately: prednisolone 40–50 mg PO or hydrocortisone 100 mg IV', check: (e) => e.did('hydrocortisone') || e.did('prednisolone') },
+      { text: 'IV magnesium sulfate 1.2–2 g over 20 min (senior decision)', check: (e) => e.did('magnesium') },
       { text: 'Bronchospasm improving', check: (e) => e.p.bronchEff < 0.3 },
     ],
     targets: { map: 65, spo2: 94 },
@@ -791,11 +792,12 @@
     },
     debrief: {
       points: [
-        'Life-threatening features: SpO₂ < 92%, PEF < 33%, silent chest, cyanosis, poor effort, arrhythmia, exhaustion, altered consciousness, hypotension. A "normal" PaCO₂ is ominous.',
-        'Treatment: O₂, back-to-back salbutamol 5 mg + ipratropium 500 mcg nebs, steroids, IV magnesium 2 g; consider IV salbutamol/aminophylline with senior input.',
-        'Intubate early if tiring — ketamine induction; ventilate with low RR, low Vt, long I:E; disconnect and decompress if pressures/BP collapse.',
+        'BTS/SIGN 158 (2025 amendment): life-threatening asthma = SpO₂ < 92% PLUS any one of altered conscious level, exhaustion, arrhythmia, hypotension, cyanosis, silent chest, poor respiratory effort, PEF < 33%, PaO₂ < 8 kPa or a "normal" PaCO₂ (4.6–6.0 kPa). Near-fatal = raised PaCO₂ and/or needing ventilation with raised inflation pressures. SpO₂ < 92% needs an arterial gas.',
+        'Treatment: O₂ to SpO₂ 94–98%; oxygen-driven salbutamol 5 mg nebs (back-to-back if needed) with ipratropium 0.5 mg 4–6 hourly; prednisolone 40–50 mg (or hydrocortisone 100 mg IV 6-hourly) immediately and for ≥ 5 days.',
+        'IV magnesium sulfate 1.2–2 g over 20 min after senior discussion. IV aminophylline (5 mg/kg load, then 0.5–0.7 mg/kg/h) only after senior consultation — little added benefit, more arrhythmias and vomiting. Heliox is not supported. IV β2 agonists only in the ventilated or in extremis.',
+        'Worsening hypoxia or hypercapnia, drowsiness, exhaustion or respiratory arrest → ICU and intubation by an anaesthetist or ICU consultant. Ketamine induction; ventilate with a low rate, low Vt and long expiratory time; disconnect and decompress if pressures/BP collapse. ECMO for refractory near-fatal asthma where available.',
       ],
-      refs: ['BTS/SIGN 158: British guideline on the management of asthma — acute asthma (2019)', 'BTS/NICE/SIGN NG245: Asthma — diagnosis, monitoring and chronic asthma management (2024)', 'HSE National Clinical Programme for Asthma: Model of care (Ireland)'],
+      refs: ['BTS/SIGN 158: British guideline on the management of asthma — acute asthma (revised November 2024, corrections May 2025)', 'BTS/NICE/SIGN NG245: Asthma — diagnosis, monitoring and chronic asthma management (2024)', 'HSE National Clinical Programme for Asthma: Model of care (Ireland)'],
     },
   });
 })();

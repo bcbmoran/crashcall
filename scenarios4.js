@@ -91,7 +91,7 @@
       const p = e.p, f = e.flags, refr = e.level === 'consultant';
       const floor = refr ? 0.85 : 0.3;
       if (refr) p.bronchRefractory = 0.5;
-      if (any(e, 'hydrocortisone', 'dexamethasone') && e.t - Math.min(...['hydrocortisone', 'dexamethasone'].map((d) => e.firstTime(d) ?? 1e9)) > 60) p.load = Math.max(floor, p.load - 0.002 * dt);
+      if (any(e, 'prednisolone', 'hydrocortisone', 'dexamethasone') && e.t - Math.min(...['prednisolone', 'hydrocortisone', 'dexamethasone'].map((d) => e.firstTime(d) ?? 1e9)) > 60) p.load = Math.max(floor, p.load - 0.002 * dt);
       if (e.did('magnesium') && e.t - e.firstTime('magnesium') > 20) p.load = Math.max(floor, p.load - 0.0008 * dt);
       // Dynamic hyperinflation on the ventilator: progressive auto-PEEP → falling venous return → PEA arrest
       if (refr && p.ventilated && !p.arrested) {
@@ -103,7 +103,7 @@
         if (p.effort < 0.6 && !f.tiring) { f.tiring = true; e.say('She is tiring: quieter chest, head bobbing, harder to rouse. CO₂ is climbing.', 'bad'); }
         if (p.effort < 0.25 && !f.preArrest) { f.preArrest = true; e.say('Nurse: "Her breathing is very shallow now — I can hardly hear anything on the chest."', 'bad'); }
       }
-      if (!e.did('hydrocortisone') && !e.did('dexamethasone')) p.load = Math.min(1.2, p.load + 0.0002 * dt);
+      if (!any(e, 'prednisolone', 'hydrocortisone', 'dexamethasone')) p.load = Math.min(1.2, p.load + 0.0002 * dt);
       p.bronchospasm = 0.7 * p.load * (refr && p.ventilated ? 1.45 : 1); // refractory: severe gas trapping once on positive pressure
       if (!p.ventilated && !refr) { if (p.bronchEff > 0.42) p.effort = Math.max(0.3, p.effort - 0.0016 * dt); else if (p.bronchEff < 0.3) p.effort = Math.min(1, p.effort + 0.003 * dt); }
     },
@@ -118,11 +118,11 @@
     exam: (e) => ({ A: 'Patent.', B: resp(e) + ` ${e.p.effort < 0.6 && !e.p.ventilated ? 'Exhausted, SILENT CHEST.' : e.p.bronchEff > 0.3 ? 'Widespread wheeze, marked recession, unable to speak. PEF not possible.' : 'Mild wheeze, talking in sentences.'}`, C: circ(e), D: `${e.p.paco2 > 60 ? 'Drowsy.' : 'Alert, anxious.'}`, E: 'No rash. Afebrile.' }),
     inv: { bloods: (e) => pLabs(e, { k: 3.4 }), gas: true, ecg: {}, cxr: { media: 'cxr_normal', report: 'Hyperinflated, no pneumothorax.' }, ...noCT, pocus: [{ label: 'Lung ultrasound', media: 'us_sliding', report: 'Lung sliding bilaterally — no pneumothorax.' }] },
     critical: [
-      { text: 'High-flow oxygen (SpO₂ 94–98%)', check: (e) => e.p.fio2 >= 0.6 },
-      { text: 'Back-to-back salbutamol nebs', check: (e) => e.count('salbutamol_neb') >= 2 },
-      { text: 'Ipratropium bromide', check: (e) => e.did('ipratropium') },
-      { text: 'Steroid (prednisolone / IV hydrocortisone 4 mg/kg)', check: (e) => any(e, 'hydrocortisone', 'dexamethasone') },
-      { text: 'IV magnesium 40 mg/kg (max 2 g)', check: (e) => e.did('magnesium') },
+      { text: 'Oxygen to SpO₂ 94–98% (face mask / nasal prongs)', check: (e) => e.p.fio2 >= 0.6 },
+      { text: 'Oxygen-driven salbutamol 5 mg nebs, repeated every 20–30 min', check: (e) => e.count('salbutamol_neb') >= 2 },
+      { text: 'Ipratropium 0.25 mg added to the nebs', check: (e) => e.did('ipratropium') },
+      { text: 'Steroid: oral prednisolone 30–40 mg (> 5 y), or IV hydrocortisone 4 mg/kg if vomiting', check: (e) => any(e, 'prednisolone', 'hydrocortisone', 'dexamethasone') },
+      { text: 'Not responding: IV magnesium sulfate 40 mg/kg (max 2 g) over 20 min', check: (e) => e.did('magnesium') },
       { text: 'IV salbutamol bolus 15 micrograms/kg', check: (e) => e.did('salbutamol_iv'), skip: (e) => e.level !== 'consultant' },
       { text: 'Recognise exhaustion / rising CO₂: call anaesthetist & PICU, ketamine RSI', check: (e) => e.did('rsi_ketamine') || e.did('rsi_propofol'), skip: (e) => e.level !== 'consultant' },
       { text: 'Ventilate for gas trapping: low rate (≤ 16), long expiration, accept permissive hypercapnia', check: (e) => e.p.ventilated && e.p.ventRR <= 16, skip: (e) => e.level !== 'consultant' },
@@ -137,13 +137,14 @@
     ] },
     debrief: {
       points: [
-        'BTS/SIGN 158: in life-threatening asthma give O₂ to SpO₂ 94–98%, nebulised salbutamol 5 mg (2.5 mg if < 5 y) back-to-back with ipratropium 250 micrograms.',
-        'Steroids early: prednisolone (1–2 mg/kg, max 40 mg) or IV hydrocortisone 4 mg/kg.',
-        'IV magnesium sulfate 40 mg/kg (max 2 g) over 20 min; IV salbutamol 15 micrograms/kg bolus is second-line; aminophylline only in PICU-led care.',
-        'Exhaustion, silent chest or rising PaCO₂ → senior anaesthetic/PICU help; ketamine RSI with low ventilator rate.',
+        'BTS/SIGN 158 (revised 2024, corrected 2025) — child > 5 y: acute severe = SpO₂ < 92%, too breathless to talk or eat, HR > 125, RR > 30, accessory muscles; life-threatening = SpO₂ < 92% plus any of silent chest, poor respiratory effort, confusion, cyanosis or PEF < 33%. (2–5 y: HR > 140, RR > 40; agitation also counts.)',
+        'O₂ to SpO₂ 94–98%; oxygen-driven salbutamol 5 mg (2.5 mg if 2–5 y) every 20–30 min with ipratropium 0.25 mg; consider adding 150 mg magnesium sulfate to each neb in the first hour if SpO₂ < 92% with a short history.',
+        'Oral prednisolone is the steroid of choice: 20 mg (2–5 y), 30–40 mg (> 5 y), 2 mg/kg (max 60 mg) if on maintenance steroids. IV hydrocortisone 4 mg/kg only if unable to retain oral medication. Dexamethasone has no proven advantage over prednisolone.',
+        'Not responding: discuss with senior / PICU, consider HDU/PICU, and add IV magnesium sulfate 40 mg/kg (max 2 g) over 20 min, a single IV salbutamol bolus 15 micrograms/kg over 10 min ± infusion 1–5 micrograms/kg/min, or IV aminophylline 5 mg/kg over 20 min then 1 mg/kg/h with ECG monitoring — assess the response before each new treatment.',
+        'Exhaustion, silent chest or rising PaCO₂ → involve a clinician with airway and critical-care skills early (BTS/SIGN 158 §9.9.5); intubate with ketamine induction (APLS) and a low ventilator rate. Note SIGN found no evidence for ketamine as a treatment in non-intubated children — its role here is as the induction agent.',
         'Some children deteriorate despite maximal medical therapy. Intubation in severe asthma is high-risk: ketamine is preferred, and ventilating at a normal paediatric rate causes gas trapping (auto-PEEP) → falling venous return, hypotension and arrest. Use a low rate, long expiratory time and accept a high CO₂; disconnect and decompress the chest if the blood pressure falls.',
       ],
-      refs: ['BTS/SIGN 158: British guideline on the management of asthma (2019)', 'BTS/NICE/SIGN NG245: Asthma — diagnosis, monitoring and chronic asthma management (2024)', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)'],
+      refs: ['BTS/SIGN 158: British guideline on the management of asthma — acute asthma (revised November 2024, corrections May 2025)', 'BTS/NICE/SIGN NG245: Asthma — diagnosis, monitoring and chronic asthma management (2024)', 'APLS: Advanced Paediatric Life Support, 7th edn (ALSG, 2023)'],
     },
   });
 

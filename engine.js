@@ -180,7 +180,7 @@
       const d = S.drugById[id]; if (!d || !d.bolus || this.outcome) return;
       const pl = this.pool(id);
       const sc = this.p.paed && !/\/kg/.test(d.bolus.unit) ? 70 / this.p.weight : 1;
-      const nonIV = /_im$|_neb$|_buccal$|^chlorpromazine$|^dexamethasone$/.test(id);
+      const nonIV = /_im$|_neb$|_buccal$|^chlorpromazine$|^dexamethasone$|^prednisolone$/.test(id);
       if (this.flags.ivDown && !nonIV) { this.mark(id); this.emit({ type: 'drug', id, text: `${d.name} ${dose} ${d.bolus.unit} given — but the cannula has tissued`, kind: 'act' }); this.say('The drug went into the tissues — the cannula is not working.', 'bad'); return; }
       pl.depot += dose * d.bolus.E * sc; pl.total += dose;
       this.mark(id);
