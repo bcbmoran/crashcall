@@ -178,7 +178,7 @@
     if (e.fluidIn.ffp) fl.push(`${Math.round(e.fluidIn.ffp / 270)} FFP`);
     $('#ptMeta').innerHTML = `${p.age < 0.05 ? 'Newborn' : p.age < 1 ? Math.round(p.age * 12) + ' months' : p.age < 2 && p.paed ? p.age + ' yr' : p.age} ${p.sex} · ${p.weight} kg · ${SETTING[state.scn.setting] || ''} · ${p.ventilated ? `Ventilated FiO₂ ${p.fio2.toFixed(2)}` : p.fio2 > 0.21 ? `O₂ FiO₂ ~${p.fio2.toFixed(2)}` : 'Room air'}${fl.length ? ' · In: ' + fl.join(', ') : ''}`;
     const tg = e.targetStatus();
-    $('#targets').innerHTML = e.L.showTargets || state.scn.tutorial ? tg.map((t) => `<span class="tgt ${t.ok ? 'ok' : 'no'}">${t.k}</span>`).join('') : '<span class="tgt">Consultant grade: targets hidden — decide your own end-points</span>';
+    $('#targets').innerHTML = e.L.showTargets || state.scn.tutorial ? tg.map((t) => `<span class="tgt ${t.ok ? 'ok' : 'no'}">${t.k}</span>`).join('') : '<span class="tgt">Consultant grade: targets hidden — stabilise to the standard you’d expect, then press ✋ Declare stable</span>';
     nudge(e);
     if (state.tab === 'ga' && e.ga && S.GA && !srch()) { state.gaT = (state.gaT || 0) + 1; if (state.gaT % 4 === 0 || force) { const lv = $('#tabBody .ga-live'); if (lv) lv.innerHTML = S.GA.liveHTML(e, e.level); } }
     const cs = e.critStatus(), done = cs.filter((c) => c.done).length;
@@ -188,6 +188,7 @@
     coachTick();
     $('#stabTxt').textContent = e.stableTime > 0 ? `${Math.floor(e.stableTime)} / ${need} s stable` : 'Targets not yet held';
     if (!e.L.showTargets && !state.scn.tutorial) { $('#stabBar').style.width = '0%'; $('#stabTxt').textContent = 'Hidden at consultant grade'; }
+    const db = $('#declareBtn'); if (db) { db.hidden = e.L.showTargets || !!state.scn.tutorial; db.disabled = !!e.outcome; }
   }
 
   // Junior grade: a senior nurse prompts the next outstanding critical action when you stall.
@@ -206,6 +207,8 @@
 
   // ---------------- controls ----------------
   $$('#ctlTabs button').forEach((b) => (b.onclick = () => setTab(b.dataset.tab)));
+  const dBtn = $('#declareBtn');
+  if (dBtn) dBtn.onclick = () => { const e = state.eng; if (!e || e.outcome) return; if (state.paused) { toast('Press start / resume first.', 'warn'); return; } e.declareStable(); };
   const srch = () => { const i = $('#tabSearch'); return i ? i.value.trim().toLowerCase() : ''; };
   const si = $('#tabSearch');
   if (si) {
@@ -562,12 +565,16 @@
     const imgRes = state.results.filter((r) => r.kind === 'img' || r.kind === 'pocus');
     state.ended = true;
     const log = e.log.filter((x) => x.kind === 'act' || x.kind === 'good' || x.kind === 'bad' || x.type === 'inv' || x.type === 'hint');
+    const tg = e.targetStatus(), need = e.needStable(), best = Math.min(need, Math.round(e.maxStable || 0));
+    const tgtHTML = s.tutorial ? '' : `<h3>Physiological targets${e.L.showTargets ? '' : ' (hidden during the case)'}</h3><ul>${tg.map((t) => `<li class="${t.ok ? 'ok' : 'miss'}">${esc(t.k)} — ${t.ok ? 'met at the end' : 'not met at the end'}</li>`).join('')}</ul>
+      <p class="muted small">Longest period with all critical actions done and every target held: ${best} s (${need} s needed to stabilise at this grade)${e.flags.declared ? ' · you declared the patient stable and handed over' : ''}${e.declareFails ? ` · ${e.declareFails} premature declaration${e.declareFails > 1 ? 's' : ''} (+30 s each)` : ''}.</p>`;
     const html = `<div class="debrief">
       <div class="banner ${outcome === 'win' ? 'win' : 'lose'}"><span>${title}${s.tutorial ? '' : ' · ' + e.L.name + ' grade'}</span><span>⏱ ${fmt(ms)}${newBest ? ' · new personal best' : ''}</span></div>
       <div class="stat-row"><div class="stat"><span class="muted small">Time</span><b>${fmt(ms)}</b></div><div class="stat"><span class="muted small">Critical actions</span><b>${cs.filter((c) => c.done).length}/${cs.length}</b></div><div class="stat"><span class="muted small">Harmful actions</span><b>${e.harms.length}</b></div><div class="stat"><span class="muted small">Hints used</span><b>${state.hints}</b></div><div class="stat"><span class="muted small">Final MAP / SpO₂</span><b>${Math.round(e.p.map)} / ${e.p.spo2}%</b></div></div>
       <div id="lbBox" class="lb-box"></div>
       ${saved ? '<p class="muted small" id="saveNote"></p>' : ''}
       <h3>Critical actions</h3><ul>${cs.map((c) => `<li class="${c.done ? 'ok' : 'miss'}">${esc(c.text)}</li>`).join('')}</ul>
+      ${tgtHTML}
       ${e.did('complication') ? `<h3>Second problem (consultant grade)</h3><p>${e.flags.compl === 'iv' ? 'The IV cannula tissued mid-resuscitation — infusions and boluses stopped reaching the patient. Watch pump alarms and the response to drugs; re-site access (IO if needed).' : e.flags.compl === 'tube' ? 'The tracheal tube displaced during a move — loss of capnography is a displaced tube until proven otherwise (DAS / AoA QRH 2-2 and 2-3).' : e.flags.compl === 'o2' ? 'The oxygen supply was disconnected — always re-check the delivery chain when saturations fall.' : esc(e.flags.complText || 'A scenario-specific complication occurred.')} ${e.flags.ivDown || e.flags.tubeDisplaced || e.flags.o2Off ? '<b>It was not resolved.</b>' : 'You resolved it.'}</p>` : ''}
       ${e.harms.length ? `<h3>Potential harm</h3><ul>${e.harms.map((h) => `<li class="harm">${esc(h)}</li>`).join('')}</ul>` : ''}
       ${imgRes.length ? `<h3>Investigation reports</h3><div class="db-res">${imgRes.map((r, i) => `<details data-dbres="${i}"><summary>${esc(r.name)} · ${r.at}</summary><div class="db-res-host"></div></details>`).join('')}</div>` : ''}

@@ -54,7 +54,7 @@
     senior: { id: 'senior', name: 'Senior trainee', who: 'ST3+ / registrar', prog: 1, tol: 1, stable: 20, nudge: 0, complication: false, showTargets: true,
       blurb: 'Standard physiology and timings, no prompts.' },
     consultant: { id: 'consultant', name: 'Consultant', who: 'Consultant / post-CCT', prog: 1.35, tol: 0.7, stable: 30, nudge: 0, complication: true, showTargets: false,
-      blurb: 'Faster deterioration, less margin, targets hidden, must hold stability for longer — and a second problem will arise mid-case.' },
+      blurb: 'Faster deterioration, less margin, targets hidden — stabilise to the standard you would expect, then declare the patient stable and hand over (a premature declaration is penalised). A second problem will arise mid-case.' },
   };
 
   class Engine {
@@ -499,6 +499,7 @@
       }
       if (this.critStatus().every((c) => c.done) && this.targetsMet() && !this.flags.ivDown && !this.flags.tubeDisplaced && !this.flags.o2Off) this.stableTime += dt;
       else this.stableTime = Math.max(0, this.stableTime - dt * 2);
+      this.maxStable = Math.max(this.maxStable || 0, this.stableTime);
       if (this.stableTime >= this.needStable()) {
         this.outcome = 'win';
         this.emit({ type: 'end', outcome: 'win', text: 'Patient stabilised — scenario complete.', kind: 'good' });
@@ -532,6 +533,26 @@
         this.stableTime = 0;
         return true;
       }
+      return false;
+    }
+    // Consultant grade: the player decides when the patient is ready to hand over.
+    // Succeeds only if every critical action is done, the (hidden) targets are met now and have held for ≥ 5 s.
+    declareStable() {
+      if (this.outcome) return null;
+      const reasons = [];
+      if (!this.critStatus().every((c) => c.done)) reasons.push('essential management is still outstanding');
+      if (!this.targetsMet()) reasons.push('the physiology is not yet at a safe target');
+      else if (this.stableTime < 5) reasons.push('the improvement has not been sustained yet');
+      if (this.flags.ivDown || this.flags.tubeDisplaced || this.flags.o2Off) reasons.push('there is an unresolved equipment problem');
+      this.mark('declare_stable');
+      if (!reasons.length) {
+        this.outcome = 'win'; this.flags.declared = true;
+        this.emit({ type: 'end', outcome: 'win', text: 'Declared stable and handed over — the receiving team agrees the patient is stable.', kind: 'good' });
+        return true;
+      }
+      this.declareFails = (this.declareFails || 0) + 1;
+      this.say(`Receiving team: "I'm not happy to take this patient yet — ${reasons.join('; ')}."`, 'warn');
+      this.harm(`Declared the patient stable prematurely (${this.declareFails === 1 ? '1st' : this.declareFails === 2 ? '2nd' : this.declareFails + 'th'} time)`);
       return false;
     }
     needStable() { const b = this.scn.stableFor || 20; return this.scn.tutorial ? b : Math.round(b * this.L.stable / 20); }
