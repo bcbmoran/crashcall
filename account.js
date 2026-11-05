@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Accounts (Firebase Authentication) and cloud progress (Cloud Firestore).
  * Data stored per user: users/{uid}/attempts/{attemptId} — scenario id, grade, outcome, time,
  * critical actions done/missed, harm and hint counts. Nothing else. */

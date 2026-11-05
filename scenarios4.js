@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Scenario library — part 4: Paediatrics (APLS / RCUK PLS & NLS / NICE / BTS / BSPED). Doses are weight-based. */
 (function () {
   const S = window.Sim;

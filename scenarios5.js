@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Scenario library — part 5: further emergency medicine & critical care cases
  * (topics broadened to match common simulation curricula; all content written for CrashCall and referenced to UK/Irish guidance). */
 (function () {

@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Physiology hint schematics: mechanism flowchart, live circulation model, Frank–Starling plot, shock profiles. */
 (function () {
   const S = (window.Sim = window.Sim || {});

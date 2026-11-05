@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Resuscitation Council UK 2025 guidelines — quick links to the official one-page algorithm PDFs.
  * Links open the PDFs on resus.org.uk (© Resuscitation Council UK); nothing is copied into CrashCall.
  * URLs checked against the RCUK 2025 guideline pages, November 2026. */

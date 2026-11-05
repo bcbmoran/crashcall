@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Scenario library — part 3: Association of Anaesthetists Quick Reference Handbook (QRH) crises
  * not covered elsewhere. Every scenario cites its QRH guideline number (June 2023 edition). */
 (function () {

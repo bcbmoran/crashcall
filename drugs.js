@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Drug, fluid and intervention catalogue.
  * Pharmacodynamics use a simple effect-site model (arbitrary "E" units):
  *   bolus  -> depot += dose * bolus.E, absorbed with time-constant `onset` (s)

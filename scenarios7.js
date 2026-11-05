@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Scenario library — part 7: Resuscitation Council UK 2025 Guidelines.
  * Fills the gaps so that every RCUK 2025 one-page algorithm has at least one scenario that practises it:
  * traumatic cardiac arrest, cath-lab arrest, adult & paediatric choking, community BLS + AED, the stable arms of the

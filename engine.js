@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Physiology engine.
  * A deliberately simple, transparent lumped model built for teaching:
  *   MAP = CO × SVR / 80 + small CVP term,   CO = HR × SV

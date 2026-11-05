@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Tutorial scenario: a gentle, guided case that introduces every part of the simulator.
  * Steps are shown by the coach panel in app.js. A step with `check` advances automatically
  * once the learner has done it; a step without `check` waits for "Next". */

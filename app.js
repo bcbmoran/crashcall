@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* UI controller: menu, simulation loop, stopwatch, controls, investigations, hints and debrief. */
 (function () {
   const S = window.Sim;

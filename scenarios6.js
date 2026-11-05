@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Scenario library — part 6: trauma, obstetric/GI haemorrhage, burns and toxicology. */
 (function () {
   const S = window.Sim;

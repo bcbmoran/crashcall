@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Firebase project settings for CrashCall accounts (Firebase console → Project settings → Your apps).
  * These values identify the project; they are not secret. Access to data is controlled by the
  * Firestore security rules (each user can only read and write their own progress).

@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Scenario library — part 2: Critical care and Anaesthesia (QRH-based). */
 (function () {
   const S = window.Sim;

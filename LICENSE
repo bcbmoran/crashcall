@@ -1,0 +1,23 @@
+Copyright (c) 2026 Ben Moran. All rights reserved.
+
+CrashCall (https://bcbmoran.github.io/crashcall/), including its source code,
+physiology and ECG models, clinical scenarios, debrief text, artwork and the
+selection and arrangement of its scenario library, is the copyright work of
+Ben Moran.
+
+No licence is granted. You may view this repository and use the live website
+for personal, non-commercial education. You may not copy, modify, merge,
+publish, distribute, sublicense, sell or create derivative works from any part
+of it, or use it to train machine-learning models, without prior written
+permission from the copyright owner.
+
+"CrashCall" is used as a trade mark of Ben Moran.
+
+Third-party material is excluded and remains the property of its owners:
+- Association of Anaesthetists Quick Reference Handbook summaries
+  (CC BY-NC-SA 4.0, (c) Association of Anaesthetists)
+- Resuscitation Council UK algorithms (linked, not reproduced; (c) RCUK)
+- Clinical images from Wikimedia Commons (licences and authors listed in media.js)
+- Firebase JavaScript SDK (Apache 2.0, Google)
+
+Permission requests: contact the repository owner via GitHub (@bcbmoran).

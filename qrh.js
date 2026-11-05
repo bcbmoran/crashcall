@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Association of Anaesthetists Quick Reference Handbook (QRH), June 2023 edition — index and key actions.
  * Summaries are brief paraphrases for orientation in the simulator. Always use the official guideline:
  * https://anaesthetists.org/Quick-Reference-Handbook  (QRH © Association of Anaesthetists, CC BY-NC-SA 4.0).

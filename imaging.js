@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Imaging viewer.
  * - CXR, CT and ultrasound: real, openly-licensed images/clips from Wikimedia Commons (see media.js),
  *   shown with author and licence attribution.

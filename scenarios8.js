@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Scenario library — part 8: routine general anaesthesia for novices (Initial Assessment of Competence level).
  * Four complete anaesthetics, each practising induction, maintenance and emergence step by step:
  *   1. LMA + sevoflurane, spontaneous breathing (knee arthroscopy)

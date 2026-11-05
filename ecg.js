@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* CrashCall ECG engine — a vector (dipole) model of cardiac electrical activity.
  *
  * Each wave (P, septal/main/basal QRS forces, terminal forces, ST injury current, T, U, J) is a

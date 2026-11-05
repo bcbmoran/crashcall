@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Bedside monitor: sweeping waveforms (ECG II, ABP, SpO2 pleth, capnography) + numerics. */
 (function () {
   const S = (window.Sim = window.Sim || {});

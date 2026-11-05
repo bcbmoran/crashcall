@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Admin dashboard — only for the site owner's account (see ADMINS in account.js and isAdmin() in the
  * Firestore rules; the rules are what actually protect the data).
  * Open with the 🛠 Admin button on the home screen, or bcbmoran.github.io/crashcall/#admin */

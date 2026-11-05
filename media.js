@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Openly-licensed medical images and ultrasound clips, hot-linked from Wikimedia Commons.
  * Each entry keeps its author and licence so the viewer can show attribution.
  *   f   = Commons file name    lic/lu = licence name/URL    by = author    d = what the image shows

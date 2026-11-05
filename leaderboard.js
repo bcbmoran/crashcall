@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Shared online leaderboard.
  * Scores are stored in a Google Sheet via a small Google Apps Script web app (see apps-script/Code.gs).
  * Requests use JSONP so they work from any static host without CORS set-up.

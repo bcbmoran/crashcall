@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Routine general anaesthesia — a step-by-step anaesthetic for novices (IAC level).
  * Adds to the physiology engine:
  *   - an anaesthetic machine: fresh gas flow, FiO₂ (O₂/air), sevoflurane vaporiser, circuit on mask / LMA / tube

@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Top-down patient view with relevant equipment, drawn in SVG and updated live. */
 (function () {
   const S = (window.Sim = window.Sim || {});

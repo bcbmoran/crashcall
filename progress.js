@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Progress tracking.
  * Every finished scenario is recorded on this device (localStorage). When the user is signed in
  * (account.js + Firebase), attempts are also saved to their account so progress follows them

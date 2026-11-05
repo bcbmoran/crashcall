@@ -1,3 +1,4 @@
+/* CrashCall — © 2026 Ben Moran. All rights reserved. No copying, modification or redistribution without written permission. */
 /* Scenario library — part 1: shared helpers + Emergency Medicine.
  * Each scenario: patient parameters for the engine, dynamics (tick/onEvent), examination,
  * investigations, critical actions, targets, physiology hint and debrief. */
