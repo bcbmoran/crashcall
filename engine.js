@@ -141,7 +141,7 @@
       const opts = [];
       if (Object.values(this.pools).some((pl) => pl.rate > 0) || this.fluidQ.length) opts.push('iv');
       if (p.ventilated && !p.arrested) opts.push('tube');
-      if (!p.ventilated && !p.assisted && p.fio2 > 0.3 && !p.arrested) opts.push('o2');
+      if (!p.ventilated && !p.assisted && p.fio2 > 0.3 && !p.arrested && !this.flags.paralysed && p.gcs > 8) opts.push('o2');
       if (!opts.length) opts.push('iv');
       const k = opts[Math.floor(Math.random() * opts.length)];
       this.flags.compl = k; this.mark('complication');

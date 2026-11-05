@@ -627,46 +627,118 @@
   // =====================================================================
   add({
     id: 'an-cico', qrh: ['3-3'], title: 'Can\'t intubate, can\'t oxygenate (CICO)', field: 'Anaes', shock: null, category: 'Airway', difficulty: 3, setting: 'theatre',
-    stem: 'Emergency laparotomy, 50-year-old man, BMI 42. RSI with propofol + rocuronium. Three attempts at videolaryngoscopy have failed, second-generation SGA attempts failed, facemask ventilation impossible despite 2-person technique. SpO₂ falling.',
-    patient: { age: 50, sex: 'M', weight: 125, airwayPatent: false, effort: 0, fio2: 1, lastFio2: 1, shunt: 0.12, hrBase: 95, gcs: 3 },
-    init(e) { e.flags.paralysed = true; },
-    start(e) { e.p.PAO2 = 68; e.p.sa = S.sev(63); },
+    stem: 'Emergency laparotomy for a perforated viscus: 50-year-old man, BMI 42, short thick neck. He has been preoxygenated for 3 minutes (EtO₂ 0.9) and you have just given propofol and rocuronium for RSI. Your ODP has a videolaryngoscope, bougie, second-generation SADs and the eFONA set. Secure the airway — follow the DAS 2025 algorithm.',
+    patient: { age: 50, sex: 'M', weight: 125, airwayPatent: true, effort: 0, fio2: 1, lastFio2: 1, shunt: 0.12, hrBase: 95, gcs: 3 },
+    init(e) { const f = e.flags; f.paralysed = true; f.att = 0; f.sad = 0; f.trauma = 0; f.gaps = 0; f.oxyGap = true; },
+    start(e) { e.p.PAO2 = 520; e.p.sa = 0.99; },
+    complication(e) {
+      if (e.p.ventilated) return false;
+      e.p.shunt = Math.min(0.5, e.p.shunt + 0.15); e.flags.regurg = true;
+      e.say('Gastric contents are welling up into the pharynx (perforated viscus) — suction, and keep going through the algorithm.', 'bad');
+    },
     tick(e, dt) {
-      const p = e.p;
+      const p = e.p, f = e.flags;
+      // Obesity: small FRC, high VO₂ — apnoeic desaturation is fast; HFNO apnoeic oxygenation slows it.
+      if (!p.ventilated && (p.V || 0) < 0.15) p.PAO2 -= (p.PAO2 - 25) * dt / (f.hfno || e.did('hfno') ? 150 : 55);
       if (!p.ventilated) p.hrBase = p.sa < 0.75 ? Math.max(30, 95 - (0.75 - p.sa) * 200) : 95;
       else p.hrBase = toward(p.hrBase, 95, 0.02, dt);
+      if (!f.lost && f.trauma >= 3) { f.lost = true; p.airwayPatent = false; p.assisted = false; e.say('The airway is now swollen and bloody — facemask ventilation is getting very difficult.', 'warn'); }
     },
+    extraActions: [
+      { id: 'pa_vl', name: 'Plan A: videolaryngoscopy + bougie attempt' },
+      { id: 'pa_optimise', name: 'Optimise: ramp position, laryngeal manipulation, change blade' },
+      { id: 'pa_senior', name: 'Call the most experienced anaesthetist available' },
+      { id: 'pa_declare', name: 'Declare failed intubation and open (prime) the eFONA set' },
+      { id: 'pb_sad', name: 'Plan B: insert second-generation SAD (i-gel)' },
+      { id: 'pc_mask', name: 'Plan C: final two-person facemask attempt (OPA + NPA, full block)' },
+      { id: 'pd_declare', name: 'Plan D: declare "Can\'t intubate, can\'t oxygenate"' },
+    ],
     onEvent(e, ev) {
-      if (ev.type === 'drug' && ev.id === 'sugammadex') return { msg: 'Sugammadex given. Return of spontaneous breathing may take time and will not reliably restore a patent airway after multiple attempts — do not delay FONA.', kind: 'warn' };
-      if (ev.type === 'action' && (ev.id === 'rsi_ketamine' || ev.id === 'rsi_propofol')) return { handled: true, msg: 'Further laryngoscopy: airway now bloody and swollen. Repeated attempts are harmful.', harm: 'Repeated intubation attempts beyond 3 (DAS)' };
-      if (ev.type === 'action' && ev.id === 'fona') return { msg: 'CICO declared. Neck extended, scalpel–bougie–tube through cricothyroid membrane. 100% O₂ via tube — saturations recovering.', kind: 'good' };
+      const f = e.flags, p = e.p;
+      if (ev.type === 'drug' && ev.id === 'sugammadex') return { msg: 'Sugammadex given. Spontaneous breathing may take minutes to return and will not reliably restore a patent airway after multiple attempts — do not delay eFONA.', kind: 'warn' };
+      if (ev.type !== 'action') return;
+      const id = ev.id;
+      // ---------- Plan A ----------
+      if (id === 'pa_vl' || id === 'rsi_propofol' || id === 'rsi_ketamine' || id === 'intubate') {
+        if (p.ventilated) return { handled: true, msg: 'The airway is already secured.' };
+        if (f.declared) return { handled: true, harm: 'Repeated intubation attempts after failed intubation was declared (DAS)', msg: 'Another laryngoscopy: blood and oedema, no view at all.' };
+        f.att++; f.trauma++; p.assisted = false;
+        if (f.att > 1 && !f.oxyGap) f.noOxyGap = true;
+        if (f.att > 1 && f.oxyGap) f.gaps++;
+        f.oxyGap = false;
+        const n = f.att;
+        if (n === 4 && !f.senior) return { handled: true, harm: 'A fourth intubation attempt by the same operator (DAS: a fourth attempt only by a more experienced colleague)', msg: 'Attempt 4: no better. Grade 4 view, bleeding.' };
+        if (n > 4) return { handled: true, harm: 'Repeated intubation attempts beyond the DAS limit', msg: `Attempt ${n}: the larynx is now swollen and bloody. Stop — declare failed intubation.` };
+        const views = ['Attempt 1 (videolaryngoscope): epiglottis only — the bougie will not pass. SpO₂ falling during the apnoea. Oxygenate between attempts.',
+          f.optimised ? 'Attempt 2 (optimised: ramped, BURP, hyperangulated blade): tip of the arytenoids only; bougie hold-up. Some blood. Oxygenate.' : 'Attempt 2: no change — you have not changed anything. Optimise position and device before the next attempt. Oxygenate.',
+          'Attempt 3: grade 4 view, airway oedematous. That is three attempts — declare failed intubation.',
+          'Attempt 4 (most experienced colleague, different device): still no view. Declare failed intubation now.'];
+        return { handled: true, msg: views[Math.min(n, 4) - 1], kind: 'bad' };
+      }
+      if (id === 'pa_optimise') { f.optimised = true; return { handled: true, msg: 'Ramped to ear-to-sternal-notch, external laryngeal manipulation ready, hyperangulated blade and stylet loaded.', kind: 'good' }; }
+      if (id === 'pa_senior') { f.senior = true; return { handled: true, msg: 'The consultant anaesthetist from next door is on the way — one further attempt is allowed by them only.', kind: 'good' }; }
+      if (id === 'pa_declare') { f.declared = true; f.declT = e.t; return { handled: true, msg: '"This is a failed intubation." eFONA set opened and primed on the trolley; scalpel, bougie and 6.0 tube ready. Move to Plan B.', kind: 'good' }; }
+      // ---------- oxygenation (facemask / HFNO) ----------
+      if (id === 'bvm' || id === 'pc_mask') {
+        if (p.ventilated) return { handled: true, msg: 'Already ventilating via the airway device.' };
+        if (f.declared && (f.sad > 0 || id === 'pc_mask')) {
+          f.finalMask = true; p.assisted = false; p.airwayPatent = false;
+          return { handled: true, msg: 'Plan C — final attempt: two-person facemask with oral and nasal airways and full neuromuscular block. No chest rise, no capnography trace. This is CICO.', kind: 'bad' };
+        }
+        if (!p.airwayPatent) return { handled: true, msg: 'Facemask with adjuncts and two people — no chest rise, no capnography trace.', kind: 'bad' };
+        p.assisted = true; p.fio2 = 1; p.lastFio2 = 1; f.oxyGap = true;
+        return { handled: true, msg: f.trauma >= 2 ? 'Two-person facemask ventilation with an oral airway — difficult, small tidal volumes, but a capnography trace. SpO₂ recovering.' : 'Facemask ventilation with 100% O₂ — chest rising, capnography trace, SpO₂ recovering.', kind: 'good' };
+      }
+      if (id === 'hfno') { f.hfno = true; return { handled: true, msg: 'High-flow nasal oxygen at 70 L/min left in place throughout — apnoeic oxygenation slows desaturation between attempts.', kind: 'good' }; }
+      // ---------- Plan B ----------
+      if (id === 'pb_sad' || id === 'sga') {
+        if (p.ventilated) return { handled: true, msg: 'Airway already secured.' };
+        f.sad++; f.trauma += 0.5; p.assisted = false;
+        if (!f.declared) f.sadEarly = true;
+        if (f.sad > 3) return { handled: true, harm: 'More than three SAD insertion attempts (DAS)', msg: `SAD attempt ${f.sad}: no trace. Stop — final facemask attempt, then CICO.` };
+        const m = ['SAD attempt 1 (i-gel size 5): large leak, no capnography trace.', 'SAD attempt 2 (change size, jaw thrust, rotation): still no trace.', 'SAD attempt 3 (different second-generation device): no trace. Plan B has failed — move to Plan C.'];
+        return { handled: true, msg: m[f.sad - 1], kind: 'bad' };
+      }
+      // ---------- Plan D ----------
+      if (id === 'pd_declare') { f.cico = true; return { handled: true, msg: '"This is a CICO situation — I am performing front-of-neck access." Neck extended (pillow under the shoulders), 100% O₂ continued via the upper airway, block confirmed.', kind: 'good' }; }
+      if (id === 'fona') {
+        if (!(f.sad > 0 || f.finalMask)) return { msg: 'eFONA performed. Scalpel (No. 10), bougie, 6.0 cuffed tube; vertical skin incision (membrane impalpable), finger dissection, then a transverse stab. Capnography confirms.', harm: 'Front-of-neck access before rescue oxygenation was attempted with a SAD and a final facemask (DAS Plans B and C)', kind: 'good' };
+        return { msg: 'eFONA: vertical skin incision (cricothyroid membrane impalpable), finger dissection, transverse stab with a No. 10 blade, bougie into the trachea, 6.0 cuffed tube railroaded. Sustained capnography trace — SpO₂ recovering.', kind: 'good' };
+      }
     },
     exam: (e) => ({
-      A: e.p.ventilated ? 'Cuffed tube via cricothyroidotomy, capnography trace present.' : 'No capnography trace with facemask or SGA. Oedematous, bloody airway.', B: `No chest movement. SpO₂ ${e.p.spo2}%.`,
-      C: `HR ${e.p.hr}, BP ${Math.round(e.p.sbp)}/${Math.round(e.p.dbp)}.`, D: 'Paralysed (rocuronium).', E: 'Obese neck; cricothyroid membrane not palpable — use the scalpel–finger–bougie (vertical incision) technique.',
+      A: e.p.ventilated ? 'Cuffed 6.0 tube via the cricothyroid membrane, sustained capnography trace.' : e.p.assisted ? 'Facemask ventilation with an oral airway — capnography trace present.' : e.p.airwayPatent ? 'Apnoeic after RSI — no airway device in place.' : 'No capnography trace with facemask or SAD. Oedematous, bloody airway.',
+      B: e.p.ventilated || e.p.assisted ? `Chest rising. SpO₂ ${e.p.spo2}%.` : `Apnoeic — no chest movement. SpO₂ ${e.p.spo2}%.`,
+      C: `HR ${e.p.hr}, BP ${Math.round(e.p.sbp)}/${Math.round(e.p.dbp)}.`, D: 'Paralysed (rocuronium).', E: 'Obese, short neck; the cricothyroid membrane is not palpable — use the scalpel–finger–bougie technique with a vertical skin incision.',
     }),
     inv: { bloods: (e) => labs(e, {}), ecg: {}, cxr: { media: null, report: 'Not appropriate now.' }, ct: [], pocus: [] },
     critical: [
-      { text: 'Call for help', check: (e) => e.did('call_help') },
-      { text: 'Plan B/C: attempt SGA or 2-person facemask', check: (e) => any(e, 'sga', 'bvm') },
-      { text: 'Declare CICO and perform front-of-neck access', check: (e) => e.did('fona') },
+      { text: 'Call for help', check: (e) => e.did('call_help') || e.flags.senior },
+      { text: 'Plan A: no more than 3 attempts (a 4th only by a more experienced colleague)', check: (e) => e.flags.att >= 1 && (e.flags.att <= 3 || (e.flags.att === 4 && e.flags.senior)) },
+      { text: 'Oxygenate with a facemask between intubation attempts', check: (e) => e.flags.att >= 2 && !e.flags.noOxyGap },
+      { text: 'Declare failed intubation and prime the eFONA set', check: (e) => !!e.flags.declared },
+      { text: 'Plan B: second-generation SAD (maximum 3 attempts)', check: (e) => e.flags.sad >= 1 && e.flags.sad <= 3 },
+      { text: 'Plan C: final two-person facemask attempt', check: (e) => !!e.flags.finalMask },
+      { text: 'Plan D: declare CICO out loud', check: (e) => !!e.flags.cico },
+      { text: 'eFONA: scalpel–bougie–tube', check: (e) => e.did('fona') },
     ],
     targets: { map: 65, spo2: 90 },
     hint: {
       steps: [
-        { t: 'Difficult airway (obesity, oedema) + failed intubation and rescue oxygenation', kind: 'cause' },
-        { t: 'No ventilation → alveolar O₂ consumed (FRC reservoir small in obesity & pregnancy)', rx: 'Plan A → B (SGA) → C (facemask) → D (FONA)' },
-        { t: 'Rapid desaturation; hypoxic bradycardia', rx: 'Declare CICO early' },
-        { t: 'Scalpel–bougie–tube cricothyroidotomy restores oxygenation', rx: 'FONA' },
-        { t: 'Hypoxic cardiac arrest if delayed', kind: 'end' },
+        { t: 'Obese, short neck: difficult laryngoscopy and fast desaturation (small FRC)', kind: 'cause', rx: 'HFNO apnoeic oxygenation; ramp; VL first' },
+        { t: 'Plan A: ≤ 3 attempts (+1 by a more experienced colleague), oxygenate between', rx: 'Then declare failed intubation; prime eFONA' },
+        { t: 'Plan B: second-generation SAD, ≤ 3 attempts', rx: 'If it works — stop and think (wake / proceed / FONA)' },
+        { t: 'Plan C: one final two-person facemask attempt with full block', rx: 'If it fails — declare CICO' },
+        { t: 'Plan D: scalpel–bougie–tube eFONA (vertical incision if impalpable)', kind: 'end' },
       ],
     },
     debrief: {
       points: [
-        'DAS 2025: Plan A — videolaryngoscope first-line, maximum three attempts (a fourth only by a more experienced colleague); declare failed intubation and open (prime) the eFONA kit → Plan B (second-generation SAD, max three attempts) → Plan C (final two-person facemask attempt with adjuncts, full block) → Plan D (CICO: eFONA).',
-        'Declare CICO out loud; give 100% O₂ via the upper airway; ensure neuromuscular blockade; extend the neck.',
-        'eFONA (DAS 2025): scalpel (No. 10 blade), bougie, size 6.0 cuffed tube. A vertical skin incision is now the default unless the cricothyroid membrane was clearly identified (palpation or ultrasound-marked) — then a transverse stab is acceptable. Continuous oxygen throughout (HFNO for peroxygenation) and capnography to confirm.',
-        'Sugammadex may be considered but waking does not guarantee airway patency.',
+        'DAS 2025: Plan A — videolaryngoscope first-line, maximum three attempts (a fourth only by a more experienced colleague); optimise between attempts (position, laryngeal manipulation, device) and oxygenate between every attempt. Peroxygenation with HFNO slows desaturation.',
+        'After failed Plan A: say "failed intubation" out loud and open (prime) the eFONA set now. Plan B — second-generation SAD, maximum three attempts. If oxygenation through the SAD works, stop and think: wake the patient, proceed with the SAD, or a controlled front-of-neck airway.',
+        'Plan C — one final two-person facemask attempt with oral and nasal adjuncts and full neuromuscular block. If this fails, declare "Can\'t intubate, can\'t oxygenate" and move to Plan D without delay.',
+        'eFONA (DAS 2025): scalpel (No. 10 blade), bougie, size 6.0 cuffed tube. A vertical skin incision is the default unless the cricothyroid membrane was clearly identified (palpation or ultrasound-marked) — then a transverse stab is acceptable. Continue 100% O₂ via the upper airway and confirm with capnography.',
+        'Sugammadex may be considered but waking does not guarantee airway patency — it must never delay eFONA.',
       ],
       refs: ['Difficult Airway Society 2025 guidelines for management of unanticipated difficult tracheal intubation in adults (Br J Anaesth 2026)', 'AoA QRH 3-3: Can\'t intubate, can\'t oxygenate (CICO)', 'NAP4: Major complications of airway management (RCoA/DAS, 2011)'],
     },
