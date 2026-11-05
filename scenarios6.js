@@ -492,4 +492,107 @@
       refs: ['TOXBASE (UK National Poisons Information Service): Adder (Vipera berus) envenomation', 'RCEM/NPIS: Guideline on antidote availability (ViperaTAb)'],
     },
   });
+
+  // =====================================================================
+  // Acute primary angle closure (acute angle-closure glaucoma)
+  // =====================================================================
+  add({
+    id: 'em-angle-closure', title: 'Painful red eye with vomiting', field: 'EM', shock: null, category: 'Ophthalmology', difficulty: 2, setting: 'ed',
+    stem: '66-year-old woman with sudden severe right eye pain and frontal headache that started as she left a dark cinema 2 hours ago. Vomiting, blurred vision and rainbow haloes around lights. Wears glasses for long-sightedness. Past history: mild asthma (salbutamol inhaler as needed). Triage has queried migraine.',
+    patient: { age: 66, sex: 'F', weight: 70, vasoplegia: 1.3, hrBase: 98, gcs: 15, look: { redEye: 'right' } },
+    tick(e, dt) {
+      const f = e.flags, p = e.p, refr = e.level === 'consultant' ? 0.55 : 1;
+      if (f.iop == null) { f.iop = 64; f.dmg = 0; }
+      const ramp = (t0, delay, span) => (t0 == null ? 0 : clamp((e.t - t0 - delay) / span, 0, 1));
+      let tgt = 66 + (f.dilated ? 14 : 0) + (f.ipra ? 8 : 0);
+      tgt -= refr * (22 * ramp(f.azT, 20, 60) + 6 * ramp(f.alphaT, 10, 40) + 8 * ramp(f.bbT, 10, 40) + 4 * (f.supine ? 1 : 0) + (f.steroid ? 2 : 0));
+      tgt -= 24 * ramp(f.manT, 30, 60) + 10 * ramp(f.piloT, 15, 45);
+      f.iop = toward(f.iop, clamp(tgt, 14, 80), 0.025, dt);
+      if (f.iop >= 40 && f.piloT != null && !f.piloOK) { f.piloT = null; }
+      f.dmg += Math.max(0, f.iop - 40) * dt;
+      const lim = e.level === 'junior' ? 6500 : 4500;
+      if (f.dmg > lim && !f.lost) { f.lost = true; e.harm('Intraocular pressure left above 40 mmHg for too long — optic nerve ischaemia with permanent visual field loss'); }
+      if (f.iop < 35 && !f.saidLow) { f.saidLow = true; e.say(`Right IOP now ${Math.round(f.iop)} mmHg — the pain is easing and the cornea is starting to clear.`, 'good'); }
+      if (f.bronch) p.bronchospasm = Math.max(p.bronchospasm || 0, f.bronch);
+    },
+    extraActions: [
+      { id: 'eye_exam', name: 'Examine the eyes (acuity, pupils, cornea, anterior chamber)' },
+      { id: 'tonometry', name: 'Measure intraocular pressure (Tono-Pen / iCare)' },
+      { id: 'supine', name: 'Lie her flat (supine)' },
+      { id: 'drop_timolol', name: 'Timolol 0.5% eye drop (right eye)' },
+      { id: 'drop_apra', name: 'Apraclonidine 1% eye drop (right eye)' },
+      { id: 'drop_pilo', name: 'Pilocarpine 2% eye drop (right eye)' },
+      { id: 'drop_pilo_fellow', name: 'Pilocarpine 1% eye drop (left eye, prophylaxis)' },
+      { id: 'drop_steroid', name: 'Prednisolone acetate 1% eye drop (right eye)' },
+      { id: 'drop_dilate', name: 'Tropicamide 1% to dilate for fundoscopy' },
+      { id: 'ophth_ref', name: 'Refer to on-call ophthalmology' },
+    ],
+    onEvent(e, ev) {
+      const f = e.flags;
+      if (f.iop == null) { f.iop = 64; f.dmg = 0; }
+      const io = () => Math.round(f.iop);
+      if (ev.type === 'action') {
+        switch (ev.id) {
+          case 'eye_exam': return { handled: true, msg: 'Right eye: acuity hand movements; red with ciliary flush; hazy "steamy" cornea; shallow anterior chamber; fixed, mid-dilated oval pupil; rock-hard to gentle palpation. Left eye: acuity 6/9, shallow anterior chamber, pupil reactive.', kind: 'info' };
+          case 'tonometry': return { handled: true, msg: `IOP right ${io()} mmHg, left 18 mmHg.`, kind: io() >= 35 ? 'warn' : 'info' };
+          case 'supine': f.supine = true; return { handled: true, msg: 'Lying flat — lets the lens–iris diaphragm fall back slightly.', kind: 'good' };
+          case 'drop_timolol':
+            f.bbT = f.bbT ?? e.t;
+            if (!f.bronch) { f.bronch = 0.8; e.after(25, (en) => en.say('She is wheezy and tight-chested — SpO₂ falling.', 'bad')); }
+            return { handled: true, harm: 'Timolol in a patient with asthma — β-blocker eye drops are absorbed systemically and can cause severe bronchospasm', msg: 'Timolol 0.5% instilled.' };
+          case 'drop_apra': f.alphaT = f.alphaT ?? e.t; return { handled: true, msg: 'Apraclonidine 1% instilled — reduces aqueous production (safe in asthma).', kind: 'good' };
+          case 'drop_pilo':
+            if (f.iop >= 40) return { handled: true, msg: `Pilocarpine instilled, but at IOP ${io()} mmHg the iris sphincter is ischaemic and will not constrict. Lower the pressure first, then repeat.`, kind: 'warn' };
+            f.piloT = f.piloT ?? e.t; f.piloOK = true; return { handled: true, msg: 'Pilocarpine 2% instilled — the pupil is constricting and pulling the iris away from the angle.', kind: 'good' };
+          case 'drop_pilo_fellow': return { handled: true, msg: 'Pilocarpine 1% to the left eye to protect the narrow fellow angle until laser.', kind: 'good' };
+          case 'drop_steroid': f.steroid = true; return { handled: true, msg: 'Prednisolone acetate 1% instilled — settles the anterior uveitis.', kind: 'good' };
+          case 'drop_dilate': f.dilated = true; return { handled: true, harm: 'Dilating drops in acute angle closure — mydriasis crowds the angle further and the IOP rises', msg: 'Tropicamide instilled.' };
+          case 'ophth_ref':
+            f.ophth = true;
+            if (!f.azT) return { handled: true, msg: 'Ophthalmology: "Sounds like acute angle closure. Give IV acetazolamide and start the drops now — we will be down within the hour."', kind: 'info' };
+            return { handled: true, msg: 'Ophthalmology accept: admit under eyes, indentation gonioscopy, then laser peripheral iridotomy to both eyes once the cornea clears.', kind: 'good' };
+        }
+      }
+      if (ev.type === 'drug') {
+        if (ev.id === 'acetazolamide') { f.azDose = (f.azDose || 0) + ev.dose; if (f.azDose >= 500) f.azT = f.azT ?? e.t; return { msg: e.did('inv_bloods') ? 'Acetazolamide given — aqueous production falls over the next hour.' : 'Acetazolamide given. Send U&E now (renal function and potassium) before further doses.', kind: 'good' }; }
+        if (ev.id === 'mannitol') {
+          if (!f.azT) return { msg: 'Mannitol is second-line — give IV acetazolamide and topical drops first.', kind: 'warn' };
+          f.manT = f.manT ?? e.t; return { msg: 'Mannitol running — osmotic dehydration of the vitreous. Catheterise and monitor fluid balance.', kind: 'good' };
+        }
+        if (ev.id === 'ipratropium') { f.ipra = true; return { harm: 'Anticholinergic (ipratropium) nebuliser in acute angle closure — dilates the pupil and worsens pupil block', msg: 'Ipratropium nebulised.' }; }
+        if (ev.id === 'salbutamol_neb' && f.bronch) { f.bronch = Math.max(0, f.bronch - 0.35); e.p.bronchospasm = f.bronch; return { msg: 'Wheeze easing with the salbutamol nebuliser.', kind: 'good' }; }
+      }
+      if (ev.type === 'inv' && ev.id === 'ct') return { msg: 'CT head is normal — the headache is coming from the eye. Every minute in the scanner is a minute at an IOP of ' + io() + ' mmHg.', kind: 'warn' };
+    },
+    exam: ex({ A: 'Patent. Vomiting into a bowl.', B: (e) => (e.flags.bronch ? 'Widespread expiratory wheeze.' : 'Clear chest.'), C: 'Warm peripheries. Distressed with pain.', D: (e) => `GCS 15. Right pupil fixed and mid-dilated (oval); left pupil reactive. No focal neurology. ${e.flags.iop < 35 ? 'Pain much improved.' : 'Severe pain, 9/10.'}`, E: (e) => `Right eye red with ciliary flush and a hazy cornea; feels hard. T 36.8 °C. ${e.did('tonometry') ? `Last IOP right ${Math.round(e.flags.iop)} mmHg.` : ''}` }),
+    inv: { bloods: (e) => labs(e, { extra: [['Sickle screen', 'Negative'], ['Allergies', 'None known (no sulfonamide allergy)']] }), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'CT head', media: 'ct_head', report: 'No acute intracranial abnormality.' }], pocus: [] },
+    critical: [
+      { text: 'Examine the eyes and measure the IOP', check: (e) => e.did('eye_exam') && e.did('tonometry') },
+      { text: 'IV acetazolamide 500 mg (U&E sent)', check: (e) => !!e.flags.azT },
+      { text: 'Topical aqueous suppressant that is safe for her', check: (e) => !!e.flags.alphaT },
+      { text: 'Pilocarpine 2% once the IOP is below 40 mmHg', check: (e) => !!e.flags.piloOK },
+      { text: 'Analgesia and an antiemetic', check: (e) => (e.did('morphine') || e.did('paracetamol')) && e.did('ondansetron') },
+      { text: 'Urgent same-day ophthalmology referral', check: (e) => !!e.flags.ophth },
+      { text: 'Mannitol for an IOP that is not falling (after discussion)', check: (e) => !!e.flags.manT, skip: (e) => e.level !== 'consultant' },
+      { text: 'IOP brought below 35 mmHg', check: (e) => e.flags.iop != null && e.flags.iop < 35 },
+    ],
+    targets: { map: 65, spo2: 94 },
+    hint: { steps: [
+      { t: 'Long-sighted eye, shallow chamber; dim light dilates the pupil', kind: 'cause', rx: 'Recognise it: red eye + fixed mid-dilated pupil + vomiting' },
+      { t: 'Pupil block → iris bows forward → angle closes → IOP ↑', rx: 'Acetazolamide IV; topical drops; lie flat' },
+      { t: 'Iris sphincter ischaemic above ~40 mmHg', rx: 'Pilocarpine once the IOP falls' },
+      { t: 'Asthma: no timolol; no anticholinergic nebs; never dilate', rx: 'Apraclonidine instead' },
+      { t: 'Optic nerve ischaemia → permanent visual loss', kind: 'end' },
+    ] },
+    debrief: {
+      points: [
+        'Acute angle closure: painful red eye, blurred vision with haloes, headache and vomiting, a hazy cornea and a fixed mid-dilated pupil. It is often mistaken for migraine or a "medical" vomiting illness — always look at the eyes in headache with vomiting.',
+        'Treat in ED while ophthalmology are on their way: IV acetazolamide 500 mg (send U&E first; avoid in renal failure, hypokalaemia, sulfonamide allergy, sickle cell), topical aqueous suppressants (apraclonidine 1% or brimonidine; timolol 0.5% unless asthma, COPD, bradycardia or heart block), topical steroid (prednisolone acetate 1%), analgesia and an antiemetic, and lie the patient flat.',
+        'Pilocarpine 2% (1% in light irides) works only once the IOP has fallen below about 40 mmHg — above that the iris sphincter is ischaemic. Many units also give pilocarpine 1% to the fellow eye until it has had laser.',
+        'If the IOP is not falling, give IV mannitol (1–2 g/kg over 30–60 min) after senior/ophthalmology discussion. Definitive treatment is laser peripheral iridotomy to both eyes.',
+        'Never dilate the pupil, and avoid anticholinergics (ipratropium, hyoscine, cyclizine, tricyclics) — they worsen pupil block.',
+      ],
+      refs: ['NICE CKS: Red eye — immediate referral for suspected acute angle-closure glaucoma', 'Royal Victoria Eye and Ear Hospital (Dublin): Clinical guideline — acute angle closure glaucoma (2022)', 'NHS Highland TAM555: Acute angle closure glaucoma (reviewed February 2026)', 'College of Optometrists: Clinical Management Guidelines — primary angle closure', 'BNF: acetazolamide; mannitol'],
+    },
+  });
 })();
