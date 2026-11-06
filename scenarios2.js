@@ -644,14 +644,18 @@
       else p.hrBase = toward(p.hrBase, 95, 0.02, dt);
       if (!f.lost && f.trauma >= 3) { f.lost = true; p.airwayPatent = false; p.assisted = false; e.say('The airway is now swollen and bloody — facemask ventilation is getting very difficult.', 'warn'); }
     },
+    // Options appear only once the preceding DAS step has been done.
+    actionStage: (e) => { const f = e.flags; return e.p.ventilated ? 'Front-of-neck airway in place.' : f.cico ? 'Plan D — front-of-neck access.' : f.finalMask ? 'Plan C failed — CICO.' : f.declared ? (f.sad ? 'Plan B — SAD attempts. Then Plan C.' : 'Failed intubation declared — Plan B.') : f.att ? `Plan A — intubation attempts: ${f.att}. Oxygenate between attempts.` : 'Plan A — tracheal intubation.'; },
     extraActions: [
-      { id: 'pa_vl', name: 'Plan A: videolaryngoscopy + bougie attempt' },
-      { id: 'pa_optimise', name: 'Optimise: ramp position, laryngeal manipulation, change blade' },
-      { id: 'pa_senior', name: 'Call the most experienced anaesthetist available' },
-      { id: 'pa_declare', name: 'Declare failed intubation and open (prime) the eFONA set' },
-      { id: 'pb_sad', name: 'Plan B: insert second-generation SAD (i-gel)' },
-      { id: 'pc_mask', name: 'Plan C: final two-person facemask attempt (OPA + NPA, full block)' },
-      { id: 'pd_declare', name: 'Plan D: declare "Can\'t intubate, can\'t oxygenate"' },
+      { id: 'pa_vl', name: 'Plan A: videolaryngoscopy + bougie attempt', repeat: true, primary: true, show: (e) => !e.flags.declared && !e.p.ventilated },
+      { id: 'oxy_mask', name: 'Facemask ventilation, 100% O₂ (oxygenate between attempts)', repeat: true, show: (e) => e.flags.att >= 1 && !e.flags.declared && !e.p.ventilated },
+      { id: 'pa_optimise', name: 'Optimise: ramp position, laryngeal manipulation, change blade', show: (e) => e.flags.att >= 1 && !e.flags.declared },
+      { id: 'pa_senior', name: 'Call the most experienced anaesthetist available', show: (e) => e.flags.att >= 2 && !e.flags.declared },
+      { id: 'pa_declare', name: 'Declare failed intubation and open (prime) the eFONA set', primary: true, show: (e) => e.flags.att >= 3 && !e.flags.declared },
+      { id: 'pb_sad', name: 'Plan B: insert second-generation SAD (i-gel)', repeat: true, primary: true, show: (e) => e.flags.declared && !e.flags.finalMask && !e.p.ventilated },
+      { id: 'pc_mask', name: 'Plan C: final two-person facemask attempt (OPA + NPA, full block)', primary: true, show: (e) => e.flags.declared && e.flags.sad >= 1 && !e.flags.finalMask },
+      { id: 'pd_declare', name: 'Plan D: declare "Can\'t intubate, can\'t oxygenate"', primary: true, show: (e) => e.flags.finalMask && !e.flags.cico },
+      { id: 'pd_fona', name: 'eFONA: scalpel–bougie–tube cricothyroidotomy', primary: true, show: (e) => e.flags.finalMask && !e.p.ventilated },
     ],
     onEvent(e, ev) {
       const f = e.flags, p = e.p;
@@ -679,7 +683,7 @@
       if (id === 'pa_senior') { f.senior = true; return { handled: true, msg: 'The consultant anaesthetist from next door is on the way — one further attempt is allowed by them only.', kind: 'good' }; }
       if (id === 'pa_declare') { f.declared = true; f.declT = e.t; return { handled: true, msg: '"This is a failed intubation." eFONA set opened and primed on the trolley; scalpel, bougie and 6.0 tube ready. Move to Plan B.', kind: 'good' }; }
       // ---------- oxygenation (facemask / HFNO) ----------
-      if (id === 'bvm' || id === 'pc_mask') {
+      if (id === 'bvm' || id === 'pc_mask' || id === 'oxy_mask') {
         if (p.ventilated) return { handled: true, msg: 'Already ventilating via the airway device.' };
         if (f.declared && (f.sad > 0 || id === 'pc_mask')) {
           f.finalMask = true; p.assisted = false; p.airwayPatent = false;
@@ -701,6 +705,7 @@
       }
       // ---------- Plan D ----------
       if (id === 'pd_declare') { f.cico = true; return { handled: true, msg: '"This is a CICO situation — I am performing front-of-neck access." Neck extended (pillow under the shoulders), 100% O₂ continued via the upper airway, block confirmed.', kind: 'good' }; }
+      if (id === 'pd_fona') { e.mark('fona'); e.defaultAction('fona'); return f.cico ? { handled: true } : { handled: true, msg: 'You did not declare CICO out loud first — the team was not prepared for front-of-neck access.', kind: 'warn' }; }
       if (id === 'fona') {
         if (!(f.sad > 0 || f.finalMask)) return { msg: 'eFONA performed. Scalpel (No. 10), bougie, 6.0 cuffed tube; vertical skin incision (membrane impalpable), finger dissection, then a transverse stab. Capnography confirms.', harm: 'Front-of-neck access before rescue oxygenation was attempted with a SAD and a final facemask (DAS Plans B and C)', kind: 'good' };
         return { msg: 'eFONA: vertical skin incision (cricothyroid membrane impalpable), finger dissection, transverse stab with a No. 10 blade, bougie into the trachea, 6.0 cuffed tube railroaded. Sustained capnography trace — SpO₂ recovering.', kind: 'good' };

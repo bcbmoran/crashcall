@@ -328,3 +328,5 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .ga-pump select { padding: .25em .35em; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
 .brief-mode { display: flex; flex-wrap: wrap; align-items: center; gap: .5em; margin: .2em 0 .8em; }
 .declare-btn { margin: .4em 0 .2em; width: 100%; font-weight: 600; border-color: var(--accent); color: var(--accent); }
+.act-grid .btn.primary-act { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.xstage { margin: -2px 0 8px; }

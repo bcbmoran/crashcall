@@ -133,7 +133,8 @@
     if (ev.type === 'end') { logLine(ev.t, ev.text, ev.kind); setTimeout(() => finish(ev.outcome), 900); return; }
     logLine(ev.t, ev.text, ev.kind);
     if (ev.type === 'msg' && ev.kind !== 'act') toast(ev.text, ev.kind);
-    if (['drug', 'inf', 'fluid', 'action', 'vent'].includes(ev.type)) { renderPumps(); if (!(document.activeElement && $('#tabBody').contains(document.activeElement) && document.activeElement.tagName === 'INPUT')) renderTab(); }
+    // Re-render after the scenario has reacted to the event (the event is emitted before onEvent runs), so newly revealed options appear at once.
+    if (['drug', 'inf', 'fluid', 'action', 'vent'].includes(ev.type)) setTimeout(() => { renderPumps(); if (!(document.activeElement && $('#tabBody').contains(document.activeElement) && document.activeElement.tagName === 'INPUT')) renderTab(); }, 0);
   }
   function logLine(t, text, kind) {
     const li = document.createElement('li');
@@ -293,7 +294,11 @@
     const kit = scn.kit || {};
     const ok = (a) => (!kit.actions || kit.actions.includes(a.id)) && (!a.setting || a.setting === scn.setting) && (!a.need || (a.need === 'ventilated' && p.ventilated) || (a.need === 'pregnant' && p.pregnant) || (a.need === 'obstetric' && (p.obstetric || p.pregnant)) || (a.need === 'als' && scn.als));
     const groups = [...new Set(S.ACTIONS.map((a) => a.grp))];
-    const extra = scn.extraActions && scn.extraActions.length ? `<div class="grp"><h4>Scenario-specific actions</h4><div class="act-grid">${scn.extraActions.map((a) => `<button class="btn ${e.did(a.id) ? 'done' : ''}" data-act="${a.id}">${esc(a.name)}${e.did(a.id) ? ' ✓' : ''}</button>`).join('')}</div></div>` : '';
+    // Scenario-specific actions: `show(e)` reveals an action only once the preceding step is done; `repeat` actions show a count instead of a tick.
+    const xa = (scn.extraActions || []).filter((a) => !a.show || a.show(e));
+    const xlab = (a) => (a.repeat ? (e.count(a.id) ? ` (×${e.count(a.id)})` : '') : e.did(a.id) ? ' ✓' : '');
+    const xstage = scn.actionStage ? `<p class="muted small xstage">${esc(scn.actionStage(e) || '')}</p>` : '';
+    const extra = xa.length ? `<div class="grp"><h4>Scenario-specific actions</h4>${xstage}<div class="act-grid">${xa.map((a) => `<button class="btn ${!a.repeat && e.did(a.id) ? 'done' : ''}${a.primary ? ' primary-act' : ''}" data-act="${a.id}">${esc(a.name)}${xlab(a)}</button>`).join('')}</div></div>` : '';
     const alsBar = scn.als ? `<div class="als-bar ${p.arrested ? 'on' : ''}">${p.arrested ? `CARDIAC ARREST · CPR ${e.flags.cpr ? 'IN PROGRESS' : 'NOT RUNNING'} · ${Math.floor(e.arrestT || 0)} s · shocks ${e.shocks || 0}` : 'Pulse present'}</div>` : '';
     let vent = '';
     if (p.ventilated) {
