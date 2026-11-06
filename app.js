@@ -132,7 +132,7 @@
   function onEvent(ev) {
     if (ev.type === 'end') { logLine(ev.t, ev.text, ev.kind); setTimeout(() => finish(ev.outcome), 900); return; }
     logLine(ev.t, ev.text, ev.kind);
-    if (ev.type === 'msg' && ev.kind !== 'act') toast(ev.text, ev.kind);
+    if (ev.type === 'msg' && ev.kind !== 'act') announce(ev.text, ev.kind);
     // Re-render after the scenario has reacted to the event (the event is emitted before onEvent runs), so newly revealed options appear at once.
     if (['drug', 'inf', 'fluid', 'action', 'vent'].includes(ev.type)) setTimeout(() => { renderPumps(); if (!(document.activeElement && $('#tabBody').contains(document.activeElement) && document.activeElement.tagName === 'INPUT')) renderTab(); }, 0);
   }
@@ -151,6 +151,21 @@
     while ($('#toasts').children.length > 3) $('#toasts').firstChild.remove();
   }
 
+  // Scenario announcements: big, centred cards (most recent on top), colour-coded by kind. Click to dismiss.
+  function announce(text, kind) {
+    const host = $('#announce'); if (!host) return toast(text, kind);
+    const k = ['bad', 'warn', 'good'].includes(kind) ? kind : 'info';
+    const label = { bad: '⚠ Alert', warn: '! Caution', good: '✓ Update', info: 'ℹ Update' }[k];
+    const clean = String(text).replace(/^⚠\s*/, '');
+    const d = document.createElement('div');
+    d.className = 'ann ' + k; d.setAttribute('role', k === 'bad' ? 'alert' : 'status');
+    d.innerHTML = `<div class="ann-k">${label}<button class="ann-x" aria-label="Dismiss">×</button></div><div class="ann-t">${esc(clean)}</div>`;
+    d.querySelector('.ann-x').onclick = () => d.remove();
+    host.prepend(d);
+    const ms = Math.min(12000, Math.max(5000, clean.length * 65)) + (k === 'bad' ? 2000 : 0);
+    setTimeout(() => { d.classList.add('out'); setTimeout(() => d.remove(), 300); }, ms);
+    while (host.children.length > 3) host.lastChild.remove();
+  }
   // ---------------- main loop ----------------
   function loop(now) {
     requestAnimationFrame(loop);
