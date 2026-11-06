@@ -308,11 +308,16 @@
         <label>Rate (/min) <output id="o_ventRR">${p.ventRR}</output><input type="range" min="6" max="35" step="1" value="${p.ventRR}" data-vent="ventRR"></label>
         <div class="small muted">Ppeak ${Math.round(p.paw)} · autoPEEP ${p.autoPEEP.toFixed(0)} · Vt ~6–8 mL/kg IBW</div></div></div>`;
     }
-    return alsBar + extra + accessHTML() + vent + groups.map((g) => {
+    // Vascular access sits straight after the Circulation group (or at the end if that group isn't shown).
+    let accessDone = false;
+    const body = groups.map((g) => {
       const acts = S.ACTIONS.filter((a) => a.grp === g && ok(a));
       if (!acts.length) return '';
-      return `<div class="grp"><h4>${g}</h4><div class="act-grid">${acts.map((a) => `<button class="btn ${e.did(a.id) ? 'done' : ''}" data-act="${a.id}">${esc(a.name)}${e.did(a.id) ? ' ✓' : ''}</button>`).join('')}</div></div>`;
+      const html = `<div class="grp"><h4>${g}</h4><div class="act-grid">${acts.map((a) => `<button class="btn ${e.did(a.id) ? 'done' : ''}" data-act="${a.id}">${esc(a.name)}${e.did(a.id) ? ' ✓' : ''}</button>`).join('')}</div></div>`;
+      if (g === 'Circulation') { accessDone = true; return html + accessHTML(); }
+      return html;
     }).join('');
+    return alsBar + extra + vent + body + (accessDone ? '' : accessHTML());
   }
   // Vascular access: current lines as colour-coded badges, plus gauge choices for the next cannula (max 3 IV + 1 IO).
   function accessHTML() {
