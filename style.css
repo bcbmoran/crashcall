@@ -373,3 +373,19 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .out-card .out-row b.ok { color: var(--good); } .out-card .out-row b.warn { color: var(--warn); } .out-card .out-row b.bad { color: var(--bad); }
 .out-card .out-row .btn { margin-top: 4px; }
 .out-card .out-note { margin: 6px 0 0; }
+
+/* standard ventilator panel */
+.vent-std .vent-modes { margin-bottom: 8px; }
+.vent-std .vent label select { margin-left: 6px; }
+.vent-readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; margin: 8px 0 4px; }
+.vent-rd { background: var(--surface2); border-radius: 8px; padding: 5px 8px; display: flex; flex-direction: column; }
+.vent-rd span { font-size: .75rem; color: var(--muted, #6b7280); } .vent-rd b { font-variant-numeric: tabular-nums; }
+.vent-rd.warn b { color: var(--warn); }
+
+/* anaesthetic checklist card (left column) */
+.ga-check-card .ga-phases { margin: 4px 0 8px; }
+.ga-checklist { margin: 0; padding-left: 20px; font-size: .88rem; line-height: 1.45; }
+.ga-checklist li { padding: 1px 0; }
+.ga-checklist.live li.ok { color: var(--good); }
+.ga-checklist.live li.ok { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--good) 50%, transparent); }
+.ga-model-note { width: 100%; }

@@ -66,6 +66,7 @@
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   $('#randomAll').onclick = () => go(pick(playable(S.SCENARIOS.filter((s) => !s.tutorial))).id);
   const tb = $('#tutBtn'); if (tb) tb.onclick = () => go('tutorial');
+  const tg = $('#tutGaBtn'); if (tg) tg.onclick = () => go('tutorial-ga');
   $$('[data-field]').forEach((b) => (b.onclick = () => go(pick(playable(S.SCENARIOS.filter((s) => s.field === b.dataset.field && !s.tutorial))).id, b.dataset.field)));
   function go(id, field) { const s = S.SCENARIOS.find((x) => x.id === id); location.hash = blindOn() && s && !s.tutorial ? 'case/' + caseCode(id) : 'play/' + id; state.fieldMode = field || null; }
 
@@ -93,7 +94,7 @@
     closeModal();
     $('#home').classList.remove('active'); $('#sim').classList.add('active');
     window.scrollTo(0, 0);
-    const gaMode = scn.ga ? store.get('gaMode', 'routine') : undefined;
+    const gaMode = scn.ga ? (scn.tutorial ? 'routine' : store.get('gaMode', 'routine')) : undefined;
     const eng = new S.Engine(scn, { level: scn.tutorial ? 'senior' : levelId(), mode: gaMode });
     Object.assign(state, { scn, eng, running: true, paused: true, elapsed: 0, acc: 0, hints: 0, results: [], tab: 'exam', ended: false, blind: blindOn() && !scn.tutorial, nudgeT: 0 });
     const lvT = $('#scnLevel'); if (lvT) { lvT.textContent = scn.tutorial ? '' : eng.L.name; lvT.className = 'tag lvl ' + eng.level; lvT.hidden = !!scn.tutorial; }
@@ -206,7 +207,14 @@
     $('#stabTxt').textContent = e.stableTime > 0 ? `${Math.floor(e.stableTime)} / ${need} s stable` : 'Targets not yet held';
     if (!e.L.showTargets && !state.scn.tutorial) { $('#stabBar').style.width = '0%'; $('#stabTxt').textContent = 'Hidden at consultant grade'; }
     const db = $('#declareBtn'); if (db) { db.hidden = e.L.showTargets || !!state.scn.tutorial; db.disabled = !!e.outcome; }
-    const nowS = Math.floor(e.t); if (force || state.outT !== nowS) { state.outT = nowS; renderOutput(e); }
+    const nowS = Math.floor(e.t); if (force || state.outT !== nowS) { state.outT = nowS; renderOutput(e); renderChecklist(e); const vr = $('#tabBody .vent-readouts'); if (vr && e.p.ventilated) vr.innerHTML = ventRO(e); }
+  }
+  function renderChecklist(e) {
+    const card = $('#gaCheck'); if (!card) return;
+    const on = !!(state.scn.ga && e.ga && S.GA && S.GA.checklistHTML);
+    card.hidden = !on; if (!on) return;
+    $('#gaCheckBody').innerHTML = S.GA.checklistHTML(e, e.level);
+    $('#gaCheckNote').textContent = e.level === 'junior' || state.scn.tutorial ? 'ticks as you go' : 'ticked in the debrief';
   }
   // Live outputs: urine (needs a catheter), blood loss (only where it can be seen/measured), and fluid balance.
   function renderOutput(e) {
@@ -339,14 +347,7 @@
     const xstage = scn.actionStage ? `<p class="muted small xstage">${esc(scn.actionStage(e) || '')}</p>` : '';
     const extra = xa.length ? `<div class="grp"><h4>Scenario-specific actions</h4>${xstage}<div class="act-grid">${xa.map((a) => `<button class="btn ${!a.repeat && e.did(a.id) ? 'done' : ''}${a.primary ? ' primary-act' : ''}" data-act="${a.id}">${esc(a.name)}${xlab(a)}</button>`).join('')}</div></div>` : '';
     const alsBar = scn.als ? `<div class="als-bar ${p.arrested ? 'on' : ''}">${p.arrested ? `CARDIAC ARREST · CPR ${e.flags.cpr ? 'IN PROGRESS' : 'NOT RUNNING'} · ${Math.floor(e.arrestT || 0)} s · shocks ${e.shocks || 0}` : 'Pulse present'}</div>` : '';
-    let vent = '';
-    if (p.ventilated) {
-      vent = `<div class="grp"><h4>Ventilator</h4><div class="vent">
-        <label>FiO₂ <output id="o_fio2">${p.fio2.toFixed(2)}</output><input type="range" min="0.21" max="1" step="0.05" value="${p.fio2}" data-vent="fio2"></label>
-        <label>PEEP (cmH₂O) <output id="o_peep">${p.peep}</output><input type="range" min="0" max="20" step="1" value="${p.peep}" data-vent="peep"></label>
-        <label>Rate (/min) <output id="o_ventRR">${p.ventRR}</output><input type="range" min="6" max="35" step="1" value="${p.ventRR}" data-vent="ventRR"></label>
-        <div class="small muted">Ppeak ${Math.round(p.paw)} · autoPEEP ${p.autoPEEP.toFixed(0)} · Vt ~6–8 mL/kg IBW</div></div></div>`;
-    }
+    const vent = p.ventilated ? `<div class="grp"><h4>Ventilator</h4>${ventHTML(e, !!scn.ga)}</div>` : '';
     // Vascular access sits straight after the Circulation group (or at the end if that group isn't shown).
     let accessDone = false;
     const body = groups.map((g) => {
@@ -371,6 +372,47 @@
     const io = e.lines.some((l) => l.g === 'IO') ? '' : `<div class="act-grid"><button class="btn gauge" data-line="IO">${badge('IO')} Intraosseous needle (${p.paed ? 'proximal tibia' : 'humerus'})</button></div>`;
     return `<div class="grp"><h4>Vascular access</h4><div class="clines">${cur}</div>${ivBtns}${io}</div>`;
   }
+  // ---------------- standard ventilator panel (ED, ICU and theatre all use this) ----------------
+  // theatre = true: FiO₂ comes from the anaesthetic machine's fresh gas, so no FiO₂ control here.
+  function ventHTML(e, theatre) {
+    const p = e.p, ref = e.vtRef(), ibw = ref / 7, pc = p.ventMode === 'PCV';
+    const vt = p.ventVt || Math.round(ref / 10) * 10, pin = p.pinsp || 16, ie = p.ventIE || '1:2';
+    const sl = (k, lab, unit, min, max, step, val) => `<label>${lab} <output data-vo="${k}">${val}${unit}</output><input type="range" min="${min}" max="${max}" step="${step}" value="${val}" data-vent="${k}"></label>`;
+    const del = p.vtDel != null ? p.vtDel : vt;
+    const ro = (k, v, cls) => `<div class="vent-rd ${cls || ''}"><span>${k}</span><b>${v}</b></div>`;
+    return `<div class="vent-std">
+      <div class="vent-modes seg"><button class="${pc ? '' : 'on'}" data-vmode="VCV">Volume control (VCV)</button><button class="${pc ? 'on' : ''}" data-vmode="PCV">Pressure control (PCV)</button></div>
+      <div class="vent">
+        ${theatre ? `<div class="small muted">FiO₂ ${p.fio2.toFixed(2)} — set by the O₂ in the fresh gas on the anaesthetic machine.</div>` : sl('fio2', 'FiO₂', '', 0.21, 1, 0.05, p.fio2.toFixed(2))}
+        ${pc ? sl('pinsp', 'Pinsp above PEEP (cmH₂O)', '', 6, 35, 1, pin) : sl('ventVt', 'Tidal volume (mL)', '', Math.round(ibw * 4 / 10) * 10, Math.round(ibw * 12 / 10) * 10, 10, vt)}
+        ${sl('ventRR', 'Rate (/min)', '', 6, 35, 1, p.ventRR)}
+        ${sl('peep', 'PEEP (cmH₂O)', '', 0, 20, 1, p.peep)}
+        <label>I:E <select data-vent-ie>${['1:1', '1:2', '1:3', '1:4'].map((x) => `<option ${x === ie ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+      </div>
+      <div class="vent-readouts">${ventRO(e)}</div>
+      <p class="small muted">Lung-protective: Vt 6–8 mL/kg ideal body weight (≈ ${Math.round(ibw)} kg → ${Math.round(ibw * 6)}–${Math.round(ibw * 8)} mL), Pplat &lt; 30, PEEP 5+. Longer I:E (1:3–1:4) lets trapped gas out in bronchospasm.</p>
+    </div>`;
+  }
+  function ventRO(e) {
+    const p = e.p, ibw = e.vtRef() / 7, del = p.vtDel != null ? p.vtDel : (p.ventVt || e.vtRef());
+    const ro = (k, v, cls) => `<div class="vent-rd ${cls || ''}"><span>${k}</span><b>${v}</b></div>`;
+    return `${ro('Vt delivered', `${del} mL · ${(del / ibw).toFixed(1)} mL/kg`, del / ibw > 10 || del / ibw < 4 ? 'warn' : '')}
+        ${ro('Minute volume', `${(p.mv != null ? p.mv : (p.ventRR * del) / 1000).toFixed(1)} L/min`)}
+        ${ro('Ppeak', `${Math.round(p.paw)} cmH₂O`, p.paw > 35 ? 'warn' : '')}
+        ${ro('Pplat', `${p.pplat != null ? p.pplat : '—'} cmH₂O`, p.pplat > 30 ? 'warn' : '')}
+        ${ro('Total PEEP', `${Math.round(p.peep + p.autoPEEP)} cmH₂O${p.autoPEEP >= 1 ? ' (auto ' + Math.round(p.autoPEEP) + ')' : ''}`, p.autoPEEP >= 3 ? 'warn' : '')}
+        ${ro('EtCO₂', `${(p.etco2 / 7.5).toFixed(1)} kPa`)}`;
+  }
+  function ventWire(body, e, guard) {
+    $$('[data-vent]', body).forEach((r) => {
+      const o = $(`[data-vo="${r.dataset.vent}"]`, body);
+      r.oninput = () => { if (o) o.textContent = r.dataset.vent === 'fio2' ? (+r.value).toFixed(2) : r.value; };
+      r.onchange = () => guard() && e.setVent(r.dataset.vent, +r.value);
+    });
+    $$('[data-vmode]', body).forEach((b) => (b.onclick = () => { if (!guard() || b.dataset.vmode === (e.p.ventMode || 'VCV')) return; e.setVent('ventMode', b.dataset.vmode); if (b.dataset.vmode === 'PCV' && !e.p.pinsp) e.p.pinsp = 16; renderTab(); }));
+    const ie = $('[data-vent-ie]', body); if (ie) ie.onchange = () => guard() && e.setVent('ventIE', ie.value);
+  }
+  S.Vent = { html: ventHTML, wire: ventWire };
   function invHTML() {
     const scn = state.scn, inv = scn.inv || {};
     if (scn.kit && scn.kit.inv === false) return `<p class="muted">${esc(scn.kit.note || 'No investigations are available in this setting.')}</p>`;
@@ -433,10 +475,7 @@
     $$('[data-fluid]', body).forEach((b) => (b.onclick = () => guard() && e.giveFluid(b.dataset.fluid)));
     $$('[data-act]', body).forEach((b) => (b.onclick = () => guard() && e.doAction(b.dataset.act)));
     $$('[data-line]', body).forEach((b) => (b.onclick = () => guard() && e.siteLine(b.dataset.line)));
-    $$('[data-vent]', body).forEach((r) => {
-      r.oninput = () => { $('#o_' + r.dataset.vent).textContent = r.dataset.vent === 'fio2' ? (+r.value).toFixed(2) : r.value; };
-      r.onchange = () => guard() && e.setVent(r.dataset.vent, +r.value);
-    });
+    ventWire(body, e, guard);
     $$('[data-inv]', body).forEach((b) => (b.onclick = () => guard() && requestInv(b.dataset.inv, b.dataset.i)));
     $$('[data-res]', body).forEach((b) => (b.onclick = () => showResult(state.results[+b.dataset.res])));
     const rx = $('[data-reexam]', body); if (rx) rx.onclick = () => { if (state.paused && !state.eng.outcome) { toast('Press start / resume first.', 'warn'); return; } state.examPrompt = false; renderTab(); };

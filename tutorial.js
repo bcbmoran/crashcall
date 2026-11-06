@@ -94,4 +94,72 @@
       { title: 'Finish', text: 'Close the hint. If MAP is still under 65, give another 500 mL. Once every target is green, watch the Stabilisation bar fill — after 20 s you will see the debrief, with your critical actions, any harm, the blood loss and urine output, and a box to leave feedback. Pause (❚❚) stops the clock; "End" finishes early.', sel: '.status-card' },
     ],
   });
+
+  // =====================================================================
+  // Anaesthetic tutorial: the anaesthetic machine, TCI pumps (and their models), ventilator and checklist
+  // =====================================================================
+  const G = S.GA;
+  if (G) {
+    const d = (k) => (e) => !!(e.ga && e.ga.done[k]);
+    const firstT = (e, id) => (e.done[id] || [])[0];
+    S.SCENARIOS.splice(1, 0, {
+      id: 'tutorial-ga', tutorial: true, title: 'Anaesthetic tutorial: machine, TCI pumps and ventilator', field: 'Tutorial', shock: null, category: 'Routine anaesthesia', difficulty: 1, setting: 'theatre',
+      stem: '40-year-old man, 80 kg, ASA 1, for a laparoscopic inguinal hernia repair under TIVA. This is a guided tutorial for the anaesthetic stations: the coach walks you through the checklist, the anaesthetic machine, the TCI pumps and choosing a model, the airway, the ventilator, emergence and handover. Nothing here can go badly wrong.',
+      patient: { age: 40, sex: 'M', weight: 80, hrBase: 68, mapNormal: 86 },
+      ga: { tci: true, exposure: 'Supine, arms out on boards; the TIVA cannula is in the left forearm with an anti-reflux valve.' },
+      kit: { actions: ['call_help', 'resite_iv', 'warming'] },
+      stableFor: 5, targets: { map: 65, spo2: 94 }, qrh: ['2-4', '2-6'],
+      init(e) { G.setup(e, { lap: true, surgDur: 70, painNeed: 0.35, ivCheck: 'TIVA cannula: 18G in the left forearm, visible, flushing freely; both pump lines joined with an anti-reflux valve close to the cannula.', signIn: 'WHO Sign In: James Carter; laparoscopic left inguinal hernia repair, consented, site marked. No allergies. Not a predicted difficult airway. Fasted 8 h.', timeOut: 'WHO Time Out: team introduced; laparoscopic left inguinal hernia repair; antibiotics not required; ~ 30 minutes.' }); },
+      tick(e, dt) { G.tick(e, dt); e.lowMapTime = 0; e.lowSatTime = 0; },
+      onEvent(e, ev) { return G.onEvent(e, ev); },
+      exam: (e) => G.exam(e),
+      inv: { bloods: (e) => labs(e, {}), ecg: {}, cxr: { media: 'cxr_normal', report: 'Normal chest radiograph.' }, ct: [], pocus: [] },
+      critical: [
+        { text: 'Machine check and WHO Sign In', check: (e) => d('machine')(e) && d('signin')(e) },
+        { text: 'Monitoring: standard, processed-EEG (BIS) and TOF', check: (e) => d('monitor')(e) && d('bis')(e) && d('nmt')(e) },
+        { text: 'TIVA cannula checked (visible, flushing, anti-reflux valve)', check: d('ivCheck') },
+        { text: 'Pre-oxygenate on 100% O₂ until EtO₂ ≥ 0.9', check: d('preoxDone') },
+        { text: 'Choose TCI models and start remifentanil then propofol', check: (e) => e.did('tciRemi') && e.did('tciProp') },
+        { text: 'Secure the airway: rocuronium, intubate, confirm', check: d('confirm') },
+        { text: 'Start the ventilator and adjust a setting', check: (e) => d('ventOn')(e) && ['vent_ventVt', 'vent_pinsp', 'vent_ventRR', 'vent_peep', 'vent_ventMode', 'vent_ventIE'].some((k) => e.did(k)) },
+        { text: 'Low fresh gas flow for maintenance; WHO Time Out', check: (e) => e.did('lowFlow') && d('timeout')(e) },
+        { text: 'Morphine before stopping the remifentanil; antiemetic', check: (e) => e.did('morphine') && (e.did('ondansetron') || e.did('dexamethasone')) },
+        { text: 'Stop the pumps, reverse, extubate awake', check: (e) => e.did('tciPropOff') && e.did('tciRemiOff') && d('extubate')(e) },
+        { text: 'Recovery and SBAR handover', check: d('handover') },
+      ],
+      hint: { steps: [
+        { t: 'TCI pump: you set a concentration, the pump works out the doses from the model', kind: 'cause', rx: 'Cp models (Marsh, Paedfusor, Kataria) target plasma; Ce models (Schnider, Eleveld, Minto) target the brain' },
+        { t: 'Remifentanil Ce 3–4 ng/mL, then propofol Ce 4–6 µg/mL', rx: 'Titrate the propofol to loss of consciousness; depth index 40–60' },
+        { t: 'Rocuronium → TOF count 0 → intubate → ventilator on', rx: 'Vt 6–8 mL/kg ideal body weight, PEEP 5, rate for EtCO₂ 4.5–5.5 kPa' },
+        { t: 'Remifentanil has no tail: give morphine before you stop it', kind: 'end' },
+      ] },
+      debrief: {
+        points: [
+          'The anaesthetic tab holds the machine (fresh gas flow, O₂, vaporiser), the ventilator and the TCI pumps; the checklist sits at the bottom left (it ticks as you go at junior grade and in tutorials, otherwise in the debrief).',
+          'TCI models: Marsh (Cp, weight only), Schnider (Ce, age/sex/height/weight — smaller induction dose, good for older patients), Eleveld (Ce, all ages and sizes); children: Paedfusor (Cp, 1–16 y) and Kataria (Cp, 3–16 y, ≥ 15 kg). Remifentanil: Minto (adults) or Eleveld (all ages).',
+          'Changing model mid-infusion is not possible — choose before you start.',
+          'The ventilator is the same everywhere in CrashCall: VCV (set Vt) or PCV (set Pinsp), rate, PEEP and I:E, with delivered Vt, minute volume, Ppeak and Pplat. In theatre the FiO₂ comes from the machine’s fresh gas.',
+          'Lung-protective ventilation: 6–8 mL/kg ideal body weight, Pplat < 30 cmH₂O, PEEP ≥ 5.',
+          'Next: try the four "Routine GA" scenarios, first in Routine mode, then With complications.',
+        ],
+        refs: ['Association of Anaesthetists & SIVA: Guidelines for the safe practice of TIVA (2018)', 'AAGBI/AoA: Recommendations for standards of monitoring during anaesthesia and recovery (2021)', 'RCoA: Initial Assessment of Competence (IAC)'],
+      },
+      coach: [
+        { title: 'Welcome to theatre', text: 'This tutorial shows the anaesthetic stations (~6 minutes). The Anaesthetic tab (right) holds the readouts, the anaesthetic machine, the ventilator, the TCI pumps and the actions for each phase. Drugs are on the Drugs tab. The patient is safe.', sel: '[data-tab="ga"]' },
+        { title: 'The checklist', text: 'The anaesthetic checklist is at the bottom of the left column: the phase you are in, then every step. In tutorials and at junior grade steps tick off as you go; at senior and consultant grade they are revealed in the debrief.', sel: '#gaCheck' },
+        { title: 'Checks and Sign In', text: 'Under "Before induction" press the machine & equipment check, then WHO Sign In.', sel: '[data-tab="ga"]', check: (e) => d('machine')(e) && d('signin')(e) },
+        { title: 'Monitoring', text: 'Attach standard monitoring, the processed-EEG (BIS) depth monitor and the train-of-four monitor. With TIVA and a muscle relaxant, BIS is essential (NAP5) — there is no end-tidal agent to reassure you.', sel: '[data-tab="ga"]', check: (e) => d('monitor')(e) && d('bis')(e) && d('nmt')(e) },
+        { title: 'TIVA cannula', text: 'Press the IV cannula check: for TIVA it must be visible, flushing and joined to both pumps with an anti-reflux valve. If the drug isn’t reaching the patient, they are waking up.', sel: '[data-tab="ga"]', check: d('ivCheck') },
+        { title: 'The anaesthetic machine', text: 'Machine sliders: fresh gas flow (L/min), % O₂ in the fresh gas (this sets the FiO₂), and the sevoflurane vaporiser (keep it at 0 for TIVA). Set the flow to 6–8 L/min and O₂ to 100%, put the facemask on and pre-oxygenate until EtO₂ ≥ 0.9.', sel: '[data-tab="ga"]', check: d('preoxDone') },
+        { title: 'TCI pumps and models', text: 'Each pump has a Model menu. Propofol: Marsh targets plasma (Cp) — the brain lags; Schnider and Eleveld target the effect site (Ce) and overshoot the plasma to get there. In children you would see Paedfusor, Kataria and Eleveld. Remifentanil: Minto or Eleveld. Pick models, start remifentanil at 3 ng/mL, then propofol at 4–5 µg/mL. Watch Cp/Ce and the depth index.', sel: '.ga-tci', check: (e) => e.did('tciRemi') && e.did('tciProp') },
+        { title: 'Airway', text: 'Once he is asleep (eyelash reflex gone, depth index < 60): jaw thrust + Guedel, hand-ventilate via facemask, give rocuronium 0.6 mg/kg from the Drugs tab, wait for TOF count 0, intubate and confirm the tube.', sel: '[data-tab="ga"]', check: d('confirm') },
+        { title: 'The ventilator', text: 'Press "Start mechanical ventilation". The Ventilator panel is the same in ED, ICU and theatre: choose volume (VCV) or pressure control (PCV), set Vt or Pinsp, rate, PEEP and I:E. Readouts show delivered Vt (mL/kg), minute volume, Ppeak and Pplat. Change at least one setting — e.g. adjust the rate for an EtCO₂ of 4.5–5.5 kPa.', sel: '[data-tab="ga"]', check: (e) => d('ventOn')(e) && ['vent_ventVt', 'vent_pinsp', 'vent_ventRR', 'vent_peep', 'vent_ventMode', 'vent_ventIE'].some((k) => e.did(k)) },
+        { title: 'Maintenance', text: 'Turn the fresh gas flow down to ≤ 1.5 L/min (low flow), tape the eyes, then do the WHO Time Out so surgery can start. Keep the depth index 40–60 by adjusting the propofol target.', sel: '[data-tab="ga"]', check: (e) => e.did('lowFlow') && d('timeout')(e) },
+        { title: 'Before the end', text: 'Remifentanil’s analgesia stops within minutes of switching it off: give morphine 0.1–0.15 mg/kg now, plus paracetamol and an antiemetic (ondansetron ± dexamethasone) from the Drugs tab.', sel: '[data-tab="drugs"]', check: (e) => e.did('morphine') && (e.did('ondansetron') || e.did('dexamethasone')) },
+        { title: 'Emergence', text: 'When the surgeon finishes: stop both pumps, O₂ 100% at high flow, WHO Sign Out, reverse the block (sugammadex), suction, and extubate when awake with a TOF ratio ≥ 0.9.', sel: '[data-tab="ga"]', check: (e) => e.did('tciPropOff') && e.did('tciRemiOff') && d('extubate')(e) },
+        { title: 'Recovery', text: 'Transfer to recovery on O₂, then give an SBAR handover.', sel: '#gaCheck', check: d('handover') },
+        { title: 'Finish', text: 'Well done. Once the targets hold for a few seconds you will see the debrief. Next, try the Routine GA scenarios — Routine mode first, then With complications.', sel: '.status-card' },
+      ],
+    });
+  }
 })();

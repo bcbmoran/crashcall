@@ -283,14 +283,23 @@
     if (vent || set === 'theatre' || set === 'icu') {
       const lab = set === 'theatre' ? 'Anaesthetic machine' : 'Ventilator';
       add(`<rect x="12" y="20" width="135" height="165" rx="10" fill="#2b3340"/><rect x="20" y="30" width="119" height="76" rx="4" fill="#06121f"/>`);
-      if (vent) {
-        add(`<text x="26" y="46" fill="#9fe39f" font-size="10" font-family="monospace">FiO₂ ${p.fio2.toFixed(2)}  RR ${p.ventilated ? p.ventRR : '–'}</text>`);
-        add(`<text x="26" y="61" fill="#9fe39f" font-size="10" font-family="monospace">PEEP ${p.ventilated ? p.peep : '–'}  Ppk ${Math.round(p.paw)}</text>`);
-        add(`<text x="26" y="76" fill="${p.autoPEEP > 6 ? '#ff7070' : '#9fe39f'}" font-size="10" font-family="monospace">autoPEEP ${p.autoPEEP.toFixed(0)}</text>`);
-        add(`<text x="26" y="94" fill="${p.paw > 35 ? '#ff7070' : '#66c'}" font-size="10" font-family="monospace">${p.paw > 35 ? 'HIGH PRESSURE' : 'VCV  Vt 450'}</text>`);
-      } else add(`<text x="26" y="66" fill="#567" font-size="10" font-family="monospace">standby</text>`);
+      // Standard ventilator screen — identical layout in ED, ICU and theatre
+      const mono = (y, t, col) => add(`<text x="26" y="${y}" fill="${col || '#9fe39f'}" font-size="10" font-family="monospace">${t}</text>`);
+      if (p.ventilated) {
+        mono(44, `${p.ventMode === 'PCV' ? 'PCV' : 'VCV'}   FiO₂ ${p.fio2.toFixed(2)}`, '#bfe3ff');
+        mono(58, `Vt ${p.vtDel != null ? p.vtDel : (p.ventVt || Math.round(eng.vtRef()))}  RR ${p.ventRR}`);
+        mono(72, `PEEP ${p.peep}  Ppk ${Math.round(p.paw)}`, p.paw > 35 ? '#ff7070' : null);
+        mono(86, p.paw > 35 ? 'HIGH PRESSURE' : p.autoPEEP > 6 ? `autoPEEP ${p.autoPEEP.toFixed(0)}` : `MV ${(p.mv != null ? p.mv : 0).toFixed(1)} L/min`, p.paw > 35 || p.autoPEEP > 6 ? '#ff7070' : '#9fe39f');
+        mono(100, `I:E ${p.ventIE || '1:2'}`, '#6f8fae');
+      } else if (vent) mono(66, p.sga ? 'SGA — bag/spont' : 'bag / spont', '#567');
+      else mono(66, 'standby', '#567');
       add(`<text x="80" y="128" fill="#cdd6e0" font-size="11" text-anchor="middle">${lab}</text>`);
-      if (set === 'theatre' && p.ventilated) add(`<rect x="24" y="140" width="20" height="36" rx="4" fill="${eng.did('stop_volatile') ? '#555' : '#c9a227'}"/><text x="56" y="164" fill="#cdd6e0" font-size="10">${eng.did('stop_volatile') ? 'vaporiser OFF' : 'volatile ON'}</text>`);
+      if (set === 'theatre') {
+        const G = eng.ga, dial = G ? G.dial : (eng.did('stop_volatile') ? 0 : p.ventilated ? 2 : 0), fgf = G ? G.fgf : 2;
+        add(`<rect x="22" y="138" width="22" height="40" rx="4" fill="${dial > 0 ? '#e8c22a' : '#6b6b6b'}" stroke="#222"/><text x="33" y="162" fill="#222" font-size="9" text-anchor="middle">${dial > 0 ? dial.toFixed(1) : '0'}</text>`);
+        add(`<rect x="52" y="140" width="10" height="36" rx="2" fill="#0d1620" stroke="#5c7080"/><rect x="53" y="${176 - Math.min(34, fgf * 3.4)}" width="8" height="${Math.min(34, fgf * 3.4)}" fill="#7fe0ff"/>`);
+        add(`<text x="68" y="152" fill="#cdd6e0" font-size="9">sevo ${dial > 0 ? 'ON' : 'off'}</text><text x="68" y="166" fill="#cdd6e0" font-size="9">FGF ${fgf.toFixed(1)} L</text>`);
+      }
     } else if (p.fio2 > 0.21) {
       add(`<rect x="40" y="40" width="44" height="120" rx="18" fill="#f2f2f2" stroke="#8a8"/><rect x="40" y="40" width="44" height="22" rx="10" fill="#fff" /><text x="62" y="178" fill="#555" font-size="11" text-anchor="middle">O₂</text>`);
     }
@@ -330,7 +339,7 @@
       const p = this.eng.p;
       const pumps = Object.keys(this.eng.pools).map((k) => k + this.eng.pools[k].rate).join();
       return [skinColour(this.eng), p.ventilated, p.sga, p.assisted, p.fio2, p.artLine, p.cvc, p.rhythm === 'paced', pumps, JSON.stringify(this.eng.fluidIn), Object.keys(this.eng.done).length,
-        JSON.stringify(this.eng.lines), this.eng.flags.ivDown, this.eng.flags.splinted, p.spo2 < 88, p.lactate > 4 || p.map < 55, p.cvp > 14, p.sym > 0.55, p.ventRR, p.peep, Math.round(p.paw / 3), Math.round(p.autoPEEP), this.eng.flags.hfno, this.eng.flags.cpr, p.arrested].join('|');
+        JSON.stringify(this.eng.lines), this.eng.flags.ivDown, this.eng.flags.splinted, p.ventMode, p.vtDel, p.ventIE, this.eng.ga ? this.eng.ga.dial + '/' + this.eng.ga.fgf : '', p.spo2 < 88, p.lactate > 4 || p.map < 55, p.cvp > 14, p.sym > 0.55, p.ventRR, p.peep, Math.round(p.paw / 3), Math.round(p.autoPEEP), this.eng.flags.hfno, this.eng.flags.cpr, p.arrested].join('|');
     }
     update() {
       const sig = this.signature();

@@ -25,6 +25,25 @@
     ['recovery', 'Recovery & handover'],
   ];
 
+  // TCI models. tgt: what the pump targets (Cp plasma / Ce effect site). tau: how fast the brain (Ce) follows, in compressed seconds.
+  // v1: central volume (L) — sets the size of the induction bolus the pump gives. ages/minW: population the model was built for.
+  const TCI_MODELS = {
+    p: [
+      { id: 'Marsh', tgt: 'Cp', tau: 40, v1: (p) => 0.228 * p.weight, ages: [16, 120], note: 'Plasma (Cp) target, weight-only model. The brain lags behind the plasma, so loss of consciousness is slower at the same number; large bolus in the elderly — use lower targets.' },
+      { id: 'Schnider', tgt: 'Ce', tau: 18, v1: () => 4.27, ages: [16, 120], note: 'Effect-site (Ce) target using age, sex, height and weight (lean body mass). Smaller, age-adjusted induction dose — suits older patients; unreliable at extreme BMI.' },
+      { id: 'Eleveld', tgt: 'Ce', tau: 20, v1: (p) => 6.28 * (p.weight / 70) * (p.age > 60 ? 0.85 : 1), ages: [0.25, 120], note: 'Effect-site (Ce) target; one model validated from young children to older and obese adults.' },
+      { id: 'Paedfusor', tgt: 'Cp', tau: 30, v1: (p) => 0.458 * p.weight, ages: [1, 16], minW: 5, note: 'Plasma (Cp) target; children 1–16 years. Larger weight-based bolus than adult models.' },
+      { id: 'Kataria', tgt: 'Cp', tau: 32, v1: (p) => 0.52 * p.weight, ages: [3, 16], minW: 15, note: 'Plasma (Cp) target; children 3–16 years and at least 15 kg.' },
+    ],
+    r: [
+      { id: 'Minto', tgt: 'Ce', tau: 16, ages: [12, 120], note: 'Effect-site (Ce) target using age and lean body mass; the standard adult remifentanil model.' },
+      { id: 'Eleveld', tgt: 'Ce', tau: 15, ages: [0.25, 120], note: 'Effect-site (Ce) target; validated across all ages including children.' },
+    ],
+  };
+  const modelsFor = (k, p) => TCI_MODELS[k].filter((m) => p.age >= m.ages[0] && p.age < m.ages[1] && (!m.minW || p.weight >= m.minW));
+  const modelOf = (k, id) => TCI_MODELS[k].find((m) => m.id === id) || TCI_MODELS[k][0];
+  S.TCI_MODELS = TCI_MODELS;
+
   // Actions offered on the Anaesthetic tab, grouped by phase.
   const ACTIONS = [
     { id: 'ga_machine', ph: 'pre', name: 'Machine & equipment check (AAGBI): O₂ supply, vaporiser, circuit leak test, suction, airway kit' },
@@ -68,8 +87,8 @@
       airway: 'none', // none | mask | maskHeld | lma | ett
       circuit: false, // patient connected to the breathing system (facemask held on, LMA or tube)
       fgf: 0, o2frac: 1, dial: 0, fi: 0, et: 0, ce: 0, // fresh gas L/min, O₂ fraction, sevo dial %, FiAA, EtAA, brain
-      tciP: { on: false, model: 'Schnider', target: 0, cp: 0, ce: 0, mg: 0 },
-      tciR: { on: false, target: 0, ce: 0, mcg: 0 },
+      tciP: { on: false, model: e.p.age < 16 ? (e.p.weight >= 5 ? 'Paedfusor' : 'Eleveld') : 'Schnider', target: 0, cp: 0, ce: 0, mg: 0 },
+      tciR: { on: false, model: e.p.age < 12 ? 'Eleveld' : 'Minto', target: 0, cp: 0, ce: 0, mcg: 0 },
       pbA: 0, pbCe: 0, // propofol bolus: plasma-equivalent and effect site (µg/mL)
       fA: 0, fCe: 0, mA: 0, mCe: 0, // fentanyl / morphine (fentanyl-equivalent ng/mL)
       roc: 0, rocCe: 0, block: 0, neoUntil: -1, // rocuronium body load (mg/kg) and effect site
@@ -138,13 +157,14 @@
     g.pbA *= Math.exp(-dt / 85);
     const T = g.tciP;
     if (T.on && ivOK) {
-      if (T.model === 'Marsh') { T.cp += (T.target - T.cp) * Math.min(1, dt / 5); T.ce += (T.cp - T.ce) * Math.min(1, dt / 40); }
-      else { T.ce += (T.target - T.ce) * Math.min(1, dt / 18); T.cp = Math.max(T.ce, T.target * 1.15); }
-      T.mg += (T.target * 2.8 * w / 3600) * dt * 4 + Math.max(0, T.target - T.ce) * 0.03 * w * dt / 10;
+      const M = modelOf('p', T.model);
+      if (M.tgt === 'Cp') { T.cp += (T.target - T.cp) * Math.min(1, dt / 5); T.ce += (T.cp - T.ce) * Math.min(1, dt / M.tau); }
+      else { T.ce += (T.target - T.ce) * Math.min(1, dt / M.tau); T.cp = T.ce < T.target - 0.2 ? Math.max(T.ce, T.target * 1.4) : T.target; }
+      T.mg += (T.target * 2.8 * w / 3600) * dt * 4; // maintenance (compressed time); induction boluses are added when the target is raised
     } else { T.ce *= Math.exp(-dt / 70); T.cp *= Math.exp(-dt / 50); }
     // Remifentanil TCI
     const R = g.tciR;
-    if (R.on && ivOK) { R.ce += (R.target - R.ce) * Math.min(1, dt / 16); R.mcg += R.target * 0.1 * w * dt / 60 * 4; }
+    if (R.on && ivOK) { R.ce += (R.target - R.ce) * Math.min(1, dt / modelOf('r', R.model).tau); R.mcg += R.target * 0.1 * w * dt / 60 * 4; }
     else R.ce *= Math.exp(-dt / 25);
     // Fentanyl and morphine (fentanyl-equivalent ng/mL)
     g.fCe += (g.fA - g.fCe) * Math.min(1, dt / 45); g.fA *= Math.exp(-dt / 260);
@@ -364,8 +384,8 @@
       });
       case 'ga_vent_on': return act(() => {
         if (!['ett', 'lma'].includes(g.airway)) { say('Secure the airway before starting the ventilator.', 'warn'); return; }
-        p.ventilated = true; p.assisted = false; p.ventRR = 12; p.peep = 5; mark(e, 'ventOn');
-        say('Ventilator on: VCV 500 mL × 12/min, PEEP 5 cmH₂O, I:E 1:2.', 'good');
+        p.ventilated = true; p.assisted = false; p.ventRR = 12; p.peep = 5; p.ventMode = 'VCV'; p.ventIE = '1:2'; p.ventVt = Math.round(e.vtRef() / 10) * 10; mark(e, 'ventOn');
+        say(`Ventilator on: VCV ${p.ventVt} mL (≈ 7 mL/kg ideal body weight) × 12/min, PEEP 5 cmH₂O, I:E 1:2. Adjust it in the Ventilator panel.`, 'good');
       });
       case 'ga_spont': return act(() => {
         if (g.airway !== 'lma' && g.airway !== 'maskHeld') { say('Spontaneous breathing is used with an LMA or facemask.'); return; }
@@ -470,29 +490,44 @@
     const T = g.tciP, R = g.tciR;
     const tci = (e.scn.ga && e.scn.ga.tci) || T.on || R.on ? `<div class="grp"><h4>TCI pumps</h4><div class="ga-tci">
       <div class="ga-pump"><b>Propofol 1%</b>
-        <select data-ga-model><option ${T.model === 'Schnider' ? 'selected' : ''}>Schnider</option><option ${T.model === 'Marsh' ? 'selected' : ''}>Marsh</option></select>
-        <span class="small muted">${T.model === 'Marsh' ? 'plasma (Cp) target' : 'effect-site (Ce) target'}</span>
+        <label>Model <select data-ga-model="p">${modelsFor('p', p).map((m) => `<option ${m.id === T.model ? 'selected' : ''}>${m.id}</option>`).join('')}</select></label>
+        <span class="small muted">${modelOf('p', T.model).tgt === 'Cp' ? 'plasma (Cp) target' : 'effect-site (Ce) target'}</span>
         <label>Target <input type="number" min="0" max="8" step="0.5" value="${T.target || 0}" data-ga-t="p"> µg/mL</label>
         <button class="btn sm" data-ga-go="p">${T.on ? 'Update' : 'Start'}</button>${T.on ? '<button class="btn sm" data-ga-stop="p">Stop</button>' : ''}
-        <span class="small muted">${T.on ? 'Running · ' : ''}${Math.round(T.mg)} mg given</span></div>
-      <div class="ga-pump"><b>Remifentanil 50 mcg/mL</b><span class="small muted">Minto, effect-site target</span>
+        <span class="small muted">${T.on ? `Running · Cp ${r1(T.cp)} / Ce ${r1(T.ce)} µg/mL · ` : ''}${Math.round(T.mg)} mg given</span>
+        <span class="small muted ga-model-note">${esc(modelOf('p', T.model).note)}</span></div>
+      <div class="ga-pump"><b>Remifentanil 50 mcg/mL</b>
+        <label>Model <select data-ga-model="r">${modelsFor('r', p).map((m) => `<option ${m.id === R.model ? 'selected' : ''}>${m.id}</option>`).join('')}</select></label>
+        <span class="small muted">effect-site (Ce) target</span>
         <label>Target <input type="number" min="0" max="10" step="0.5" value="${R.target || 0}" data-ga-t="r"> ng/mL</label>
         <button class="btn sm" data-ga-go="r">${R.on ? 'Update' : 'Start'}</button>${R.on ? '<button class="btn sm" data-ga-stop="r">Stop</button>' : ''}
-        <span class="small muted">${R.on ? 'Running · ' : ''}${Math.round(R.mcg)} mcg given</span></div>
+        <span class="small muted">${R.on ? `Running · Ce ${r1(R.ce)} ng/mL · ` : ''}${Math.round(R.mcg)} mcg given</span>
+        <span class="small muted ga-model-note">${esc(modelOf('r', R.model).note)}</span></div>
     </div></div>` : '';
     const groups = PHASES.map(([k, n]) => {
       const acts = ACTIONS.filter((a) => a.ph === k && (!a.lap || g.cfg.lap) && (!e.scn.ga.hide || !e.scn.ga.hide.includes(a.id)));
       return acts.length ? `<div class="grp"><h4>${n}</h4><div class="act-grid">${acts.map((a) => `<button class="btn ${e.did(a.id) ? 'done' : ''}" data-act="${a.id}">${esc(a.name)}${e.did(a.id) ? ' ✓' : ''}</button>`).join('')}</div></div>` : '';
     }).join('');
-    return `<div class="ga-panel"><div class="ga-live">${phaseBar}${list}${readouts}</div>${machine}${tci}${groups}
+    const vent = p.ventilated && S.Vent ? `<div class="grp"><h4>Ventilator (on the anaesthetic machine)</h4>${S.Vent.html(e, true)}</div>` : `<div class="grp"><h4>Ventilator</h4><p class="small muted">Bag / spontaneous mode. Once the airway is secured, press “Start mechanical ventilation” (Induction &amp; airway) and the ventilator controls appear here.</p></div>`;
+    return `<div class="ga-panel"><div class="ga-live">${readouts}</div>${machine}${vent}${tci}${groups}
       <p class="muted small">Give drugs (propofol, fentanyl, rocuronium, reversal, antiemetics, analgesia, vasopressors) from the Drugs tab. Time is compressed: a whole anaesthetic takes about 10 minutes.</p></div>`;
   }
 
+  // Anaesthetic checklist card (bottom of the left column): phases + steps. Ticks are live only at junior grade.
+  function checklistHTML(e, level) {
+    const g = e.ga; if (!g) return '';
+    const ph = PHASES.findIndex((x) => x[0] === g.phase);
+    const live = level === 'junior' || !!e.scn.tutorial;
+    const steps = (e.scn.critical || []).filter((c) => !c.skip || !c.skip(e)).map((c) => ({ text: c.text, done: !!c.check(e) }));
+    const phaseBar = `<div class="ga-phases">${PHASES.map(([k, n], i) => `<span class="${i < ph ? 'done' : i === ph ? 'on' : ''}">${n}</span>`).join('')}</div>`;
+    return `${phaseBar}<ol class="ga-checklist ${live ? 'live' : ''}">${steps.map((s) => `<li class="${live && s.done ? 'ok' : ''}">${esc(s.text)}</li>`).join('')}</ol>`;
+  }
   // Just the live part (phase bar, checklist, readouts) — refreshed every second without disturbing the controls.
   function liveHTML(e, level) { const m = /<div class="ga-live">([\s\S]*?)<\/div><div class="grp">/.exec(panelHTML(e, level)); return m ? m[1] : ''; }
 
   function wire(body, e, guard, rerender) {
     const g = e.ga; if (!g) return;
+    if (S.Vent) S.Vent.wire(body, e, guard);
     body.querySelectorAll('[data-ga]').forEach((r) => {
       const out = r.parentElement.querySelector('output');
       r.oninput = () => { const v = +r.value; out.textContent = r.dataset.ga === 'o2frac' ? Math.round(v * 100) + '%' : r1(v) + (r.dataset.ga === 'fgf' ? ' L/min' : '%'); };
@@ -507,14 +542,18 @@
         rerender();
       };
     });
-    const sel = body.querySelector('[data-ga-model]'); if (sel) sel.onchange = () => { if (g.tciP.on) { sel.value = g.tciP.model; e.say('Stop the pump before changing model.', 'warn'); return; } g.tciP.model = sel.value; rerender(); };
+    body.querySelectorAll('[data-ga-model]').forEach((sel) => (sel.onchange = () => { const P = sel.dataset.gaModel === 'p' ? g.tciP : g.tciR; if (P.on) { sel.value = P.model; e.say('Stop the pump before changing the model — a TCI pump cannot switch model mid-infusion.', 'warn'); return; } P.model = sel.value; e.emit({ type: 'action', id: 'ga_model_' + sel.dataset.gaModel, text: `${sel.dataset.gaModel === 'p' ? 'Propofol' : 'Remifentanil'} TCI model set to ${sel.value}`, kind: 'act' }); rerender(); }));
     body.querySelectorAll('[data-ga-go]').forEach((b) => (b.onclick = () => {
       if (!guard()) return;
       const k = b.dataset.gaGo, inp = body.querySelector(`[data-ga-t="${k}"]`), v = clamp(+inp.value || 0, 0, k === 'p' ? 8 : 10);
       const P = k === 'p' ? g.tciP : g.tciR;
       if (!g.ivOK) { e.say('There is no IV access for the pump.', 'bad'); return; }
+      const M = modelOf(k, P.model);
+      if (k === 'p' && v > (P.target || 0)) P.mg += M.v1(e.p) * (v - Math.max(P.target || 0, P.cp || 0)) * (M.tgt === 'Ce' ? 1.5 : 1); // induction / step-up bolus
+      if (k === 'r' && v > (P.target || 0)) P.mcg += (v - (P.target || 0)) * 0.25 * e.p.weight * 0.1;
       P.on = v > 0; P.target = v;
-      const name = k === 'p' ? `Propofol TCI (${g.tciP.model}) target ${v} µg/mL` : `Remifentanil TCI (Minto) target ${v} ng/mL`;
+      const name = k === 'p' ? `Propofol TCI (${g.tciP.model}, ${M.tgt}) target ${v} µg/mL` : `Remifentanil TCI (${g.tciR.model}, Ce) target ${v} ng/mL`;
+      if (k === 'p' && M.id === 'Marsh' && e.p.age >= 70 && v > 3 && !P.warned) { P.warned = true; e.after(4, (en) => en.say('Marsh gives a large weight-based bolus — in an older patient a high Cp target can drop the blood pressure. Consider Schnider/Eleveld or a lower target.', 'warn')); }
       e.mark(k === 'p' ? 'tciProp' : 'tciRemi'); e.emit({ type: 'action', id: k === 'p' ? 'ga_tci_p' : 'ga_tci_r', text: name, kind: 'act' });
       if (k === 'p' && v >= 3 && g.phase === 'pre') setPhase(e, 'induction');
       rerender();
@@ -543,5 +582,5 @@
     return { A, B, C, D, E };
   }
 
-  S.GA = { setup, tick, onEvent, panelHTML, liveHTML, wire, exam, tof, macAge, hyp, awake, propCe, opioid, PHASES };
+  S.GA = { setup, tick, onEvent, panelHTML, liveHTML, checklistHTML, wire, exam, tof, macAge, hyp, awake, propCe, opioid, PHASES };
 })();

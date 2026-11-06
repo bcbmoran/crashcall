@@ -308,10 +308,13 @@
       const r = this.react({ type: 'action', id, opts });
       if (!r || !r.handled) this.defaultAction(id, opts);
     }
+    vtRef() { const p = this.p; return 7 * (p.paed ? p.weight : Math.min(p.weight, p.sex === 'F' ? 60 : 70)); } // ~7 mL/kg ideal body weight
     setVent(k, v) {
       const p = this.p; p[k] = v;
       if (k === 'fio2') p.lastFio2 = v;
-      this.emit({ type: 'vent', text: `Ventilator: ${k === 'fio2' ? 'FiO₂ ' + v.toFixed(2) : k === 'peep' ? 'PEEP ' + v + ' cmH₂O' : 'RR ' + v + '/min'}`, kind: 'act' });
+      const lab = { fio2: () => 'FiO₂ ' + v.toFixed(2), peep: () => 'PEEP ' + v + ' cmH₂O', ventRR: () => 'RR ' + v + '/min', ventVt: () => 'Vt ' + v + ' mL', pinsp: () => 'Pinsp ' + v + ' cmH₂O above PEEP', ventMode: () => 'mode ' + (v === 'PCV' ? 'pressure control (PCV)' : 'volume control (VCV)'), ventIE: () => 'I:E ' + v }[k];
+      this.emit({ type: 'vent', text: `Ventilator: ${lab ? lab() : k + ' ' + v}`, kind: 'act' });
+      if (k === 'ventVt' && v / (this.vtRef() / 7) > 10) this.say(`Vt ${v} mL is over 10 mL/kg ideal body weight — risk of volutrauma; aim for 6–8 mL/kg.`, 'warn');
       this.mark('vent_' + k);
       this.react({ type: 'vent', key: k, value: v });
     }
@@ -533,8 +536,16 @@
       const acidDrive = clamp((24 - p.hco3) / 14, 0, 1);
       let V;
       if (p.ventilated) {
-        V = (p.ventRR / 14) * (1 - 0.6 * bronchEff) * (p.tubeOK === false ? 0 : 1) * (1 - (p.ventObstruct || 0));
-        const autoT = bronchEff * Math.max(0, p.ventRR - 8) * 1.1;
+        // Ventilator: VCV (set Vt) or PCV (set Pinsp above PEEP); the default settings reproduce the original model exactly.
+        const vRef = this.vtRef(), rDyn = 16 + bronchEff * 28; // cmH₂O above PEEP needed to deliver vRef
+        const pc = p.ventMode === 'PCV';
+        const ieF = { '1:1': 1.6, '1:2': 1, '1:3': 0.7, '1:4': 0.55 }[p.ventIE || '1:2'] || 1;
+        // PCV: delivered Vt falls as resistance (bronchospasm) or gas trapping rises; VCV: set Vt is delivered (pressures rise instead).
+        const vtDel = pc ? clamp(vRef * Math.max(0, (p.pinsp || 16) - p.autoPEEP * 0.6) / rDyn, 0, vRef * 2.2) : (p.ventVt || vRef);
+        p.vtDel = Math.round(vtDel * (p.tubeOK === false ? 0 : 1) * (1 - (p.ventObstruct || 0)));
+        V = (p.ventRR / 14) * (vtDel / vRef) * (pc ? 1 : 1 - 0.6 * bronchEff) * (p.tubeOK === false ? 0 : 1) * (1 - (p.ventObstruct || 0));
+        p.mv = Math.round(p.ventRR * p.vtDel / 100) / 10; // L/min
+        const autoT = bronchEff * Math.max(0, p.ventRR - 8) * 1.1 * ieF * (vtDel / vRef);
         p.autoPEEP += (autoT - p.autoPEEP) * Math.min(1, dt / 25);
       } else {
         const consciousOK = p.arrested ? 0 : p.effort;
@@ -568,7 +579,11 @@
       if (p.ventilated) p.rr = p.ventRR;
       else if (p.assisted) p.rr = 12;
       else p.rr = Math.round(p.effort > 0 ? clamp(p.rrBase * (1 + 0.9 * acidDrive) + (p.sa < 0.9 ? (0.9 - p.sa) * 60 : 0) + bronchEff * 10 + p.sym * 6, 4, 45) * Math.min(1, p.effort * 1.5) : 0);
-      p.paw = p.ventilated ? 16 + bronchEff * 28 + p.autoPEEP + p.peep + (p.pawExtra || 0) + 30 * (p.ventObstruct || 0) * (p.ventStopped ? 0 : 1) : 0;
+      if (p.ventilated) {
+        const vRef = this.vtRef(), sc = (p.vtDel || vRef) / vRef;
+        p.paw = (p.ventMode === 'PCV' ? (p.pinsp || 16) + bronchEff * 6 : (16 + bronchEff * 28) * sc) + p.autoPEEP + p.peep + (p.pawExtra || 0) + 30 * (p.ventObstruct || 0) * (p.ventStopped ? 0 : 1);
+        p.pplat = Math.round(p.peep + p.autoPEEP + 11 * sc * (1 + (p.pawExtra || 0) / 30));
+      } else p.paw = 0;
 
       // ---- Acid–base ----
       p.hco3 = clamp(24 - (p.lactate - 1) - p.extraAcid + p.bicarb, 3, 40);

@@ -204,7 +204,7 @@
       { text: 'Check the TIVA cannula is visible and flushing, with an anti-reflux valve', check: d('ivCheck') },
       step('preox'),
       { text: 'Start remifentanil TCI (Ce 3–4 ng/mL)', check: did('tciRemi') },
-      { text: 'Start propofol TCI (Schnider Ce 4–6 µg/mL), titrate to loss of consciousness', check: (e) => e.did('tciProp') && e.ga.done.phase_induction },
+      { text: 'Start propofol TCI (e.g. Schnider/Eleveld Ce 4–6 µg/mL, or Marsh Cp), titrate to loss of consciousness', check: (e) => e.did('tciProp') && e.ga.done.phase_induction },
       compStep('Remifentanil bradycardia: glycopyrronium / atropine (± reduce the remifentanil target)', (e) => anyAfter(e, ['glycopyrronium', 'atropine', 'tciRemi'], e.ga.done.comp_induction) && e.p.hr >= 45),
       step('maskVent'), step('roc'), step('intubate'), step('confirm'), step('vent'), step('eyes'), step('timeout'),
       { text: 'Maintain on TCI with the vaporiser off; depth index 40–60', check: (e) => e.ga.done.surgeryDone && !e.did('sevoOn') || (e.ga.comp && e.ga.done.surgeryDone) },
