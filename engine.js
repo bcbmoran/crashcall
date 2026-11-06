@@ -127,6 +127,7 @@
       this.p.ecg = Object.assign({}, DEFAULTS.ecg, pat.ecg || {});
       this.p.hbMass = this.p.hb * this.p.vol;
       this.p.lastFio2 = this.p.fio2;
+      this.out = { blood: 0, urine: 0, bleedNow: 0, uoNow: null };
       this.initLines();
       if (scn.init) scn.init(this);
       this.settle();
@@ -171,7 +172,41 @@
         else this.autoCrit.push({ id: 'access2', text: 'Two large-bore cannulas (≥ 18G, or IO)', check: (e) => e.lines.filter((l) => l.g === 'IO' || l.g <= 18).length >= 2 });
       }
     }
-    allCritical() { return (this.scn.critical || []).concat(this.autoCrit || []); }
+    // Urine output (mL/kg/h) from renal perfusion: MAP and circulating volume; scenarios can override with scn.urine(e).
+    uoRate() {
+      const p = this.p;
+      if (this.scn.urine) { const v = this.scn.urine(this); if (v != null) return Math.max(0, v); }
+      if (p.arrested) return 0;
+      const base = p.paed ? (p.weight < 10 ? 2 : 1.5) : 1;
+      const perf = clamp((p.map - 50) / 25, 0, 1.4) * clamp((p.vol - 0.65) / 0.3, 0.15, 1.15);
+      const diur = this.E('furosemide') > 0 ? 1 + Math.min(3, this.E('furosemide') * 7.5) : 1;
+      return base * perf * diur;
+    }
+    hasCatheter() { return this.did('urinary_catheter') || !!this.p.catheter || this.scn.setting === 'icu'; }
+    // Long-bone fracture (scn.longBone = { site, side, traction: bool, why, bleedCut, nv }): neurovascular checks and splinting.
+    limbAction(id) {
+      const lb = this.scn.longBone, f = this.flags, p = this.p;
+      if (!lb) { this.say(id === 'nv_check' ? 'Distal pulses, sensation and capillary refill are normal in all four limbs.' : 'No long-bone fracture needs splinting.'); return; }
+      if (id === 'nv_check') {
+        (f.nvChecks = f.nvChecks || []).push(this.t);
+        this.say(`Neurovascular check, ${lb.side || 'injured'} leg${f.splinted ? ' (after splinting)' : ''}: ${lb.nv || 'foot warm, dorsalis pedis and posterior tibial pulses palpable, sensation and movement intact, CRT < 2 s.'}`, 'good');
+        return;
+      }
+      if (f.splinted) { this.say(`The ${lb.site} is already splinted (${f.splinted === 'traction' ? 'traction splint' : 'rigid / vacuum splint'}).`); return; }
+      if (id === 'splint_traction' && !lb.traction) { this.say(lb.why || 'A traction splint is not appropriate for this injury — use a rigid / vacuum splint.', 'warn'); return; }
+      const cut = (lb.bleedCut || 0.5) * (id === 'splint_rigid' && lb.traction ? 0.55 : 1);
+      f.splinted = id === 'splint_traction' ? 'traction' : 'rigid'; f.splintAt = this.t;
+      p.bleed *= 1 - cut; f.pain = Math.max(0, (f.pain == null ? 1 : f.pain) - 0.45);
+      this.say(id === 'splint_traction' ? `Traction splint applied to the ${lb.site}: limb out to length, thigh compartment less tense — pain eases and bleeding into the thigh slows.` : `${lb.site.charAt(0).toUpperCase() + lb.site.slice(1)} splinted (vacuum / rigid splint${lb.traction ? '' : ', legs strapped together'}) — pain eases${lb.traction ? '; a traction splint would restore length better for a mid-shaft femur' : ''}.`, 'good');
+      if (!(f.nvChecks || []).length) this.say('Check and record distal neurovascular status before and after splinting.', 'warn');
+    }
+    allCritical() {
+      const lb = this.scn.longBone && !(this.scn.critical || []).some((c) => /splint/i.test(c.text)) ? [
+        { id: 'splint', text: 'Splint the long-bone fracture', check: (e) => !!e.flags.splinted },
+        { id: 'nv', text: 'Neurovascular check before and after splinting', check: (e) => { const n = e.flags.nvChecks || [], s = e.flags.splintAt; return s != null && n.some((t) => t <= s) && n.some((t) => t > s); } },
+      ] : [];
+      return (this.scn.critical || []).concat(this.autoCrit || [], lb);
+    }
     siteFor(g, i) {
       if (g === 'IO') return this.p.paed ? 'proximal tibia' : 'proximal humerus';
       return ['left forearm', 'right forearm', 'left antecubital fossa', 'right antecubital fossa'][i] || 'hand';
@@ -372,6 +407,8 @@
         case 'bimanual': msg('Bimanual compression performed.'); break;
         case 'deepen_anaesthesia': msg('Anaesthesia deepened.'); break;
         case 'jaw_thrust_cpap': msg('Jaw thrust and CPAP with 100% oxygen via a tight-fitting facemask.'); if (!p.ventilated) { p.fio2 = 1; p.lastFio2 = 1; } break;
+        case 'nv_check': case 'splint_traction': case 'splint_rigid': this.limbAction(id); break;
+        case 'urinary_catheter': msg(this.p.catheter || this.scn.setting === 'icu' ? 'A urinary catheter is already in — hourly urine output is being measured.' : 'Urinary catheter inserted with a urometer — hourly urine output now measured (see Ongoing output).'); break;
         case 'suction_tube': msg('Suction catheter passes freely — tube patent, minimal secretions.'); break;
         case 'isolate_equipment': msg('Hand-ventilating with a self-inflating bag directly on the tube: no change — the problem is not the machine or circuit.'); break;
         case 'reposition_tube': msg('Tube position checked — already at the correct depth.'); break;
@@ -567,6 +604,19 @@
       // losses
       const bleed = this.L.prog * p.bleed * (1 + 0.6 * p.coag) * (p.map > 30 ? clamp(p.map / 70, 0.3, 1.3) : 0.2);
       p.vol -= bleed * dt;
+      if (this.scn.longBone) { // fracture pain drives tachycardia; analgesia and splinting relieve it
+        const f = this.flags; if (f.pain == null) { f.pain = 1; f.hr0 = p.hrBase; }
+        const an = this.E('morphine') + this.E('fentanyl') + (this.E('ketamine') || 0);
+        f.painNow = clamp(f.pain - Math.min(0.6, an * 6), 0, 1);
+        p.hrBase = f.hr0 + (this.scn.longBone.painHr != null ? this.scn.longBone.painHr : 18) * f.painNow;
+      }
+      // running outputs (blood loss in mL; urine via catheter — 1 s of scenario ≈ 1 min of urine production)
+      const bv0 = p.weight * 70;
+      this.out.blood += bleed * dt * bv0;
+      this.out.bleedNow = bleed * bv0 * 60; // mL/min
+      const uo = this.uoRate();
+      this.out.uoNow = this.out.uoNow == null ? uo : this.out.uoNow + (uo - this.out.uoNow) * Math.min(1, dt / 8);
+      if (this.hasCatheter()) this.out.urine += (uo * p.weight / 60) * dt;
       p.hbMass -= bleed * dt * p.hb; // lose whole blood at current Hb
       if (p.leak > 0 && p.vol > 0.55) p.vol -= this.L.prog * p.leak * (p.vol - 0.55) * dt;
       p.vol = clamp(p.vol, 0.15, 1.6);

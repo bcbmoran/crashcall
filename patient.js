@@ -58,7 +58,8 @@
       if (W.female && !W.kid) { wH += 1; wT += 1; wC -= 1; }
       if (LG.oedema) { wC += 3; wA += 6; }
       if (o.swollen) { wC += 6; wA += 6; wK += 2; }
-      if (o.shortRot) { b.kneeX -= 10; b.ankleX -= 20; b.splay = 78; }
+      const lbS = eng.scn && eng.scn.longBone && (eng.scn.longBone.side || 'left') === name ? eng.flags.splinted : null;
+      if (o.shortRot && lbS !== 'traction') { b.kneeX -= 10; b.ankleX -= 20; b.splay = 78; }
       const hipX = 424, hipY = 225 + sd * b.sep, kneeY = hipY + sd * b.kneeOut, ankY = 225 + sd * (b.sep + b.ankleOut);
       const lerp = (x0, y0, x1, y1, x) => y0 + (y1 - y0) * (x - x0) / (x1 - x0);
       const thX = (hipX + b.kneeX) / 2, caX = b.kneeX + (b.ankleX - b.kneeX) * 0.32;
@@ -93,6 +94,18 @@
       // toes: big toe on the inner (medial) side, the rest getting smaller towards the outer side
       const toes = [0, 1, 2, 3, 4].map((i) => { const y = (-sd) * fw * 0.66 + sd * (i === 0 ? 0 : fw * 0.18 + i * fw * 0.27), r = i === 0 ? fw * 0.3 : fw * (0.19 - i * 0.018), x = fl - 2 - (i === 0 ? 0 : i * 1.8); return `<ellipse cx="${(x + r * 0.6).toFixed(1)}" cy="${y.toFixed(1)}" rx="${(r * 1.25).toFixed(1)}" ry="${r.toFixed(1)}" fill="${footCol}" stroke="${c.skD}" stroke-width=".6"/><ellipse cx="${(x + r * 1.1).toFixed(1)}" cy="${y.toFixed(1)}" rx="${(r * 0.45).toFixed(1)}" ry="${(r * 0.5).toFixed(1)}" fill="#ffffff" opacity=".35"/>`; }).join('');
       add(`<g transform="translate(${b.ankleX - 4} ${ankY}) rotate(${sd * b.splay})" filter="url(#pvShS)"><path d="M0 ${-wA} C${fl * 0.3} ${-wA - 2} ${fl * 0.55} ${-fw} ${fl - 2} ${-fw * 0.92} C${fl + 2} ${-fw * 0.6} ${fl + 2} ${fw * 0.6} ${fl - 2} ${fw * 0.92} C${fl * 0.55} ${fw} ${fl * 0.3} ${wA + 2} 0 ${wA} Z" fill="${footCol}" stroke="${c.skD}" stroke-width=".8"/><path d="M${fl * 0.25} ${-sd * wA * 0.2} C${fl * 0.5} ${-sd * fw * 0.3} ${fl * 0.7} ${-sd * fw * 0.5} ${fl - 4} ${-sd * fw * 0.6}" stroke="${c.skD}" stroke-width=".8" fill="none" opacity=".35"/>${toes}</g>`);
+      if (lbS) { // splint over the fractured limb
+        const y0 = hipY, y1 = ankY, wMax = wT + 4;
+        if (lbS === 'traction') {
+          [-1, 1].forEach((s) => add(`<path d="M${hipX + 6} ${(y0 + s * wMax).toFixed(1)} L${b.ankleX + 46} ${(y1 + s * (wA + 6)).toFixed(1)}" stroke="#8a939d" stroke-width="3.2" stroke-linecap="round"/>`));
+          add(`<path d="M${b.ankleX + 46} ${y1 - wA - 6} V${y1 + wA + 6}" stroke="#5f6770" stroke-width="4" stroke-linecap="round"/><path d="M${b.ankleX + 6} ${y1} H${b.ankleX + 46}" stroke="#f2b01e" stroke-width="2"/>`);
+          [0.12, 0.38, 0.62, 0.86].forEach((t) => { const x = hipX + 6 + (b.ankleX - hipX - 6) * t, y = y0 + (y1 - y0) * t; add(`<rect x="${(x - 5).toFixed(1)}" y="${(y - wMax).toFixed(1)}" width="10" height="${(2 * wMax).toFixed(1)}" rx="2" fill="#2f5d9a" opacity=".85"/>`); });
+          add(`<text x="${(hipX + b.ankleX) / 2}" y="${(y0 + y1) / 2 + sd * (wMax + 14)}" font-size="9" fill="#2f5d9a" text-anchor="middle">traction splint</text>`);
+        } else {
+          add(`<path d="M${hipX + 30} ${y0 - wMax - 2} L${b.ankleX + 6} ${y1 - wA - 8} L${b.ankleX + 6} ${y1 + wA + 8} L${hipX + 30} ${y0 + wMax + 2} Z" fill="#f28a1e" opacity=".32" stroke="#c96a10" stroke-width="1.4"/>`);
+          add(`<text x="${(hipX + b.ankleX) / 2}" y="${(y0 + y1) / 2 + sd * (wMax + 14)}" font-size="9" fill="#9a5310" text-anchor="middle">splinted</text>`);
+        }
+      }
     });
     if (c.mottled) add(`<text x="${base.kneeX + 6}" y="${225 + 4}" font-size="9" fill="#5b3f6c" text-anchor="middle" font-style="italic">mottled</text>`);
  if (LG.purpura) add(`<text x="${base.kneeX}" y="${225 + base.sep + base.kneeOut + base.w[2] + 16}" font-size="9" fill="#6d1f3d" text-anchor="middle" font-style="italic">non-blanching rash</text>`);
@@ -317,7 +330,7 @@
       const p = this.eng.p;
       const pumps = Object.keys(this.eng.pools).map((k) => k + this.eng.pools[k].rate).join();
       return [skinColour(this.eng), p.ventilated, p.sga, p.assisted, p.fio2, p.artLine, p.cvc, p.rhythm === 'paced', pumps, JSON.stringify(this.eng.fluidIn), Object.keys(this.eng.done).length,
-        JSON.stringify(this.eng.lines), this.eng.flags.ivDown, p.spo2 < 88, p.lactate > 4 || p.map < 55, p.cvp > 14, p.sym > 0.55, p.ventRR, p.peep, Math.round(p.paw / 3), Math.round(p.autoPEEP), this.eng.flags.hfno, this.eng.flags.cpr, p.arrested].join('|');
+        JSON.stringify(this.eng.lines), this.eng.flags.ivDown, this.eng.flags.splinted, p.spo2 < 88, p.lactate > 4 || p.map < 55, p.cvp > 14, p.sym > 0.55, p.ventRR, p.peep, Math.round(p.paw / 3), Math.round(p.autoPEEP), this.eng.flags.hfno, this.eng.flags.cpr, p.arrested].join('|');
     }
     update() {
       const sig = this.signature();

@@ -112,11 +112,13 @@
   // =====================================================================
   add({
     id: 'em-elderly-trauma', title: 'Elderly pedestrian struck by a car', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
+    eblExpected: 'Pelvic fracture (1.5–2 L+) plus femoral shaft fracture (1–1.5 L): roughly 2.5–3.5 L combined — a large share of an older adult’s ~5 L blood volume.',
+    longBone: { site: 'left femoral shaft', side: 'left', traction: false, bleedCut: 0.25, painHr: 4, why: 'Trauma lead: “Not a traction splint — he has a pelvic ring fracture, and traction can displace it. Binder first, then a vacuum splint or strap the legs together.”' },
     stem: '79-year-old man struck by a car at low speed. Complaining of pelvic and left thigh pain. HR 72, BP 104/66 — “looks stable”. He takes bisoprolol and ramipril.',
     patient: { age: 79, sex: 'M', weight: 72, vol: 0.76, bleed: 0.0008, hrBase: 64, hrGain: 12, baro: 0.6, lactate: 5.6, hb: 104, look: { wound: true, legs: { left: { shortRot: true, bruise: true } } } },
     tick(e, dt) { if (e.flags.ctrl) e.p.bleed = toward(e.p.bleed, 0, 0.05, dt); else if (e.flags.binder) e.p.bleed = Math.max(0.0005, e.p.bleed - 0.00002 * dt); },
     onEvent(e, ev) {
-      if (ev.type === 'action' && ev.id === 'pelvic_binder') { e.flags.binder = true; return { msg: 'Binder applied; the left leg is also splinted in traction.', kind: 'good' }; }
+      if (ev.type === 'action' && ev.id === 'pelvic_binder') { e.flags.binder = true; return { msg: 'Pelvic binder applied at the level of the greater trochanters.', kind: 'good' }; }
       if (ev.type === 'action' && ev.id === 'theatre') { if (!(e.did('inv_ct') || e.did('inv_pocus'))) return { handled: true, msg: 'Trauma team: where is the bleeding? Image first.' }; e.flags.ctrl = true; return { handled: true, msg: 'IR: embolisation of bleeding pelvic arteries; orthopaedics splint the femur.', kind: 'good' }; }
       if (ev.type === 'inv' && ev.id === 'gas') e.after(6, (en) => en.say(`Lactate ${en.p.lactate.toFixed(1)} — occult shock despite a "normal" HR (β-blocked).`, 'warn'));
       return crystalHarm(e, ev);
@@ -148,10 +150,61 @@
   });
 
   // =====================================================================
+  // Isolated closed femoral shaft fracture (motorcyclist)
+  // =====================================================================
+  add({
+    id: 'em-femur', title: 'Motorcyclist with a deformed thigh', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 1, setting: 'ed',
+    eblExpected: 'Closed femoral shaft fracture: about 1–1.5 L into the thigh (tibia ~0.5–0.75 L, humerus ~0.5–0.75 L).',
+    stem: '23-year-old man, motorcycle vs car at ~40 mph, helmeted. Isolated injury: right thigh swollen, shortened and angulated; screaming in pain. Paramedics gave 10 mg morphine 40 minutes ago. HR 124, BP 112/70.',
+    patient: { age: 23, sex: 'M', weight: 80, vol: 0.82, bleed: 0.0008, hrBase: 100, lactate: 3.1, hb: 128, look: { legs: { right: { swollen: true, bruise: true, shortRot: true } } } },
+    longBone: { site: 'right femoral shaft', side: 'right', traction: true, bleedCut: 0.7 },
+    tick(e, dt) { const f = e.flags, p = e.p; if (f.splinted) p.bleed = toward(p.bleed, f.splinted === 'traction' ? 0 : 0.00008, 0.02, dt); },
+    extraActions: [
+      { id: 'fem_ortho', name: 'Refer to orthopaedics (IM nail; fracture clinic / theatre list)' },
+      { id: 'fem_block', name: 'Femoral nerve / fascia iliaca block (ultrasound-guided)' },
+    ],
+    onEvent(e, ev) {
+      const f = e.flags;
+      if (ev.type === 'action' && ev.id === 'fem_block') { f.pain = Math.max(0, (f.pain == null ? 1 : f.pain) - 0.5); f.block = true; return { handled: true, msg: 'Ultrasound-guided fascia iliaca block with levobupivacaine 0.25% (within the maximum dose) — thigh pain much better after ~10 min. Document the neurovascular status before the block.', kind: 'good' }; }
+      if (ev.type === 'action' && ev.id === 'fem_ortho') { if (!e.did('inv_ct')) return { handled: true, msg: 'Orthopaedic registrar: “Happy to take him — can you get an X-ray of the whole femur, including hip and knee, first?”' }; f.ortho = true; return { handled: true, msg: 'Orthopaedics: closed mid-shaft femoral fracture — intramedullary nail on the trauma list today. Keep him in the traction splint, nil by mouth, group & save.', kind: 'good' }; }
+      if (ev.type === 'drug' && (ev.id === 'morphine' || ev.id === 'fentanyl' || ev.id === 'ketamine')) { f.analgesia = true; return null; }
+      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 2000) return { harm: 'Large-volume crystalloid for haemorrhage — use blood if still shocked' };
+      return null;
+    },
+    exam: ex({ A: 'Talking, distressed with pain.', B: 'Chest clear, equal air entry.', C: (e) => `CRT 3 s, cool hands. Right thigh ${e.flags.splinted === 'traction' ? 'out to length in a traction splint, less tense' : 'tense, swollen, shortened and externally rotated'}.`, D: 'GCS 15. No head injury.', E: (e) => `${e.flags.painNow > 0.5 ? 'Pain 9/10.' : e.flags.painNow > 0.2 ? 'Pain 5/10.' : 'Pain 2/10.'} Closed injury — skin intact. No other injuries on secondary survey.` }),
+    inv: { bloods: (e) => labs(e, {}), gas: true, ecg: {}, cxr: cxrN, ct: [{ label: 'X-ray right femur (incl. hip and knee)', media: null, report: 'Displaced, comminuted mid-shaft fracture of the right femur with shortening. Hip and knee intact.' }], pocus: [{ label: 'eFAST', media: null, report: 'No free fluid; no pneumothorax.' }] },
+    critical: [
+      { text: 'IV analgesia titrated (opioid or ketamine) ± nerve block', check: (e) => e.flags.analgesia || e.flags.block },
+      { text: 'Traction splint for the mid-shaft femur', check: (e) => e.flags.splinted === 'traction' },
+      { text: 'Neurovascular check before and after splinting', check: (e) => { const n = e.flags.nvChecks || [], s = e.flags.splintAt; return s != null && n.some((t) => t <= s) && n.some((t) => t > s); } },
+      { text: 'X-ray the whole femur and refer to orthopaedics', check: (e) => !!e.flags.ortho },
+    ],
+    targets: { map: 65 },
+    hint: { steps: [
+      { t: 'Closed mid-shaft femoral fracture: 1–1.5 L can be lost into the thigh', kind: 'cause', rx: 'Traction splint, analgesia' },
+      { t: 'Pain and muscle spasm override and shorten the fracture, opening bone ends and the thigh compartment', rx: 'Traction restores length → less bleeding and pain' },
+      { t: 'Haemorrhage', rx: 'Two large-bore cannulas; blood if still shocked' },
+      { t: 'Ongoing shock / neurovascular compromise', kind: 'end' },
+    ] },
+    debrief: {
+      points: [
+        'NICE NG37: consider a traction splint for a suspected mid-shaft femoral fracture. Avoid traction when there is a pelvic or hip injury, or a knee or ankle injury on the same leg — use a rigid/vacuum splint instead.',
+        'Check and document distal pulses, sensation, movement and capillary refill before and after splinting — and after any manipulation.',
+        'Give IV analgesia titrated to effect (morphine/fentanyl; ketamine is an option) and consider a femoral nerve or fascia iliaca block.',
+        'A closed femoral shaft fracture can bleed 1–1.5 L: two large-bore cannulas, crossmatch, and blood if still shocked after splinting.',
+        'Watch for compartment syndrome (pain out of proportion, pain on passive stretch) and fat embolism over the next 24–72 h.',
+      ],
+      refs: ['NICE NG37: Fractures (complex): assessment and management (2016)', 'NICE NG39: Major trauma — assessment and initial management (2016)', 'RCEM: Management of pain in adults (2021)'],
+    },
+  });
+
+  // =====================================================================
   // Penetrating chest — massive haemothorax
   // =====================================================================
   add({
     id: 'em-stab-haemothorax', title: 'Stab wound to the left chest (haemothorax)', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 2, setting: 'ed',
+    eblExpected: 'Massive haemothorax: ≥ 1.5 L on drain insertion, or > 200 mL/h for 2–4 h, is an indication for thoracotomy; each hemithorax can hold 2–3 L.',
+    bloodLoss: 'drain', drainInitial: 1600,
     stem: '24-year-old man stabbed in the left lateral chest. Breathless, pale and sweaty, SpO₂ 90%. Reduced breath sounds and dull percussion on the left.',
     patient: { age: 24, sex: 'M', weight: 75, vol: 0.66, bleed: 0.0009, shunt: 0.28, lactate: 4.2, look: { wound: true } },
     tick(e, dt) { if (e.flags.ctrl) e.p.bleed = toward(e.p.bleed, 0, 0.05, dt); if (e.flags.drain) e.p.shunt = toward(e.p.shunt, 0.06, 0.02, dt); },
@@ -191,6 +244,7 @@
   // =====================================================================
   add({
     id: 'em-stab-tamponade', title: 'Stab wound over the heart', field: 'EM', shock: 'Obstructive (tamponade)', difficulty: 3, setting: 'ed',
+    eblExpected: 'Only 100–200 mL of acute pericardial blood is enough to cause tamponade — the problem is pressure, not volume.',
     stem: '30-year-old man with a single stab wound just left of the sternum. Agitated, then drowsy. HR 132, BP 78/60, distended neck veins. Chest clear bilaterally.',
     patient: { age: 30, sex: 'M', weight: 78, obstruct: 0.52, vol: 0.9, bleed: 0.0002, lactate: 4.0, look: { wound: true } },
     tick(e, dt) { const p = e.p; if (!e.flags.relieved) p.obstruct = Math.min(0.8, p.obstruct + 0.001 * dt); else p.obstruct = 0; },
@@ -230,6 +284,7 @@
   // =====================================================================
   add({
     id: 'em-ectopic', title: 'Collapse with abdominal pain', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 2, setting: 'ed',
+    eblExpected: 'Ruptured ectopic pregnancy: haemoperitoneum is commonly 1–2 L at presentation, sometimes more.',
     stem: '28-year-old woman collapsed at work with sudden lower abdominal pain and right shoulder-tip pain. Last period 7 weeks ago. Pale, sweaty and tachycardic.',
     patient: { age: 28, sex: 'F', weight: 60, vol: 0.64, bleed: 0.001, lactate: 3.8, look: { sweaty: true } },
     tick(e, dt) { if (e.flags.ctrl) e.p.bleed = toward(e.p.bleed, 0, 0.05, dt); },
@@ -268,6 +323,8 @@
   // =====================================================================
   add({
     id: 'em-ugib-ulcer', title: 'Haematemesis on NSAIDs', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 2, setting: 'ed',
+    eblExpected: 'Peptic ulcer bleed with shock: commonly 1–2 L, with more in the gut than is seen (Glasgow-Blatchford score high).',
+    bloodLoss: 'visible', bloodLossNote: 'haematemesis / melaena seen — more remains in the gut',
     stem: '70-year-old man taking ibuprofen for back pain and aspirin. Two large haematemeses and black stools today. Pale and clammy. Glasgow–Blatchford score 14.',
     patient: { age: 70, sex: 'M', weight: 80, vol: 0.67, bleed: 0.0007, hb: 72, lactate: 3.0, look: {} },
     tick(e, dt) { if (e.flags.ctrl) e.p.bleed = toward(e.p.bleed, 0, 0.05, dt); },

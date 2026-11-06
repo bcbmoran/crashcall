@@ -756,6 +756,7 @@
   // =====================================================================
   add({
     id: 'em-pea-arrest', title: 'PEA arrest on the ward', field: 'EM', shock: 'Hypovolaemic (arrest)', difficulty: 2, setting: 'ward', als: true, arrestLimit: 420,
+    eblExpected: 'Post-operative intra-abdominal bleed: losing ~40–50% of blood volume (≈ 2–2.5 L in a 74 kg man) is enough to cause PEA arrest.',
     stem: 'Cardiac arrest call: 71-year-old man, day 1 after an open right hemicolectomy, found unresponsive. The nurse says he has been increasingly tachycardic overnight and his drain has filled. Monitor shows sinus rhythm at 120 — no pulse.',
     patient: { age: 71, sex: 'M', weight: 74, rhythm: 'pea', peaRate: 120, vol: 0.5, hb: 70, bleed: 0.0004, lactate: 7, look: { wound: true } },
     arrestRhythm: () => 'pea',

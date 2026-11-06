@@ -206,6 +206,30 @@
     $('#stabTxt').textContent = e.stableTime > 0 ? `${Math.floor(e.stableTime)} / ${need} s stable` : 'Targets not yet held';
     if (!e.L.showTargets && !state.scn.tutorial) { $('#stabBar').style.width = '0%'; $('#stabTxt').textContent = 'Hidden at consultant grade'; }
     const db = $('#declareBtn'); if (db) { db.hidden = e.L.showTargets || !!state.scn.tutorial; db.disabled = !!e.outcome; }
+    const nowS = Math.floor(e.t); if (force || state.outT !== nowS) { state.outT = nowS; renderOutput(e); }
+  }
+  // Live outputs: urine (needs a catheter), blood loss (only where it can be seen/measured), and fluid balance.
+  function renderOutput(e) {
+    const box = $('#outBody'); if (!box) return;
+    const scn = state.scn, p = e.p, o = e.out || {};
+    const card = $('#outCard'); card.hidden = !!(scn.ga || (scn.kit && scn.kit.fluids === false && !scn.longBone));
+    const r = (x) => Math.round(x);
+    let uo;
+    if (e.hasCatheter()) {
+      const rate = o.uoNow || 0, mlh = rate * p.weight, cls = rate < 0.5 ? 'bad' : rate < 1 ? 'warn' : 'ok';
+      uo = `<div class="out-row"><span>Urine output</span><b class="${cls}">${r(mlh)} mL/h</b><span class="muted small">${rate.toFixed(1)} mL/kg/h · ${r(o.urine)} mL total</span></div>`;
+    } else uo = `<div class="out-row"><span>Urine output</span><span class="muted small">Not measured — no catheter</span><button class="btn sm" id="outCath">Insert catheter</button></div>`;
+    const vis = scn.bloodLoss || (scn.setting === 'theatre' ? 'visible' : 'concealed');
+    const seen = vis === 'visible' || (vis === 'drain' && e.did('chest_drain'));
+    let bl;
+    if (o.blood < 5 && !(p.bleed > 0)) bl = `<div class="out-row"><span>Blood loss</span><span class="muted small">No active bleeding</span></div>`;
+    else if (seen) { if (vis === 'drain' && o.drain0 == null) o.drain0 = o.blood; const shown = vis === 'drain' ? (scn.drainInitial || 0) + o.blood - o.drain0 : (scn.bloodLossStart || 0) + o.blood; bl = `<div class="out-row"><span>${vis === 'drain' ? 'Chest drain (blood)' : 'Measured blood loss'}</span><b class="${o.bleedNow > 100 ? 'bad' : o.bleedNow > 20 ? 'warn' : 'ok'}">${r(shown / 10) * 10} mL</b><span class="muted small">${o.bleedNow > 2 ? 'now ~' + r(o.bleedNow) + ' mL/min' : 'slowed'}${scn.bloodLossNote ? ' · ' + esc(scn.bloodLossNote) : ''}</span></div>`; }
+    else bl = `<div class="out-row"><span>Blood loss</span><span class="muted small">${vis === 'drain' ? 'Into the chest — not measurable until a chest drain is in' : 'Concealed (internal) — not measurable; judge from HR, BP, CRT, lactate and Hb'}</span></div>`;
+    const fin = ['crystalloid', 'rbc', 'ffp', 'plt', 'cryo'].reduce((s, k) => s + (e.fluidIn[k] || 0), 0);
+    const fout = (e.hasCatheter() ? o.urine : 0) + (seen ? (vis === 'drain' ? (scn.drainInitial || 0) + o.blood - (o.drain0 || 0) : (scn.bloodLossStart || 0) + o.blood) : 0);
+    const fb = `<div class="out-row"><span>Fluid in / measured out</span><b>${r(fin)} / ${r(fout)} mL</b><span class="muted small">balance ${fin - fout >= 0 ? '+' : ''}${r(fin - fout)} mL</span></div>`;
+    box.innerHTML = uo + bl + fb + '<p class="muted small out-note">Time-compressed: each second of the scenario ≈ 1 minute of urine production.</p>';
+    const c = $('#outCath'); if (c) c.onclick = () => { if (state.paused || e.outcome) { toast(e.outcome ? 'Scenario has ended.' : 'Press start / resume first.', 'warn'); return; } e.doAction('urinary_catheter'); renderOutput(e); };
   }
 
   // Junior grade: a senior nurse prompts the next outstanding critical action when you stall.
@@ -307,7 +331,7 @@
   function actionsHTML() {
     const e = state.eng, p = e.p, scn = state.scn;
     const kit = scn.kit || {};
-    const ok = (a) => (!kit.actions || kit.actions.includes(a.id)) && (!a.setting || a.setting === scn.setting) && (!a.need || (a.need === 'ventilated' && p.ventilated) || (a.need === 'pregnant' && p.pregnant) || (a.need === 'obstetric' && (p.obstetric || p.pregnant)) || (a.need === 'als' && scn.als));
+    const ok = (a) => (!kit.actions || kit.actions.includes(a.id)) && (!a.setting || a.setting === scn.setting) && (!a.need || (a.need === 'ventilated' && p.ventilated) || (a.need === 'pregnant' && p.pregnant) || (a.need === 'obstetric' && (p.obstetric || p.pregnant)) || (a.need === 'als' && scn.als) || (a.need === 'longBone' && scn.longBone));
     const groups = [...new Set(S.ACTIONS.map((a) => a.grp))];
     // Scenario-specific actions: `show(e)` reveals an action only once the preceding step is done; `repeat` actions show a count instead of a tick.
     const xa = (scn.extraActions || []).filter((a) => !a.show || a.show(e));
@@ -592,6 +616,24 @@
     }
   }
 
+  // Debrief: estimated blood loss (before arrival from the starting volume deficit + during the scenario), ATLS class, and the loss expected for this injury.
+  function bloodLossHTML(e, s) {
+    const o = e.out || {}, p = e.p;
+    const bleeding = o.blood > 50 || /haemorrhag|hypovolaemic \(arrest\)/i.test(s.shock || '') || s.eblExpected;
+    if (!bleeding) return e.hasCatheter() && o.urine > 0 ? `<p class="muted small">Urine output during the scenario: ${Math.round(o.urine)} mL.</p>` : '';
+    const perKg = p.paed ? (p.weight < 10 ? 85 : 80) : (p.pregnant || p.obstetric) ? 100 : 70, bv = p.weight * perKg;
+    const vol0 = (s.patient && s.patient.vol != null) ? s.patient.vol : 1;
+    const before = s.bloodLossStart != null ? s.bloodLossStart : /haemorrhag|arrest/i.test(s.shock || '') ? Math.max(0, (1 - vol0) * bv) : 0;
+    const during = o.blood || 0, total = before + during, pct = Math.round((100 * total) / bv);
+    const cls = pct < 15 ? 'I' : pct < 30 ? 'II' : pct < 40 ? 'III' : 'IV';
+    const r50 = (x) => Math.round(x / 50) * 50;
+    const vis = s.bloodLoss || (s.setting === 'theatre' ? 'visible' : 'concealed');
+    return `<h3>Blood loss</h3><ul class="ebl">
+      <li>Estimated total: <b>${r50(total)} mL</b> (~${pct}% of a ${r50(bv)} mL blood volume — ATLS class ${cls})${before > 50 ? ` · about ${r50(before)} mL before arrival + ${r50(during)} mL during the scenario` : ''}.${vis === 'concealed' ? ' This bleeding was concealed and could not be measured during the case.' : ''}</li>
+      ${s.eblExpected ? `<li>Typical for this condition: ${esc(s.eblExpected)}</li>` : ''}
+      ${e.hasCatheter() ? `<li>Urine output during the scenario: ${Math.round(o.urine)} mL.</li>` : ''}
+    </ul>`;
+  }
   // ---------------- debrief ----------------
   function finish(outcome) {
     const e = state.eng, s = state.scn; if (!e) return;
@@ -616,6 +658,7 @@
       ${saved ? '<p class="muted small" id="saveNote"></p>' : ''}
       <h3>Critical actions</h3><ul>${cs.map((c) => `<li class="${c.done ? 'ok' : 'miss'}">${esc(c.text)}</li>`).join('')}</ul>
       ${tgtHTML}
+      ${bloodLossHTML(e, s)}
       ${e.did('complication') ? `<h3>Second problem (consultant grade)</h3><p>${e.flags.compl === 'iv' ? 'The IV cannula tissued mid-resuscitation — infusions and boluses stopped reaching the patient. Watch pump alarms and the response to drugs; re-site access (IO if needed).' : e.flags.compl === 'tube' ? 'The tracheal tube displaced during a move — loss of capnography is a displaced tube until proven otherwise (DAS / AoA QRH 2-2 and 2-3).' : e.flags.compl === 'o2' ? 'The oxygen supply was disconnected — always re-check the delivery chain when saturations fall.' : esc(e.flags.complText || 'A scenario-specific complication occurred.')} ${e.flags.ivDown || e.flags.tubeDisplaced || e.flags.o2Off ? '<b>It was not resolved.</b>' : 'You resolved it.'}</p>` : ''}
       ${e.harms.length ? `<h3>Potential harm</h3><ul>${e.harms.map((h) => { const fx = (e.harmFx || []).find((x) => x.harm === h); return `<li class="harm">${esc(h)}${fx ? `<br><span class="muted small">Effect on the patient: ${esc(fx.fx)}</span>` : ''}</li>`; }).join('')}</ul>` : ''}
       ${imgRes.length ? `<h3>Investigation reports</h3><div class="db-res">${imgRes.map((r, i) => `<details data-dbres="${i}"><summary>${esc(r.name)} · ${r.at}</summary><div class="db-res-host"></div></details>`).join('')}</div>` : ''}

@@ -136,6 +136,7 @@
   // =====================================================================
   add({
     id: 'an-obs-arrest', title: 'Maternal cardiac arrest on the labour ward', field: 'Anaes', shock: 'Hypovolaemic (arrest)', category: 'Obstetric anaesthesia', difficulty: 3, setting: 'ward', als: true, arrestLimit: 480,
+    eblExpected: 'Placental abruption: concealed retroplacental and intrauterine bleeding is often 1.5–2.5 L+ and is easily underestimated; pregnancy masks early signs.',
     stem: 'Obstetric emergency call to the antenatal ward: 34-year-old, 36 weeks, complained of severe constant abdominal pain and then collapsed. The midwife says she is not breathing. The monitor shows a narrow-complex rhythm at 110 — no pulse.',
     patient: { age: 34, sex: 'F', weight: 82, pregnant: true, cavalComp: 0.55, rhythm: 'pea', peaRate: 110, vol: 0.58, hb: 82, bleed: 0.0004, coag: 0.35, lactate: 6, look: { pregnant: true } },
     arrestRhythm: () => 'pea',

@@ -32,6 +32,8 @@
   // =====================================================================
   add({
     id: 'em-tca', title: 'Traumatic cardiac arrest', field: 'EM', shock: 'Obstructive + hypovolaemic (arrest)', difficulty: 3, setting: 'ed', als: true, arrestLimit: 360,
+    eblExpected: 'Femoral arterial bleeding can exsanguinate in minutes; with pelvic injury, total loss in traumatic arrest often exceeds 40% of blood volume.',
+    bloodLoss: 'visible', bloodLossNote: 'external haemorrhage — pelvic bleeding is concealed',
     stem: 'Pre-alert: 26-year-old motorcyclist versus car at 50 mph. Lost output in the ambulance 4 minutes ago — CPR in progress. On arrival: PEA ~130/min, arterial bleeding from an open left thigh wound, absent breath sounds on the right, unstable pelvis.',
     patient: { age: 26, sex: 'M', weight: 80, rhythm: 'pea', peaRate: 130, vol: 0.42, obstruct: 0.5, bleed: 0.0012, hb: 78, coag: 0.5, effort: 0, gcs: 3, lactate: 9, temp: 35.4, look: { collar: true, legs: { left: { wound: true, tourniquetIf: 'tca_haem' } } } },
     arrestRhythm: () => 'pea',

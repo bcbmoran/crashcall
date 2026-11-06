@@ -302,6 +302,7 @@
   // =====================================================================
   add({
     id: 'paed-trauma', title: 'Child hit by a car', field: 'Paeds', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 2, setting: 'ed',
+    eblExpected: 'Grade IV splenic laceration: a child can lose 25–40% of circulating volume (blood volume ~80 mL/kg ≈ 2 L at 26 kg, so ~500–800 mL) before the BP falls.',
     stem: '8-year-old boy (26 kg), struck by a car at 30 mph. Complaining of left shoulder-tip and abdominal pain. Pale, cool, tachycardic. Pre-alert: “HR 150, BP not obtained”.',
     patient: paed(26, 8, { vol: 0.74, bleed: 0.0011, lactate: 4.2, coag: 0.15, hb: 98, look: { wound: true } }),
     tick(e, dt) { const p = e.p; if (e.flags.controlled) p.bleed = toward(p.bleed, 0, 0.05, dt); if (mlkg(e) > 20) p.coag = Math.min(1, p.coag + 0.0004 * dt); if (e.fluidIn.ffp > 0) p.coag = Math.max(0, p.coag - 0.0005 * dt); },

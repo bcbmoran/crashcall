@@ -126,6 +126,7 @@
   // =====================================================================
   add({
     id: 'em-trauma-pelvis', qrh: ['3-2'], title: 'Major trauma: pelvic fracture haemorrhage', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
+    eblExpected: 'Unstable (open-book) pelvic ring fracture: typically 1.5–2 L+, and the retroperitoneum can hold several litres — up to the whole blood volume.',
     stem: '34-year-old male motorcyclist, ~60 mph collision with a car. Pre-alert: "pelvic pain, HR 125, SBP 90". On arrival he is pale and clammy. Trauma team activated.',
     patient: { age: 34, sex: 'M', weight: 80, vol: 0.6, bleed: 0.0011, coag: 0.5, hb: 108, lactate: 5.2, temp: 35.3, hrBase: 78, rrBase: 24, gcs: 14, look: { sweaty: true, legs: { left: { shortRot: true, bruise: true } } } },
     init(e) { e.flags.bleedMult = 1; },
@@ -494,6 +495,8 @@
   // =====================================================================
   add({
     id: 'em-variceal-bleed', qrh: ['3-2'], title: 'Upper GI bleed: oesophageal varices', field: 'EM', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 3, setting: 'ed',
+    eblExpected: 'Variceal haemorrhage: often 1–2 L before arrival, with more in the gut than is seen; restrictive transfusion (Hb 70–80 g/L) is the target.',
+    bloodLoss: 'visible', bloodLossNote: 'seen in ED (plus ~1 L at home) — more remains in the gut',
     stem: '52-year-old man with alcohol-related cirrhosis. Two large haematemeses (~1 L fresh blood) at home. Pale, sweaty, mildly confused. Last drink yesterday.',
     patient: { age: 52, sex: 'M', weight: 70, vol: 0.66, bleed: 0.0009, coag: 0.9, hb: 74, lactate: 4.1, hrBase: 84, gcs: 14, rrBase: 22, look: { skin: '#e3c48e', sweaty: true } },
     tick(e, dt) {

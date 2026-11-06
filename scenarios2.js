@@ -754,6 +754,8 @@
   // =====================================================================
   add({
     id: 'an-pph', qrh: ['3-2'], title: 'Major obstetric haemorrhage (uterine atony)', field: 'Anaes', shock: 'Hypovolaemic (haemorrhagic)', difficulty: 2, setting: 'theatre',
+    eblExpected: 'PPH: minor 500–1000 mL, major > 1000 mL; > 2000 mL or ongoing bleeding with shock is a massive obstetric haemorrhage (RCOG).',
+    bloodLoss: 'visible', bloodLossStart: 1800, bloodLossNote: 'weighed swabs + suction (1.8 L before you arrived)',
     stem: 'Obstetric theatre: 29-year-old woman, 30 min after a vaginal twin delivery following a prolonged labour. Epidural in situ. Estimated blood loss now 1.8 L and continuing; the uterus feels boggy.',
     patient: { age: 29, sex: 'F', weight: 70, obstetric: true, vol: 0.74, bleed: 0.0012, coag: 0.35, hb: 96, lactate: 3.2, hrBase: 88, look: { drapes: false, sweaty: true } },
     init(e) { e.flags.ut = new Set(); },
