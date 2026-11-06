@@ -228,13 +228,13 @@
     const hide = (el, h) => { el.style.display = h ? 'none' : ''; };
     $$('.als-bar, .results, .fluid-sum, .srch-sec > p, .grp > p', body).forEach((x) => hide(x, true));
     $$('.vent', body).forEach((x) => hide(x.closest('.grp'), true));
-    const items = $$('.drug, [data-act], [data-fluid], [data-inv]', body).filter((x) => !x.closest('.drug') || x.classList.contains('drug'));
+    const items = $$('.drug, [data-act], [data-fluid], [data-inv], [data-line]', body).filter((x) => !x.closest('.drug') || x.classList.contains('drug'));
     items.forEach((x) => {
       const g = x.closest('.grp'), h = g && $('h4', g);
-      const hay = ((x.classList.contains('drug') ? ($('.dn', x) || x).textContent : x.textContent) + ' ' + (h ? h.textContent : '') + ' ' + (x.dataset.d || x.dataset.act || x.dataset.fluid || x.dataset.inv || '')).toLowerCase();
+      const hay = ((x.classList.contains('drug') ? ($('.dn', x) || x).textContent : x.textContent) + ' ' + (h ? h.textContent : '') + ' ' + (x.dataset.d || x.dataset.act || x.dataset.fluid || x.dataset.inv || (x.dataset.line ? 'cannula iv access gauge ' + x.dataset.line : '') || '')).toLowerCase();
       hide(x, !words.every((w) => hay.includes(w)));
     });
-    $$('.grp', body).forEach((g) => { if (g.style.display === 'none') return; hide(g, !$$('.drug, [data-act], [data-fluid], [data-inv]', g).some((x) => x.style.display !== 'none')); });
+    $$('.grp', body).forEach((g) => { if (g.style.display === 'none') return; hide(g, !$$('.drug, [data-act], [data-fluid], [data-inv], [data-line]', g).some((x) => x.style.display !== 'none')); });
     let any = false;
     $$('.srch-sec', body).forEach((s) => { const v = $$('.grp', s).some((g) => g.style.display !== 'none'); hide(s, !v); any = any || v; });
     hide($('.srch-none', body), any);
@@ -308,11 +308,24 @@
         <label>Rate (/min) <output id="o_ventRR">${p.ventRR}</output><input type="range" min="6" max="35" step="1" value="${p.ventRR}" data-vent="ventRR"></label>
         <div class="small muted">Ppeak ${Math.round(p.paw)} · autoPEEP ${p.autoPEEP.toFixed(0)} · Vt ~6–8 mL/kg IBW</div></div></div>`;
     }
-    return alsBar + extra + vent + groups.map((g) => {
+    return alsBar + extra + accessHTML() + vent + groups.map((g) => {
       const acts = S.ACTIONS.filter((a) => a.grp === g && ok(a));
       if (!acts.length) return '';
       return `<div class="grp"><h4>${g}</h4><div class="act-grid">${acts.map((a) => `<button class="btn ${e.did(a.id) ? 'done' : ''}" data-act="${a.id}">${esc(a.name)}${e.did(a.id) ? ' ✓' : ''}</button>`).join('')}</div></div>`;
     }).join('');
+  }
+  // Vascular access: current lines as colour-coded badges, plus gauge choices for the next cannula (max 3 IV + 1 IO).
+  function accessHTML() {
+    const e = state.eng, p = e.p, scn = state.scn, kit = scn.kit || {};
+    if (scn.ga || kit.fluids === false || (kit.actions && !kit.actions.includes('resite_iv'))) return '';
+    const C = S.CANNULA, n = e.ivCount();
+    const badge = (g) => `<span class="cbadge" style="background:${C[g].hex}${g === 22 || g === 'IO' ? ';color:#fff' : ''}">${g === 'IO' ? 'IO' : g + 'G'}</span>`;
+    const cur = e.lines.length ? e.lines.map((l) => `<span class="cline">${badge(l.g)} ${esc(l.site)}</span>`).join('') : '<span class="muted small">No working access</span>';
+    const gauges = p.paed ? [18, 20, 22, 24] : [14, 16, 18, 20, 22];
+    const ord = ['1st', '2nd', '3rd'][n];
+    const ivBtns = n < 3 ? `<div class="small muted">Site ${ord} cannula — choose gauge:</div><div class="act-grid gauges">${gauges.map((g) => `<button class="btn gauge" data-line="${g}" title="${g}G ${C[g].col}">${badge(g)} ${g}G ${C[g].col}</button>`).join('')}</div>` : '';
+    const io = e.lines.some((l) => l.g === 'IO') ? '' : `<div class="act-grid"><button class="btn gauge" data-line="IO">${badge('IO')} Intraosseous needle (${p.paed ? 'proximal tibia' : 'humerus'})</button></div>`;
+    return `<div class="grp"><h4>Vascular access</h4><div class="clines">${cur}</div>${ivBtns}${io}</div>`;
   }
   function invHTML() {
     const scn = state.scn, inv = scn.inv || {};
@@ -362,6 +375,7 @@
   function examHTML() {
     if (state.examPrompt) return `<div class="exam"><p class="muted small">Start with an ABCDE assessment.</p><div class="row-end"><button class="btn primary" data-reexam>Examine patient (ABCDE)</button></div></div>`;
     const ex = adjustExam(state.scn.exam ? Object.assign({}, state.scn.exam(state.eng)) : {}, state.eng);
+    if (!state.scn.ga && ex.C && !(state.scn.kit && state.scn.kit.fluids === false)) ex.C = String(ex.C).trim() + ' IV access: ' + state.eng.lineText() + '.';
     state.eng.mark('exam');
     return `<div class="exam"><p class="muted small">Examination findings now (${fmt(state.elapsed).slice(0, 5)}). Re-open this tab to re-examine.</p><dl>${['A', 'B', 'C', 'D', 'E'].map((k) => `<dt>${k}</dt><dd>${esc(ex[k] || '—')}</dd>`).join('')}</dl><div class="row-end"><button class="btn sm" data-reexam>Re-examine</button></div></div>`;
   }
@@ -374,6 +388,7 @@
     $$('[data-info]', body).forEach((b) => (b.onclick = () => b.closest('.drug').classList.toggle('show-info')));
     $$('[data-fluid]', body).forEach((b) => (b.onclick = () => guard() && e.giveFluid(b.dataset.fluid)));
     $$('[data-act]', body).forEach((b) => (b.onclick = () => guard() && e.doAction(b.dataset.act)));
+    $$('[data-line]', body).forEach((b) => (b.onclick = () => guard() && e.siteLine(b.dataset.line)));
     $$('[data-vent]', body).forEach((r) => {
       r.oninput = () => { $('#o_' + r.dataset.vent).textContent = r.dataset.vent === 'fio2' ? (+r.value).toFixed(2) : r.value; };
       r.onchange = () => guard() && e.setVent(r.dataset.vent, +r.value);
@@ -565,7 +580,7 @@
     const ms = state.elapsed;
     let newBest = false;
     if (outcome === 'win') { const best = store.get('best', {}); if (!best[s.id] || ms < best[s.id]) { best[s.id] = ms; store.set('best', best); newBest = true; } }
-    const cs = (s.critical || []).map((c) => ({ text: c.text, done: !!c.check(e) }));
+    const cs = e.allCritical().filter((c) => !c.skip || !c.skip(e)).map((c) => ({ text: c.text, done: !!c.check(e) }));
     const saved = !s.tutorial && S.Progress ? S.Progress.record({ sid: s.id, level: e.level, outcome, ms: Math.round(ms), hints: state.hints, harms: e.harms.length, blind: !!state.blind, crit: cs.map((c) => ({ t: c.text, d: c.done })), at: new Date().toISOString() }) : null;
     const title = outcome === 'win' ? 'Patient stabilised' : outcome === 'arrest' ? 'Cardiac arrest — scenario failed' : 'Scenario ended';
     const imgRes = state.results.filter((r) => r.kind === 'img' || r.kind === 'pocus');

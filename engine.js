@@ -127,6 +127,7 @@
       this.p.ecg = Object.assign({}, DEFAULTS.ecg, pat.ecg || {});
       this.p.hbMass = this.p.hb * this.p.vol;
       this.p.lastFio2 = this.p.fio2;
+      this.initLines();
       if (scn.init) scn.init(this);
       this.settle();
       if (scn.start) scn.start(this);
@@ -145,9 +146,60 @@
       if (!opts.length) opts.push('iv');
       const k = opts[Math.floor(Math.random() * opts.length)];
       this.flags.compl = k; this.mark('complication');
-      if (k === 'iv') { this.flags.ivDown = true; this.say('Pump alarm: OCCLUSION — the arm around the cannula is swollen. The cannula has tissued: nothing is reaching the patient.', 'bad'); }
+      if (k === 'iv') {
+        const lost = this.lines.shift();
+        const nm = lost ? (lost.g === 'IO' ? 'IO needle' : `${lost.g}G (${S.CANNULA[lost.g].col}) cannula`) + ' in the ' + lost.site : 'cannula';
+        if (this.lines.length) this.say(`Pump alarm: OCCLUSION — the ${nm} has tissued and has been removed. Fluids and infusions have been moved to the remaining ${this.lineText()} — consider siting another cannula.`, 'warn');
+        else { this.flags.ivDown = true; this.say(`Pump alarm: OCCLUSION — the arm around the ${nm} is swollen. It has tissued and there is no other access: nothing is reaching the patient.`, 'bad'); }
+      }
       if (k === 'tube') { this.flags.tubeDisplaced = true; p.tubeOK = false; this.say('Patient moved for a line/pad change — capnography trace lost and the ventilator is alarming.', 'bad'); }
       if (k === 'o2') { this.flags.o2Off = p.fio2; p.fio2 = 0.21; p.lastFio2 = 0.21; this.say('Patient pulled their oxygen mask off in agitation; the tubing has disconnected from the wall.', 'bad'); }
+    }
+
+    // -------- vascular access (peripheral cannulas, colour-coded by gauge; IO) --------
+    initLines() {
+      const p = this.p, scn = this.scn;
+      const def = p.paed ? [p.weight < 10 ? 24 : 22] : [20];
+      this.lines = (Array.isArray(p.lines) ? p.lines : def).map((g) => ({ g, site: '' }));
+      this.lines.forEach((l, i) => (l.site = this.siteFor(l.g, i)));
+      const noAccess = (scn.kit && scn.kit.fluids === false) || scn.tutorial || scn.ga || /^neo-/.test(scn.id || '');
+      const shocked = p.bleed > 0 || /hypovol|septic|anaphyl|haemorrh/i.test(scn.shock || '');
+      const has = (scn.critical || []).some((c) => /cannula|large-bore|vascular access|IV access|\bIO\b/i.test(c.text));
+      this.autoCrit = [];
+      if (!noAccess && shocked && !has) {
+        if (p.paed) this.autoCrit.push({ id: 'access2', text: 'Two points of vascular access (IV or IO)', check: (e) => e.lines.length >= 2 });
+        else this.autoCrit.push({ id: 'access2', text: 'Two large-bore cannulas (≥ 18G, or IO)', check: (e) => e.lines.filter((l) => l.g === 'IO' || l.g <= 18).length >= 2 });
+      }
+    }
+    allCritical() { return (this.scn.critical || []).concat(this.autoCrit || []); }
+    siteFor(g, i) {
+      if (g === 'IO') return this.p.paed ? 'proximal tibia' : 'proximal humerus';
+      return ['left forearm', 'right forearm', 'left antecubital fossa', 'right antecubital fossa'][i] || 'hand';
+    }
+    nextSite(g) { const used = this.lines.map((l) => l.site); for (let i = 0; i < 5; i++) { const s = this.siteFor(g, i); if (!used.includes(s)) return s; } return 'hand'; }
+    lineText() { return this.lines.length ? this.lines.map((l) => (l.g === 'IO' ? 'IO (' + l.site + ')' : `${l.g}G ${S.CANNULA[l.g].col} (${l.site})`)).join(' + ') : 'no working access'; }
+    ivCount() { return this.lines.filter((l) => l.g !== 'IO').length; }
+    siteLine(g) {
+      if (this.outcome) return;
+      if (g !== 'IO') g = +g;
+      if (!S.CANNULA[g]) return;
+      if (g === 'IO' ? this.lines.some((l) => l.g === 'IO') : this.ivCount() >= 3) { this.say(g === 'IO' ? 'An IO needle is already in place.' : 'Three cannulas are already in place — that is enough peripheral access.'); return; }
+      const site = this.nextSite(g);
+      this.lines.push({ g, site });
+      this.mark('iv_line'); this.mark('iv_' + g);
+      const c = S.CANNULA[g];
+      this.emit({ type: 'action', id: 'iv_' + g, text: g === 'IO' ? `Intraosseous needle sited — ${site}` : `${g}G (${c.col}) cannula sited — ${site}`, kind: 'act' });
+      if (this.flags.ivDown) { this.flags.ivDown = false; this.say('Fluids and infusions re-connected to the new line and running.', 'good'); }
+      else if (g !== 'IO' && g >= 22 && !this.p.paed) this.say(`A ${g}G cannula is fine for drugs but too small for rapid fluid or blood.`);
+      this.react({ type: 'action', id: 'iv_line', g });
+    }
+    // Relative fluid/blood flow from the cannulas in place: one 20G ≈ 0.55, two 18G ≈ 1.0, two 16G ≈ 1.5 (capped at 1.6).
+    flowFactor() {
+      if (!this.lines || !this.lines.length) return 0;
+      if (this.scn.ga) return 1; // theatre cases model their own cannula in ga.js
+      const cap = this.lines.reduce((a, l) => a + S.CANNULA[l.g].flow, 0);
+      const ws = this.p.paed ? Math.max(0.1, Math.min(1, this.p.weight / 70)) : 1;
+      return clamp(0.35 + 0.65 * cap / (200 * ws), 0.35, 1.6);
     }
 
     // -------- helpers for scenarios --------
@@ -182,7 +234,7 @@
       const pl = this.pool(id);
       const sc = this.p.paed && !/\/kg/.test(d.bolus.unit) ? 70 / this.p.weight : 1;
       const nonIV = /_im$|_neb$|_buccal$|^chlorpromazine$|^dexamethasone$|^prednisolone$/.test(id);
-      if (this.flags.ivDown && !nonIV) { this.mark(id); this.emit({ type: 'drug', id, text: `${d.name} ${dose} ${d.bolus.unit} given — but the cannula has tissued`, kind: 'act' }); this.say('The drug went into the tissues — the cannula is not working.', 'bad'); return; }
+      if ((this.flags.ivDown || !this.lines.length) && !nonIV) { this.mark(id); this.emit({ type: 'drug', id, text: `${d.name} ${dose} ${d.bolus.unit} given — but the cannula has tissued`, kind: 'act' }); this.say('The drug went into the tissues — the cannula is not working.', 'bad'); return; }
       pl.depot += dose * d.bolus.E * sc; pl.total += dose;
       this.mark(id);
       this.emit({ type: 'drug', id, text: `${d.name} ${dose} ${d.bolus.unit} given`, kind: 'act' });
@@ -211,7 +263,11 @@
       const a = S.actionById[id] || (this.scn.extraActions || []).find((x) => x.id === id) || { id, name: id };
       this.mark(id);
       this.emit({ type: 'action', id, text: a.name, kind: 'act' });
-      if (id === 'resite_iv') { if (this.flags.ivDown) { this.flags.ivDown = false; this.say('New large-bore cannula sited (or IO). Infusions and fluids re-connected and running.', 'good'); } else this.say('Existing cannula flushes well — no need to re-site.'); return; }
+      if (id === 'resite_iv') {
+        if (this.flags.ivDown) { const g = this.p.paed ? (this.p.weight < 10 ? 24 : 22) : 16; this.lines.push({ g, site: this.nextSite(g) }); this.flags.ivDown = false; this.say(`New ${g}G (${S.CANNULA[g].col}) cannula sited in the ${this.lines[this.lines.length - 1].site}. Infusions and fluids re-connected and running.`, 'good'); }
+        else this.say(`Access checked: ${this.lineText()} — flushing well, no need to re-site.`);
+        return;
+      }
       if (id === 'reposition_tube' && this.flags.tubeDisplaced) { this.flags.tubeDisplaced = false; this.p.tubeOK = true; this.say('Tube had slipped out to the cords — repositioned under direct vision, EtCO₂ trace back, tube re-secured.', 'good'); return; }
       if (this.flags.o2Off && ['o2_nc', 'o2_nrb', 'hfno', 'jaw_thrust_cpap', 'bvm'].includes(id)) this.flags.o2Off = 0;
       const r = this.react({ type: 'action', id, opts });
@@ -495,9 +551,10 @@
       this.temps = this.temps.filter((x) => x.until > this.t);
       this.anaesSuppress *= Math.exp(-dt / 150);
       // fluids
+      const flowF = this.flowFactor() / Math.max(1, this.fluidQ.length / Math.max(1, this.lines.length));
       for (const f of this.fluidQ) {
-        if (this.flags.ivDown) break;
-        const ml = Math.min(f.left, f.rate * dt); f.left -= ml;
+        if (this.flags.ivDown || !this.lines.length) break;
+        const ml = Math.min(f.left, f.rate * flowF * dt); f.left -= ml;
         const bv = p.weight * 70, litre = p.weight * 13.3; // circulating volume; 'adult-litre equivalent'
         const dv = (ml / bv) * (f.kind === 'cryo' ? 0.5 : 1);
         p.vol += dv * (f.kind === 'crystalloid' ? 0.85 : 1);
@@ -608,7 +665,7 @@
     shockable() { return ['vf', 'vt'].includes(this.p.rhythm) && this.p.arrested; }
 
     critStatus() {
-      return (this.scn.critical || []).filter((c) => !c.skip || !c.skip(this)).map((c) => ({ text: c.text, done: !!c.check(this), id: c.id }));
+      return this.allCritical().filter((c) => !c.skip || !c.skip(this)).map((c) => ({ text: c.text, done: !!c.check(this), id: c.id }));
     }
     targetStatus() {
       const p = this.p, tg = Object.assign({ map: p.paed ? Math.round(p.mapNormal * 0.85) : 65, spo2: 94 }, this.scn.targets || {});

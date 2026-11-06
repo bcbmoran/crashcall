@@ -330,3 +330,10 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .declare-btn { margin: .4em 0 .2em; width: 100%; font-weight: 600; border-color: var(--accent); color: var(--accent); }
 .act-grid .btn.primary-act { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
 .xstage { margin: -2px 0 8px; }
+
+/* vascular access */
+.clines { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 2px 0 8px; font-size: .9em; }
+.cline { display: inline-flex; align-items: center; gap: 5px; }
+.cbadge { display: inline-block; min-width: 30px; padding: 1px 5px; border-radius: 4px; font-size: .78em; font-weight: 700; color: #1a1a1a; text-align: center; border: 1px solid rgba(0,0,0,.25); }
+.act-grid.gauges { margin-top: 4px; }
+.btn.gauge { display: inline-flex; align-items: center; gap: 6px; }

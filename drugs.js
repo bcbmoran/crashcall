@@ -258,6 +258,16 @@
     { id: 'plt10', name: 'Platelets 10 mL/kg', kind: 'plt', perKg: 10, paed: true },
   ];
 
+  // Peripheral cannula gauges (ISO 10555 colour code) and approximate free-flow capacity (mL/min) used to scale fluid/blood delivery.
+  S.CANNULA = {
+    14: { col: 'orange', hex: '#f28a1e', flow: 250 },
+    16: { col: 'grey', hex: '#9aa0a6', flow: 180 },
+    18: { col: 'green', hex: '#2fa84f', flow: 100 },
+    20: { col: 'pink', hex: '#f4a8c4', flow: 60 },
+    22: { col: 'blue', hex: '#2f6fd6', flow: 35 },
+    24: { col: 'yellow', hex: '#f2cf2a', flow: 20 },
+    IO: { col: 'IO', hex: '#c0392b', flow: 60 },
+  };
   S.ACTIONS = [
     // Airway & breathing
     { id: 'o2_nc', name: 'Nasal cannulae 4 L/min', grp: 'Airway & breathing' },

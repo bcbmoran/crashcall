@@ -249,8 +249,20 @@
     add(`</g>`); // end of head group
     if (eng.did('fona')) add(`<rect x="240" y="216" width="14" height="18" fill="#fff" stroke="#c33"/><text x="247" y="252" font-size="9" fill="#a22" text-anchor="middle">FONA</text>`);
     // lines
-    add(`<path d="M395 300 C 420 360, 600 380, 700 330" stroke="#e5e5e5" stroke-width="2" fill="none"/>`); // peripheral IV to pole
-    add(`<rect x="388" y="296" width="14" height="10" rx="2" fill="#f4a8c4"/>`);
+    // peripheral cannulas (ISO colour-coded hubs) and IO needle, each with a giving set to the drip stand
+    const slots = { 'left forearm': [388, 316, 1], 'right forearm': [388, 124, -1], 'left antecubital fossa': [326, 314, 1], 'right antecubital fossa': [326, 126, -1], hand: [420, 312, 1] };
+    (eng.lines || []).forEach((l) => {
+      const C = S.CANNULA[l.g];
+      if (l.g === 'IO') {
+        const [x, y] = p.paed ? [566, 262] : [300, 110];
+        add(`<path d="M${x + 6} ${y} C ${x + 60} ${y - 40}, 640 60, 700 70" stroke="#e5e5e5" stroke-width="2" fill="none"/><circle cx="${x}" cy="${y}" r="6" fill="${C.hex}" stroke="#7a1f16"/><text x="${x}" y="${y + (p.paed ? 18 : -10)}" font-size="9" fill="#7a1f16" text-anchor="middle">IO</text>`);
+        return;
+      }
+      const [x, y, sd] = slots[l.site] || slots.hand;
+      add(sd > 0 ? `<path d="M${x + 7} ${y + 4} C ${x + 30} ${y + 50}, 600 380, 700 330" stroke="#e5e5e5" stroke-width="2" fill="none"/>` : `<path d="M${x + 7} ${y} C ${x + 40} ${y - 50}, 600 50, 700 70" stroke="#e5e5e5" stroke-width="2" fill="none"/>`);
+      add(`<rect x="${x}" y="${y - 2}" width="14" height="9" rx="2" fill="${C.hex}" stroke="rgba(0,0,0,.35)" stroke-width=".7"/><rect x="${x - 7}" y="${y + 1}" width="8" height="3" fill="#e8eef3"/><rect x="${x - 6}" y="${y - 4}" width="22" height="13" rx="2" fill="#ffffff" opacity=".35"/>`);
+    });
+    if (eng.flags.ivDown) add(`<text x="388" y="350" font-size="10" fill="#b33" text-anchor="middle">tissued</text>`);
     if (p.artLine) add(`<rect x="405" y="125" width="12" height="9" rx="2" fill="#e33"/><path d="M417 128 C 470 90, 600 60, 700 70" stroke="#ff8080" stroke-width="2" fill="none"/><text x="430" y="118" font-size="10" fill="#a22">art line</text>`);
     if (p.cvc) add(`<rect x="238" y="196" width="10" height="12" rx="2" fill="#4a7bd1"/><path d="M243 196 C 260 120, 600 40, 700 50" stroke="#93b4ef" stroke-width="2" fill="none"/>`);
     add(`</g>`); // end of body group — equipment below is drawn at full size
@@ -305,7 +317,7 @@
       const p = this.eng.p;
       const pumps = Object.keys(this.eng.pools).map((k) => k + this.eng.pools[k].rate).join();
       return [skinColour(this.eng), p.ventilated, p.sga, p.assisted, p.fio2, p.artLine, p.cvc, p.rhythm === 'paced', pumps, JSON.stringify(this.eng.fluidIn), Object.keys(this.eng.done).length,
-        p.spo2 < 88, p.lactate > 4 || p.map < 55, p.cvp > 14, p.sym > 0.55, p.ventRR, p.peep, Math.round(p.paw / 3), Math.round(p.autoPEEP), this.eng.flags.hfno, this.eng.flags.cpr, p.arrested].join('|');
+        JSON.stringify(this.eng.lines), this.eng.flags.ivDown, p.spo2 < 88, p.lactate > 4 || p.map < 55, p.cvp > 14, p.sym > 0.55, p.ventRR, p.peep, Math.round(p.paw / 3), Math.round(p.autoPEEP), this.eng.flags.hfno, this.eng.flags.cpr, p.arrested].join('|');
     }
     update() {
       const sig = this.signature();
