@@ -607,6 +607,13 @@
       <h3>Learning points</h3><ul>${(s.debrief.points || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       <h3>Guidelines &amp; further reading</h3><ul>${(s.debrief.refs || []).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
       <details><summary>Timeline (${log.length} events)</summary><ol class="log">${log.map((x) => `<li class="${x.kind}"><span class="t">${Math.floor(x.t / 60)}:${String(Math.floor(x.t % 60)).padStart(2, '0')}</span><span>${esc(x.text)}</span></li>`).join('')}</ol><p class="muted small">Timeline shows simulator time.</p></details>
+      ${S.Feedback && !s.tutorial ? `<details class="fb-box" id="fbBox"><summary>💬 Feedback on this scenario (optional)</summary>
+        <p class="muted small">Tell me what to improve — realism, clinical accuracy, difficulty or anything that didn’t work. ${S.Progress && S.Progress.user ? 'Sent with your account name so I can follow up if needed.' : 'Sent anonymously.'} Please don’t include any patient information.</p>
+        <div class="fb-stars" role="radiogroup" aria-label="Overall rating">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="fb-star" data-star="${n}" aria-label="${n} star${n > 1 ? 's' : ''}">★</button>`).join('')}<span class="muted small">overall (optional)</span></div>
+        <div class="fb-tags">${['Realism', 'Clinical accuracy', 'Too hard', 'Too easy', 'Bug / something broke', 'Other'].map((t) => `<label class="chip"><input type="checkbox" value="${t}"> ${t}</label>`).join('')}</div>
+        <textarea id="fbText" maxlength="2000" rows="4" placeholder="Your feedback…"></textarea>
+        <div class="row-end"><span class="muted small" id="fbMsg" role="status"></span><button class="btn primary" id="fbSend">Send feedback</button></div>
+      </details>` : ''}
       <div class="row-end"><button class="btn" id="dbMenu">Menu</button><button class="btn" id="dbHint">Review physiology</button><button class="btn" id="dbNext">${state.fieldMode ? 'Next ' + FIELD[state.fieldMode] + ' scenario' : 'Random scenario'}</button><button class="btn primary" id="dbRetry">Retry</button></div></div>`;
     openModal((state.blind ? 'Debrief — it was: ' : 'Debrief: ') + s.title, html);
     if (saved) saved.then((w) => { const n = $('#saveNote'); if (!n) return; const P = S.Progress; n.innerHTML = w === 'cloud' ? `✓ Saved to your progress (${esc(P.user.name || P.user.email)}). <a href="#" data-prog>View progress</a>` : `Saved on this device. ${P.enabled ? '<a href="#" data-acct>Sign in</a> to keep your progress across devices · ' : ''}<a href="#" data-prog>View progress</a>`; const a = n.querySelector('[data-acct]'); if (a) a.onclick = (ev) => { ev.preventDefault(); S.Account.open(); }; n.querySelector('[data-prog]').onclick = (ev) => { ev.preventDefault(); P.open(); }; });
@@ -614,6 +621,20 @@
     $$('[data-dbres]').forEach((d) => d.addEventListener('toggle', () => { if (d.open && !d.dataset.mounted) { d.dataset.mounted = 1; const stop = resultView(d.querySelector('.db-res-host'), imgRes[+d.dataset.dbres], 'show'); const prev = state.stopAnim; state.stopAnim = () => { if (stop) stop(); if (prev) prev(); }; } }));
     $('#dbMenu').onclick = () => { closeModal(); location.hash = ''; };
     $('#dbRetry').onclick = () => { closeModal(); start(s.id); };
+    const fbB = $('#fbBox');
+    if (fbB) {
+      let rating = 0;
+      $$('.fb-star', fbB).forEach((b) => (b.onclick = () => { rating = +b.dataset.star === rating ? 0 : +b.dataset.star; $$('.fb-star', fbB).forEach((x) => x.classList.toggle('on', +x.dataset.star <= rating)); }));
+      $('#fbSend').onclick = async () => {
+        const text = $('#fbText').value.trim(), tags = $$('.fb-tags input:checked', fbB).map((x) => x.value), m = $('#fbMsg');
+        if (!text && !rating && !tags.length) { m.textContent = 'Add a rating, a topic or a comment first.'; return; }
+        $('#fbSend').disabled = true; m.textContent = 'Sending…';
+        try {
+          await S.Feedback.send({ sid: s.id, level: e.level, outcome: outcome || '', ms: Math.round(ms), rating, tags, text: text.slice(0, 2000), v: (document.querySelector('script[src*="app.js"]') || {}).src ? (document.querySelector('script[src*="app.js"]').src.match(/v=([\w]+)/) || [])[1] || '' : '' });
+          fbB.innerHTML = '<p class="ok-msg">✓ Thank you — your feedback has been sent.</p>';
+        } catch (err) { console.warn(err); $('#fbSend').disabled = false; m.textContent = 'Couldn’t send just now — please try again.'; }
+      };
+    }
     $('#dbHint').onclick = () => { closeModal(); state.hints--; $('#hintBtn').click(); };
     $('#dbNext').onclick = () => { const pool = playable(S.SCENARIOS.filter((x) => (!state.fieldMode || x.field === state.fieldMode) && x.id !== s.id && !x.tutorial)); const f = state.fieldMode; closeModal(); if (!pool.length) { location.hash = ''; lockPrompt(null); return; } go(pick(pool).id, f); };
   }

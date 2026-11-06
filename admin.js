@@ -70,7 +70,8 @@
     if (err) { host.innerHTML = `<p class="bad">${esc(err)}</p><button class="btn" data-reload>Try again</button>`; host.querySelector('[data-reload]').onclick = load; return; }
     if (!data) return;
     const d = crunch();
-    const tabs = [['users', `Users (${d.users.length})`], ['scen', 'Scenarios'], ['gaps', 'Missed actions']];
+    const fb = (data.feedback || []).filter((f) => !level || f.level === level);
+    const tabs = [['users', `Users (${d.users.length})`], ['scen', 'Scenarios'], ['gaps', 'Missed actions'], ['fb', `Feedback (${fb.length})`]];
     let body = '';
     if (sel) {
       const u = d.users.find((x) => x.uid === sel);
@@ -94,6 +95,12 @@
         ${d.scen.map((s) => `<tr><td>${esc(s.title)}</td><td>${FIELD[s.field] || ''}</td><td>${s.n}</td><td>${s.people}</td><td>${Math.round(s.rate * 100)}%</td><td>${s.avg != null ? fmt(s.avg) : '—'}</td><td class="small">${esc(s.worst)}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">No results yet.</td></tr>'}
         </tbody></table>
         ${d.untried.length ? `<details><summary>Not played yet (${d.untried.length})</summary><p class="small">${d.untried.map((s) => esc(s.title)).join(' · ')}</p></details>` : ''}`;
+    } else if (view === 'fb') {
+      const um = Object.fromEntries(d.users.map((u) => [u.uid, u]));
+      body = `<p class="muted small">Newest first. Guest feedback has no name.</p>
+        <table class="prog-table"><thead><tr><th>Date</th><th>Scenario</th><th>Grade</th><th>Result</th><th>Rating</th><th>About</th><th>Comment</th><th>From</th></tr></thead><tbody>
+        ${fb.map((f) => `<tr><td>${day(f.at)}</td><td>${esc(d.byId[f.sid] ? d.byId[f.sid].title : f.sid)}</td><td>${LV[f.level] || ''}</td><td>${esc(f.outcome === 'win' ? 'Stabilised' : f.outcome === 'arrest' ? 'Arrest' : 'Ended')}</td><td>${f.rating ? '★'.repeat(f.rating) : '—'}</td><td class="small">${esc((f.tags || []).join(', '))}</td><td class="small" style="white-space:pre-wrap">${esc(f.text)}</td><td class="small">${esc(f.uid ? f.name || f.email || (um[f.uid] || {}).email || 'User' : 'Guest')}</td></tr>`).join('') || '<tr><td colspan="8" class="muted">No feedback yet.</td></tr>'}
+        </tbody></table>`;
     } else {
       body = `<p class="muted small">Critical actions missed most often across all users (seen at least twice).</p>
         <table class="prog-table"><thead><tr><th>Critical action</th><th>Scenario</th><th>Missed</th></tr></thead><tbody>

@@ -337,3 +337,14 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .cbadge { display: inline-block; min-width: 30px; padding: 1px 5px; border-radius: 4px; font-size: .78em; font-weight: 700; color: #1a1a1a; text-align: center; border: 1px solid rgba(0,0,0,.25); }
 .act-grid.gauges { margin-top: 4px; }
 .btn.gauge { display: inline-flex; align-items: center; gap: 6px; }
+
+/* scenario feedback (debrief) */
+.fb-box { margin: 14px 0 6px; padding: 8px 12px; border: 1px solid var(--line, #d6dbe1); border-radius: 10px; }
+.fb-box summary { cursor: pointer; font-weight: 600; }
+.fb-stars { display: flex; align-items: center; gap: 2px; margin: 6px 0; }
+.fb-star { background: none; border: 0; font-size: 1.5em; line-height: 1; cursor: pointer; color: #c9ced4; padding: 0 2px; }
+.fb-star.on { color: #f2b01e; }
+.fb-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 8px; }
+.fb-tags .chip { display: inline-flex; align-items: center; gap: 4px; font-size: .85em; padding: 3px 8px; border: 1px solid var(--line, #d6dbe1); border-radius: 999px; cursor: pointer; }
+.fb-box textarea { width: 100%; box-sizing: border-box; font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line, #d6dbe1); background: transparent; color: inherit; }
+.fb-box .ok-msg { color: #2fa84f; font-weight: 600; margin: 6px 0; }

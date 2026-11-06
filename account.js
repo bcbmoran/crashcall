@@ -16,7 +16,7 @@ if (P && cfg.apiKey) {
 } else if (P) P.setReady();
 function setup([{ initializeApp }, A, F]) {
   const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, updateProfile, signOut, deleteUser } = A;
-  const { getFirestore, collection, collectionGroup, doc, setDoc, getDocs, deleteDoc, query, orderBy, limit, writeBatch } = F;
+  const { getFirestore, collection, collectionGroup, doc, setDoc, addDoc, getDocs, deleteDoc, query, orderBy, limit, writeBatch } = F;
   const app = initializeApp(cfg);
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -42,6 +42,15 @@ function setup([{ initializeApp }, A, F]) {
       await deleteDoc(doc(db, 'users', uid));
     },
   };
+  // Scenario feedback — anyone (guest or signed in) may send; only the admin can read (Firestore rules: match /feedback/{id}).
+  S.Feedback = {
+    send: async (rec) => {
+      const u = auth.currentUser;
+      const r = Object.assign({}, rec, { at: new Date().toISOString() });
+      if (u) Object.assign(r, { uid: u.uid, name: u.displayName || '', email: u.email || '' });
+      await addDoc(collection(db, 'feedback'), clean(r));
+    },
+  };
   // Admin data access (Firestore rules allow these reads only for the admin accounts).
   S.AdminData = {
     isAdmin,
@@ -51,7 +60,9 @@ function setup([{ initializeApp }, A, F]) {
       us.docs.forEach((d) => (users[d.id] = Object.assign({ uid: d.id }, d.data())));
       const attempts = at.docs.map((d) => Object.assign({ uid: d.ref.parent.parent.id }, d.data()));
       attempts.forEach((a) => { if (!users[a.uid]) users[a.uid] = { uid: a.uid, name: '', email: '' }; });
-      return { users: Object.values(users), attempts };
+      let feedback = [];
+      try { feedback = (await getDocs(collection(db, 'feedback'))).docs.map((d) => Object.assign({ id: d.id }, d.data())).sort((a, b) => (a.at < b.at ? 1 : -1)); } catch (e) { console.warn('Feedback not readable', e); }
+      return { users: Object.values(users), attempts, feedback };
     },
   };
 
@@ -103,7 +114,7 @@ function setup([{ initializeApp }, A, F]) {
       </form>
       <p class="small">${create ? 'Already have an account? <a href="#" data-m="signin">Sign in</a>' : reset ? '<a href="#" data-m="signin">Back to sign in</a>' : 'New here? <a href="#" data-m="create">Create an account</a> · <a href="#" data-m="reset">Forgot password?</a>'}</p>
       <p class="acct-msg small" role="status"></p>
-      <p class="muted small acct-privacy">We store your name, email and scenario results only — never patient information — using Google Firebase (servers in London). Your results are used to show you your progress. The CrashCall site owner can also see results, to improve the simulator and support teaching; they are never sold or shared outside CrashCall. You can delete your account and data at any time from this window.</p>
+      <p class="muted small acct-privacy">We store your name, email, scenario results and any feedback you choose to send — never patient information — using Google Firebase (servers in London). Your results are used to show you your progress. The CrashCall site owner can also see results, to improve the simulator and support teaching; they are never sold or shared outside CrashCall. You can delete your account and data at any time from this window.</p>
     </div>`;
   }
 
