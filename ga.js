@@ -129,6 +129,8 @@
   // ---------------- per-tick model ----------------
   function tick(e, dt) {
     const g = e.ga; if (!g) return;
+    // End-of-case high-flow O₂ counts whenever it is in place after surgery ends (not only if the dial is moved during emergence)
+    if ((g.phase === 'emergence' || g.phase === 'recovery') && g.fgf >= 6 && g.o2frac >= 0.9 && !e.did('highFlowEnd')) e.mark('highFlowEnd');
     const p = e.p, w = p.weight, mac = macAge(p);
     const ivOK = g.ivOK && !e.flags.ivDown;
 
@@ -457,6 +459,15 @@
         if (g.pain > 0.5) { say('Recovery nurse: "They’re in a lot of pain (9/10) — can you sort the analgesia before you go?"', 'warn'); return; }
         if (p.spo2 < 94) { say('Recovery nurse: "SpO₂ is only ' + p.spo2 + '% — I’m not happy to take them yet."', 'warn'); return; }
         mark(e, 'handover'); say('SBAR handover given: procedure, airway, drugs and doses, analgesia and antiemetic plan, fluids, concerns. Recovery nurse happy to take over.', 'good');
+        // The anaesthetic is over once the patient is handed over: if a step was missed earlier (it can't be redone now),
+        // finish the case anyway and show what was missed in the debrief, rather than leaving the case running forever.
+        e.after(4, (en) => {
+          if (en.outcome) return;
+          const cs = en.critStatus(), done = cs.filter((c) => c.done).length;
+          if (done === cs.length) { en.outcome = 'win'; en.flags.declared = true; en.emit({ type: 'end', outcome: 'win', text: 'Handed over safely to recovery — anaesthetic complete.', kind: 'good' }); return; }
+          en.outcome = 'complete';
+          en.emit({ type: 'end', outcome: 'complete', text: `Case complete — handed over to recovery. ${done} of ${cs.length} essential steps done; the missed ones are in the debrief.`, kind: 'warn' });
+        }, 'gaFinish');
       });
       default: return null;
     }

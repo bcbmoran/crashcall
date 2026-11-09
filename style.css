@@ -389,3 +389,14 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .ga-checklist.live li.ok { color: var(--good); }
 .ga-checklist.live li.ok { text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--good) 50%, transparent); }
 .ga-model-note { width: 100%; }
+
+/* capnography guide & debrief */
+.capno-guide .capno-annot { display: block; margin: 6px 0 8px; }
+.capno-phases { margin: 6px 0 12px; padding-left: 18px; line-height: 1.5; }
+.capno-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.capno-card { border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; background: var(--surface2); }
+.capno-card .capno-svg { width: 100%; height: auto; display: block; margin: 4px 0; }
+.capno-card p { margin: 4px 0; }
+.capno-db { display: flex; flex-direction: column; gap: 8px; }
+.capno-db-row { display: flex; gap: 10px; align-items: center; }
+.capno-db-row .capno-svg { flex: 0 0 auto; }

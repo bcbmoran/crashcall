@@ -123,12 +123,12 @@
     id: 'an-qrh-endobronchial', title: 'Desaturation after positioning', field: 'Anaes', shock: null, category: 'Hypoxaemia', difficulty: 1, setting: 'theatre',
     stem: '34-year-old woman (BMI 24) for laparoscopic gynaecology. After pneumoperitoneum and steep head-down tilt the SpO₂ has fallen to 92% (and is still falling) and airway pressure has risen by 8 cmH₂O.',
     qrh: ['2-2', '1-1'],
-    patient: { age: 34, sex: 'F', weight: 64, ventilated: true, fio2: 0.4, ventRR: 12, peep: 5, effort: 0, shunt: 0.38, pawExtra: 8, atel: true, hrBase: 86, look: { drapes: true, surgField: 'lower' } },
+    patient: { age: 34, sex: 'F', weight: 64, ventilated: true, fio2: 0.4, ventRR: 12, peep: 5, effort: 0, shunt: 0.38, pawExtra: 8, atel: true, capnoBiphasic: 0.55, hrBase: 86, look: { drapes: true, surgField: 'lower' } },
     init(e) { e.flags.paralysed = true; },
     tick(e, dt) { if (!e.flags.fixed) e.p.shunt = Math.min(0.55, e.p.shunt + 0.0005 * dt); },
     onEvent(e, ev) {
       const p = e.p;
-      if (ev.type === 'action' && ev.id === 'reposition_tube') { if (e.flags.fixed) return { handled: true, msg: 'Tube at 21 cm — correct.' }; e.flags.fixed = true; p.shunt = 0.05; p.pawExtra = 0; return { handled: true, msg: 'Tube at 25 cm at the teeth — it has migrated into the right main bronchus with head-down tilt. Cuff down, withdrawn to 21 cm: bilateral air entry restored.', kind: 'good' }; }
+      if (ev.type === 'action' && ev.id === 'reposition_tube') { if (e.flags.fixed) return { handled: true, msg: 'Tube at 21 cm — correct.' }; e.flags.fixed = true; p.shunt = 0.05; p.pawExtra = 0; p.capnoBiphasic = 0; return { handled: true, msg: 'Tube at 25 cm at the teeth — it has migrated into the right main bronchus with head-down tilt. Cuff down, withdrawn to 21 cm: bilateral air entry restored.', kind: 'good' }; }
       if (ev.type === 'action' && ev.id === 'isolate_equipment') return { handled: true, msg: 'Hand-ventilating directly on the tube: still slightly stiff and the left chest is barely moving — the problem is with the patient/tube, not the machine.' };
       if (ev.type === 'action' && ev.id === 'suction_tube') return { handled: true, msg: 'Suction catheter passes easily — tube is patent.' };
       if (ev.type === 'vent' && ev.key === 'peep' && ev.value > 8 && !e.flags.fixed) return { msg: 'More PEEP barely changes SpO₂ — one lung is not being ventilated at all.', kind: 'warn' };

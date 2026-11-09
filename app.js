@@ -683,7 +683,7 @@
     if (outcome === 'win') { const best = store.get('best', {}); if (!best[s.id] || ms < best[s.id]) { best[s.id] = ms; store.set('best', best); newBest = true; } }
     const cs = e.allCritical().filter((c) => !c.skip || !c.skip(e)).map((c) => ({ text: c.text, done: !!c.check(e) }));
     const saved = !s.tutorial && S.Progress ? S.Progress.record({ sid: s.id, level: e.level, outcome, ms: Math.round(ms), hints: state.hints, harms: e.harms.length, blind: !!state.blind, crit: cs.map((c) => ({ t: c.text, d: c.done })), at: new Date().toISOString() }) : null;
-    const title = outcome === 'win' ? 'Patient stabilised' : outcome === 'arrest' ? 'Cardiac arrest — scenario failed' : 'Scenario ended';
+    const title = outcome === 'win' ? 'Patient stabilised' : outcome === 'arrest' ? 'Cardiac arrest — scenario failed' : outcome === 'complete' ? (e.critStatus().every((c) => c.done) ? 'Case complete — handed over to recovery' : 'Case complete — handed over (some steps missed)') : 'Scenario ended';
     const imgRes = state.results.filter((r) => r.kind === 'img' || r.kind === 'pocus');
     state.ended = true;
     const log = e.log.filter((x) => x.kind === 'act' || x.kind === 'good' || x.kind === 'bad' || x.type === 'inv' || x.type === 'hint');
@@ -698,6 +698,7 @@
       <h3>Critical actions</h3><ul>${cs.map((c) => `<li class="${c.done ? 'ok' : 'miss'}">${esc(c.text)}</li>`).join('')}</ul>
       ${tgtHTML}
       ${bloodLossHTML(e, s)}
+      ${S.Capno ? S.Capno.debriefHTML(e) : ''}
       ${e.did('complication') ? `<h3>Second problem (consultant grade)</h3><p>${e.flags.compl === 'iv' ? 'The IV cannula tissued mid-resuscitation — infusions and boluses stopped reaching the patient. Watch pump alarms and the response to drugs; re-site access (IO if needed).' : e.flags.compl === 'tube' ? 'The tracheal tube displaced during a move — loss of capnography is a displaced tube until proven otherwise (DAS / AoA QRH 2-2 and 2-3).' : e.flags.compl === 'o2' ? 'The oxygen supply was disconnected — always re-check the delivery chain when saturations fall.' : esc(e.flags.complText || 'A scenario-specific complication occurred.')} ${e.flags.ivDown || e.flags.tubeDisplaced || e.flags.o2Off ? '<b>It was not resolved.</b>' : 'You resolved it.'}</p>` : ''}
       ${e.harms.length ? `<h3>Potential harm</h3><ul>${e.harms.map((h) => { const fx = (e.harmFx || []).find((x) => x.harm === h); return `<li class="harm">${esc(h)}${fx ? `<br><span class="muted small">Effect on the patient: ${esc(fx.fx)}</span>` : ''}</li>`; }).join('')}</ul>` : ''}
       ${imgRes.length ? `<h3>Investigation reports</h3><div class="db-res">${imgRes.map((r, i) => `<details data-dbres="${i}"><summary>${esc(r.name)} · ${r.at}</summary><div class="db-res-host"></div></details>`).join('')}</div>` : ''}
@@ -718,6 +719,7 @@
     $$('[data-dbres]').forEach((d) => d.addEventListener('toggle', () => { if (d.open && !d.dataset.mounted) { d.dataset.mounted = 1; const stop = resultView(d.querySelector('.db-res-host'), imgRes[+d.dataset.dbres], 'show'); const prev = state.stopAnim; state.stopAnim = () => { if (stop) stop(); if (prev) prev(); }; } }));
     $('#dbMenu').onclick = () => { closeModal(); location.hash = ''; };
     $('#dbRetry').onclick = () => { closeModal(); start(s.id); };
+    $$('[data-capno-guide]').forEach((l) => (l.onclick = (ev) => { ev.preventDefault(); openModal('Capnography guide', S.Capno.guideHTML()); }));
     const fbB = $('#fbBox');
     if (fbB) {
       let rating = 0;

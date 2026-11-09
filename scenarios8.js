@@ -215,7 +215,7 @@
       { text: 'Double PONV prophylaxis: ondansetron AND dexamethasone (Apfel high risk)', check: (e) => e.did('ondansetron') && e.did('dexamethasone') },
       { text: 'End of surgery: stop both TCI pumps; 100% O₂', check: (e) => e.did('tciPropOff') && e.did('tciRemiOff') && e.ga.o2frac >= 0.9 },
       step('signout'), step('reversal'), step('suction'), step('extubate'),
-      compStep('Severe pain on waking: titrate morphine before handing over', (e) => after(e, 'morphine', e.ga.done.phase_emergence) || after(e, 'fentanyl', e.ga.done.phase_emergence)),
+      compStep('Severe pain on waking: titrate morphine before handing over', (e) => after(e, 'morphine', e.ga.done.phase_emergence) || after(e, 'fentanyl', e.ga.done.phase_emergence) || (e.ga.done.handover && e.ga.pain <= 0.5)),
       step('recovery'), step('handover'),
     ],
     hint: {

@@ -153,7 +153,7 @@
         if (this.lines.length) this.say(`Pump alarm: OCCLUSION — the ${nm} has tissued and has been removed. Fluids and infusions have been moved to the remaining ${this.lineText()} — consider siting another cannula.`, 'warn');
         else { this.flags.ivDown = true; this.say(`Pump alarm: OCCLUSION — the arm around the ${nm} is swollen. It has tissued and there is no other access: nothing is reaching the patient.`, 'bad'); }
       }
-      if (k === 'tube') { this.flags.tubeDisplaced = true; p.tubeOK = false; this.say('Patient moved for a line/pad change — capnography trace lost and the ventilator is alarming.', 'bad'); }
+      if (k === 'tube') { this.flags.tubeDisplaced = true; p.tubeOK = false; this.flags.oesoT = this.t; this.say('Patient moved for a line/pad change — capnography trace lost and the ventilator is alarming.', 'bad'); }
       if (k === 'o2') { this.flags.o2Off = p.fio2; p.fio2 = 0.21; p.lastFio2 = 0.21; this.say('Patient pulled their oxygen mask off in agitation; the tubing has disconnected from the wall.', 'bad'); }
     }
 
@@ -303,7 +303,7 @@
         else this.say(`Access checked: ${this.lineText()} — flushing well, no need to re-site.`);
         return;
       }
-      if (id === 'reposition_tube' && this.flags.tubeDisplaced) { this.flags.tubeDisplaced = false; this.p.tubeOK = true; this.say('Tube had slipped out to the cords — repositioned under direct vision, EtCO₂ trace back, tube re-secured.', 'good'); return; }
+      if (id === 'reposition_tube' && this.flags.tubeDisplaced) { this.flags.tubeDisplaced = false; this.p.tubeOK = true; this.flags.oesoT = null; this.say('Tube had slipped out to the cords — repositioned under direct vision, EtCO₂ trace back, tube re-secured.', 'good'); return; }
       if (this.flags.o2Off && ['o2_nc', 'o2_nrb', 'hfno', 'jaw_thrust_cpap', 'bvm'].includes(id)) this.flags.o2Off = 0;
       const r = this.react({ type: 'action', id, opts });
       if (!r || !r.handled) this.defaultAction(id, opts);
@@ -596,6 +596,7 @@
       const p = this.p;
       this.t += dt;
       this.stepPools(dt);
+      if (S.Capno) S.Capno.track(this, dt);
       // timers
       const due = this.timers.filter((x) => x.at <= this.t);
       this.timers = this.timers.filter((x) => x.at > this.t);

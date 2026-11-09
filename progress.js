@@ -123,7 +123,7 @@
       ${d.gaps.length ? `<ul class="prog-gaps">${d.gaps.map((g) => `<li><b>${esc(g.t)}</b> <span class="muted small">— missed ${g.miss} of ${g.seen} times${blind ? '' : ' (' + [...g.sids].map(name).join(', ') + ')'}</span></li>`).join('')}</ul>` : '<p class="muted small">Nothing repeated yet — critical actions you miss more than once will show here.</p>'}
       <h3>Recent attempts</h3>
       <table class="prog-table"><thead><tr><th>When</th><th>Scenario</th><th>Grade</th><th>Result</th><th>Time</th><th>Critical</th></tr></thead><tbody>
-      ${recent.map((a) => `<tr><td>${new Date(a.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td><td>${name(a.sid)}</td><td>${LV[a.level] || ''}</td><td class="${a.outcome === 'win' ? 'ok' : 'miss'}">${a.outcome === 'win' ? 'Stabilised' : a.outcome === 'arrest' ? 'Arrest' : 'Ended'}</td><td>${fmt(a.ms)}</td><td>${(a.crit || []).filter((c) => c.d).length}/${(a.crit || []).length}</td></tr>`).join('')}
+      ${recent.map((a) => `<tr><td>${new Date(a.at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</td><td>${name(a.sid)}</td><td>${LV[a.level] || ''}</td><td class="${a.outcome === 'win' ? 'ok' : 'miss'}">${a.outcome === 'win' ? 'Stabilised' : a.outcome === 'arrest' ? 'Arrest' : a.outcome === 'complete' ? 'Completed (steps missed)' : 'Ended'}</td><td>${fmt(a.ms)}</td><td>${(a.crit || []).filter((c) => c.d).length}/${(a.crit || []).length}</td></tr>`).join('')}
       </tbody></table>
       <details><summary>All scenarios played (${played.length})</summary>
       <table class="prog-table"><thead><tr><th>Scenario</th><th>Attempts</th><th>Stabilised</th><th>Best time</th><th>Last played</th></tr></thead><tbody>

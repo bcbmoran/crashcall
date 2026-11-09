@@ -35,6 +35,17 @@
       this.sound = false; this.actx = null;
       this.resize();
       this.measureNibp();
+      // Click the CO₂ trace to open the capnography guide
+      canvas.addEventListener('click', (ev) => {
+        const r = canvas.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+        const chs = this.channels(), rowH = this.H / chs.length, ci = Math.floor(y / rowH);
+        if (chs[ci] && chs[ci].k === 'co2' && x < this.waveW && S.Capno && S.ui) S.ui.openModal('Capnography guide', S.Capno.guideHTML());
+      });
+      canvas.addEventListener('mousemove', (ev) => {
+        const r = canvas.getBoundingClientRect(), y = ev.clientY - r.top, x = ev.clientX - r.left;
+        const chs = this.channels(), ci = Math.floor(y / (this.H / chs.length));
+        canvas.style.cursor = chs[ci] && chs[ci].k === 'co2' && x < this.waveW ? 'help' : '';
+      });
     }
     resize() {
       const r = this.c.getBoundingClientRect();
@@ -111,19 +122,10 @@
         return amp * mod * ect * plethShape(x) + noise;
       }
       if (k === 'co2') {
-        if (p.rr < 1 || p.etco2 < 0.5) return 0;
+        if (!S.Capno) return 0;
         let x = Math.min(1, (t - this.breathStart) / this.breathLen);
         if (x < 0) x = 1; // look-ahead scheduling: still in the previous expiration
-        const et = p.etco2 / 7.5;
-        const insp = 0.33;
-        if (x < insp) return x < 0.04 ? et * (1 - x / 0.04) : 0;
-        const e = (x - insp) / (1 - insp);
-        const b = p.bronchEff || 0;
-        const ob = p.ventObstruct || 0;
-        if (b > 0.15 || ob > 0.25) return et * clamp(Math.pow(e / 0.9, 0.5 + Math.max(b, ob)), 0, 1);
-        let v = et * clamp(e / 0.08, 0, 1) * (0.94 + 0.06 * e);
-        if (p.ventilated && p.effort > 0.3 && !this.eng.flags.paralysed) v -= et * 0.35 * g(e, 0.6, 0.05); // curare cleft: patient breathing
-        return v;
+        return S.Capno.value(this.eng, x, t);
       }
       return 0;
     }
@@ -170,7 +172,7 @@
           if (c.k === 'ecg') y = top + rowH * 0.62 - v * rowH * 0.42 * (p.ecgGain || 1);
           else if (c.k === 'abp') y = top + rowH * 0.92 - (clamp(v, 0, 200) / 160) * rowH * 0.85;
           else if (c.k === 'pleth') y = top + rowH * 0.85 - v * rowH * 0.6;
-          else y = top + rowH * 0.9 - (clamp(v, 0, 12) / 8) * rowH * 0.75;
+          else y = top + rowH * 0.9 - (clamp(v, 0, 10) / 10) * rowH * 0.8; // CO₂ scale 0–10 kPa
           let px = xx % this.waveW;
           const last = this.last[c.k];
           ctx.strokeStyle = c.col; ctx.lineWidth = 1.6;
@@ -183,8 +185,8 @@
       // labels / grid lines
       ctx.font = '600 11px system-ui, sans-serif';
       chs.forEach((c, ci) => {
-        ctx.fillStyle = '#000'; ctx.fillRect(2, ci * rowH + 2, 46, 14);
-        ctx.fillStyle = c.col; ctx.fillText(c.label, 4, ci * rowH + 13);
+        ctx.fillStyle = '#000'; ctx.fillRect(2, ci * rowH + 2, c.k === 'co2' ? 80 : 46, 14);
+        ctx.fillStyle = c.col; ctx.fillText(c.label + (c.k === 'co2' ? '  ⓘ guide' : ''), 4, ci * rowH + 13);
         if (c.k === 'abp') { ctx.fillStyle = '#000'; ctx.fillRect(this.waveW - 30, ci * rowH + 2, 28, 12); ctx.fillStyle = '#ff4d4d88'; ctx.fillText('160', this.waveW - 28, ci * rowH + 12); }
       });
       if (this.eng.t - this.nibpAt >= this.nibpCycle && !p.artLine) this.measureNibp();
@@ -209,7 +211,8 @@
       items.push({ lab: 'NIBP', val: nb && nb.s ? `${nb.s}/${nb.d}` : '--/--', sub: nb && nb.m ? `(${nb.m})  ${ago}s ago` : `${ago}s ago`, col: '#f5f5f5', alarm: nb && nb.m != null && nb.m < 60, small: p.artLine });
       const lowPerf = p.map < 40 || ['vf', 'asystole', 'pea'].includes(p.rhythm);
       items.push({ lab: 'SpO₂', val: lowPerf ? '?' : String(p.spo2), col: '#3ee6ff', alarm: p.spo2 < 90 || lowPerf, unit: '%' });
-      items.push({ lab: 'EtCO₂', val: (p.etco2 / 7.5).toFixed(1), sub: `RR ${p.rr}`, col: '#ffe14d', alarm: p.rr < 6 || p.rr > 30, unit: 'kPa' });
+      const fico2 = S.Capno ? S.Capno.params(this.eng).base : 0;
+      items.push({ lab: 'EtCO₂', val: (p.etco2 / 7.5).toFixed(1), sub: fico2 > 0.2 ? `FiCO₂ ${fico2.toFixed(1)} · RR ${p.rr}` : `RR ${p.rr}`, col: '#ffe14d', alarm: p.rr < 6 || p.rr > 30 || fico2 > 0.5, unit: 'kPa' });
       items.push({ lab: 'Temp', val: p.temp.toFixed(1), col: '#e0a3ff', alarm: p.temp > 38.5 || p.temp < 35, unit: '°C', small: true });
       const g = this.eng.ga;
       if (g && S.GA) {
