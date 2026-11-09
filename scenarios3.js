@@ -226,7 +226,7 @@
     onEvent(e, ev) {
       if (ev.type === 'action' && ev.id === 'lighten_anaesthesia') return { handled: true, msg: 'Sevoflurane reduced to 0.8 MAC; BIS 48 — adequate depth maintained.', kind: 'good' };
       if (ev.type === 'action' && ev.id === 'deepen_anaesthesia') return { handled: true, harm: 'Deepening anaesthesia in a hypotensive patient without an indication' };
-      if (ev.type === 'fluid' && e.fluidIn.crystalloid > 1500) return { msg: 'Large volumes — this is mainly vasodilatation; use a vasopressor.', kind: 'warn' };
+      if (ev.type === 'fluid' && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 1500) return { msg: 'Large volumes — this is mainly vasodilatation; use a vasopressor.', kind: 'warn' };
     },
     exam: (e) => ({ A: 'ETT secure.', B: vent(e) + ' Clear chest, normal pressures.', C: circ(e) + ' Sinus rhythm.', D: `Anaesthetised, sevoflurane ${e.did('lighten_anaesthesia') ? '0.8' : '1.2'} MAC, BIS ${e.did('lighten_anaesthesia') ? 48 : 31}.`, E: 'Surgery not yet started. No blood loss.' }),
     inv: { bloods: (e) => labs(e, {}), gas: true, ecg: { morph: { lvh: true } }, ...noImg, pocus: [{ label: 'Parasternal long axis', media: 'us_plax_normal', report: 'Hyperdynamic, under-filled LV; no effusion.' }, { label: 'IVC', media: 'us_ivc_flat', report: 'Small IVC.' }] },

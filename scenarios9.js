@@ -143,7 +143,7 @@
     arrestMsg: 'MATERNAL CARDIAC ARREST — no pulse. Declare it, start CPR with uterine displacement, call the obstetric and neonatal teams.',
     rosc(e) {
       const f = e.flags;
-      const ok = f.cpr && e.did('uterine_displacement') && e.did('adrenaline') && f.pmcs && (e.fluidIn.rbc + e.fluidIn.crystalloid >= 1000);
+      const ok = f.cpr && e.did('uterine_displacement') && e.did('adrenaline') && f.pmcs && (e.fluidIn.rbc + (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 1000);
       if (ok) { f.rw = (f.rw || 0) + 0.1; if (f.rw > 12) { e.p.vol = Math.max(e.p.vol, 0.72); return true; } }
       return false;
     },
@@ -185,7 +185,7 @@
       }
       if (ev.type === 'drug' && (ev.id === 'oxytocin' || ev.id === 'carboprost' || ev.id === 'txa')) { if (f.pmcs) f.haem = (f.haem || 0) + 0.6; }
       if (ev.type === 'drug' && ev.id === 'adrenaline' && p.arrested) return { msg: 'Adrenaline 1 mg IV — standard doses in pregnancy.', kind: 'good', noHarm: true };
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 1500) return { harm: 'Large-volume crystalloid in obstetric haemorrhage — use blood products' };
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 1500) return { harm: 'Large-volume crystalloid in obstetric haemorrhage — use blood products' };
     },
     exam: (e) => ({
       A: 'Bag-mask ventilation (aspiration risk — early SAD or tracheal tube).',
@@ -258,7 +258,7 @@
       if (p.sbp >= 160) f.sbpHi += dt; else f.sbpHi = Math.max(0, f.sbpHi - dt * 0.5);
       if (f.sbpHi > 200 && !f.ich) { f.ich = true; e.harm('Severe hypertension (SBP ≥ 160) left uncontrolled — intracerebral haemorrhage'); }
       if (p.sbp < 110 && !p.ventilated && !f.overHarm && e.t > 20) { f.overHarm = true; e.harm('Blood pressure over-corrected (SBP < 110) — placental perfusion falls, fetal bradycardia'); }
-      if (e.fluidIn.crystalloid > 1000 && !f.fluidHarm) { f.fluidHarm = true; p.pulmOedema = Math.min(1, (p.pulmOedema || 0) + 0.5); e.harm('More than 1 L of IV fluid in severe pre-eclampsia — pulmonary oedema (restrict to 80 mL/h)'); }
+      if ((e.fluidIn.crystalloid + e.fluidIn.colloid) > 1000 && !f.fluidHarm) { f.fluidHarm = true; p.pulmOedema = Math.min(1, (p.pulmOedema || 0) + 0.5); e.harm('More than 1 L of IV fluid in severe pre-eclampsia — pulmonary oedema (restrict to 80 mL/h)'); }
     },
     complication(e) {
       if (e.level !== 'consultant') return false;
@@ -322,7 +322,7 @@
       { text: 'Magnesium maintenance infusion 1 g/h', check: (e) => e.rate('magnesium') >= 0.5 },
       { text: 'Treat severe hypertension (IV labetalol) to SBP < 160', check: (e) => e.did('labetalol') && e.p.sbp < 160 },
       { text: 'Monitor for magnesium toxicity (reflexes, RR, level)', check: (e) => e.did('ob_reflexes') || e.did('ob_mg_level') },
-      { text: 'Fluid restriction and catheter', check: (e) => e.did('ob_catheter') && e.fluidIn.crystalloid <= 1000 },
+      { text: 'Fluid restriction and catheter', check: (e) => e.did('ob_catheter') && (e.fluidIn.crystalloid + e.fluidIn.colloid) <= 1000 },
       { text: 'Stabilise first, then plan birth', check: (e) => !!e.flags.planned },
       { text: 'GA caesarean: attenuate the pressor response before RSI', check: (e) => !!e.flags.gaAtten, skip: (e) => e.level !== 'consultant' },
     ],

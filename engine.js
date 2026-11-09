@@ -114,7 +114,8 @@
       this.fluidQ = [];
       this.harms = [];
       this.temps = [];
-      this.fluidIn = { crystalloid: 0, rbc: 0, ffp: 0, plt: 0, cryo: 0 };
+      this.fluidIn = { crystalloid: 0, colloid: 0, glucose: 0, hypertonic: 0, rbc: 0, ffp: 0, plt: 0, cryo: 0 };
+      this.fluidSeq = 0;
       this.flags = {};
       this.outcome = null;
       this.stableTime = 0;
@@ -283,15 +284,31 @@
       this.emit({ type: 'inf', id, text: rate > 0 ? `${d.name} infusion ${old > 0 ? 'changed to' : 'started at'} ${rate} ${d.inf.unit}` : `${d.name} infusion stopped`, kind: 'act' });
       this.react({ type: 'inf', id, rate, old });
     }
-    giveFluid(id) {
+    // Give a fluid over a chosen time. dur = minutes of (time-compressed) scenario time, ~1 s per minute, like urine output.
+    giveFluid(id, dur) {
       const f = S.fluidById[id]; if (!f || this.outcome) return;
       const ml = f.perKg ? Math.round(f.perKg * this.p.weight) : f.ml;
+      dur = +dur || S.fluidDefaultDur(f, this.p.paed);
       this.mark(id); this.mark('fluid_' + f.kind);
-      if (f.kind === 'crystalloid') this.mark('fluid');
-      this.fluidIn[f.kind] += ml;
-      this.fluidQ.push({ kind: f.kind, left: ml, rate: f.kind === 'crystalloid' ? ml / 15 : ml / 12 });
-      this.emit({ type: 'fluid', id, text: `${f.name}${f.perKg ? ' (' + ml + ' mL)' : ''} given`, kind: 'act' });
-      this.react({ type: 'fluid', id, kind: f.kind, ml });
+      if (f.kind === 'crystalloid' || f.kind === 'colloid') this.mark('fluid');
+      this.fluidIn[f.kind] = (this.fluidIn[f.kind] || 0) + ml;
+      const run = { n: ++this.fluidSeq, id, name: f.name, kind: f.kind, sol: f.sol || f.kind, ml, left: ml, dur, rate: ml / dur };
+      this.fluidQ.push(run);
+      const how = S.fluidRateLabel(dur, ml);
+      this.emit({ type: 'fluid', id, text: `${f.name}${f.perKg ? ' (' + ml + ' mL)' : ''} — ${how}`, kind: 'act' });
+      if (f.osmo) { const xa = (this.scn.extraActions || []).find((a) => /_hts$|_osmo$/.test(a.id)); if (xa && !this.did(xa.id)) this.doAction(xa.id); }
+      this.react({ type: 'fluid', id, kind: f.kind, sol: run.sol, ml, dur, mlPerHour: Math.round(ml * 60 / dur) });
+    }
+    setFluidDur(n, dur) {
+      const r = this.fluidQ.find((x) => x.n === +n); if (!r || this.outcome) return;
+      r.dur = +dur; r.rate = r.ml / r.dur;
+      this.emit({ type: 'fluid', id: r.id, text: `${r.name}: rate changed — ${S.fluidRateLabel(r.dur, r.ml)} (${Math.round(r.left)} mL left)`, kind: 'act' });
+    }
+    stopFluid(n) {
+      const r = this.fluidQ.find((x) => x.n === +n); if (!r) return;
+      this.fluidIn[r.kind] = Math.max(0, (this.fluidIn[r.kind] || 0) - Math.round(r.left));
+      this.fluidQ = this.fluidQ.filter((x) => x !== r);
+      this.emit({ type: 'fluid', id: r.id, text: `${r.name} stopped (${Math.round(r.ml - r.left)} of ${r.ml} mL given)`, kind: 'act' });
     }
     doAction(id, opts) {
       if (this.outcome) return;
@@ -604,17 +621,25 @@
       this.temps = this.temps.filter((x) => x.until > this.t);
       this.anaesSuppress *= Math.exp(-dt / 150);
       // fluids
+      // Each bag runs at its set rate, limited by what the cannulas can carry (a pressure bag / rapid infuser raises the limit).
+      const ws = this.p.paed ? Math.max(0.15, Math.min(1, this.p.weight / 70)) : 1;
       const flowF = this.flowFactor() / Math.max(1, this.fluidQ.length / Math.max(1, this.lines.length));
       for (const f of this.fluidQ) {
         if (this.flags.ivDown || !this.lines.length) break;
-        const ml = Math.min(f.left, f.rate * flowF * dt); f.left -= ml;
+        const cap = 80 * flowF * ws * (f.dur <= 5 ? 2 : 1);
+        f.limited = f.rate > cap * 1.05; const ml = Math.min(f.left, Math.min(f.rate, cap) * dt); f.left -= ml;
         const bv = p.weight * 70, litre = p.weight * 13.3; // circulating volume; 'adult-litre equivalent'
-        const dv = (ml / bv) * (f.kind === 'cryo' ? 0.5 : 1);
+        const sol = S.FLUID_SOL[f.sol] || S.FLUID_SOL[f.kind] || { vol: 1 };
+        const dv = (ml / bv) * sol.vol;
         p.vol += dv * (f.kind === 'crystalloid' ? 0.85 : 1);
-        if (f.kind === 'rbc') p.hbMass += dv * 225;
+        if (f.kind === 'rbc') p.hbMass += (ml / bv) * 225;
         if (f.kind === 'ffp' || f.kind === 'cryo') p.coag = Math.max(0, p.coag - ml / litre);
-        if (p.pulmOedema < 1 && p.contractEff < 0.75) p.pulmOedema += (ml / litre) * p.oedemaProne * (1 - p.contractEff) * 0.9;
-        if (p.leak > 0) p.pulmOedema += (ml / litre) * 0.04 * p.leak * 10;
+        if (sol.cl) { p.cl = (p.cl || 104) + (ml / 1000) * sol.cl * 70 / p.weight; p.extraAcid += (ml / 1000) * sol.cl * 0.5 * 70 / p.weight; }
+        if (sol.na) p.na += (ml / 1000) * sol.na / (0.6 * p.weight); // mmol/L change: sodium load (or free water, if negative) over total body water
+        if (sol.glu) p.glucose += (ml / 1000) * sol.glu * 70 / p.weight;
+        const eff = ml * Math.max(0.3, sol.vol);
+        if (p.pulmOedema < 1 && p.contractEff < 0.75) p.pulmOedema += (eff / litre) * p.oedemaProne * (1 - p.contractEff) * 0.9;
+        if (p.leak > 0) p.pulmOedema += (eff / litre) * 0.04 * p.leak * 10;
       }
       this.fluidQ = this.fluidQ.filter((f) => f.left > 0.1);
       // losses

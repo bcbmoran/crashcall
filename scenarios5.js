@@ -9,7 +9,7 @@
   const B = (e, t) => `RR ${e.p.rr}, SpO₂ ${e.p.spo2}%. ${t || ''}`;
   const C = (e, t) => `HR ${e.p.hr}, BP ${bp(e)}. ${t || ''}`;
   const ex = (o) => (e) => { const v = (x) => (typeof x === 'function' ? x(e) : x || ''); return { A: v(o.A) || 'Patent.', B: B(e, v(o.B)), C: C(e, v(o.C)), D: v(o.D) || `GCS ${e.p.gcs}.`, E: v(o.E) || `T ${e.p.temp.toFixed(1)} °C.` }; };
-  const fluidL = (e) => e.fluidIn.crystalloid / 1000;
+  const fluidL = (e) => (e.fluidIn.crystalloid + e.fluidIn.colloid) / 1000;
   const cxrN = { media: 'cxr_normal', report: 'No acute abnormality.' };
 
   // =====================================================================
@@ -269,7 +269,7 @@
       if (ev.type === 'action' && ev.id === 'acs_load') return { handled: true, msg: 'P2Y12 inhibitor loaded per PPCI protocol.', kind: 'good' };
       if (ev.type === 'inf' && ev.id === 'gtn' && ev.rate > 0) return { harm: 'Nitrate in RV infarction with hypotension' };
       if (ev.type === 'drug' && ev.id === 'furosemide') return { harm: 'Diuretic in preload-dependent RV infarction' };
-      if (ev.type === 'fluid' && e.fluidIn.crystalloid > 2000) return { msg: 'Rising JVP — further fluid unlikely to help; consider inotrope.', kind: 'warn' };
+      if (ev.type === 'fluid' && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 2000) return { msg: 'Rising JVP — further fluid unlikely to help; consider inotrope.', kind: 'warn' };
     },
     exam: ex({ B: 'Chest clear.', C: 'Raised JVP with clear lungs. Cool, clammy.', D: 'GCS 15.', E: 'Nil.' }),
     inv: { bloods: (e) => labs(e, { trop: 1250 }), gas: true, ecg: (e) => ({ note: 'ST elevation II, III, aVF (III > II) with reciprocal depression in I/aVL and ST elevation in V1 — inferior STEMI with RV involvement: record V4R; avoid nitrates.', st: { II: 0.25, III: 0.35, aVF: 0.3, I: -0.12, aVL: -0.2, V1: 0.12 } }), cxr: cxrN, ct: [], pocus: [{ label: 'Apical 4-chamber', media: 'us_plax_poor', report: 'Dilated, hypokinetic RV; LV inferior hypokinesia; no effusion.' }] },
@@ -761,7 +761,7 @@
     patient: { age: 71, sex: 'M', weight: 74, rhythm: 'pea', peaRate: 120, vol: 0.5, hb: 70, bleed: 0.0004, lactate: 7, look: { wound: true } },
     arrestRhythm: () => 'pea',
     rosc(e) {
-      const f = e.flags, ok = e.flags.cpr && e.did('adrenaline') && (e.fluidIn.rbc + e.fluidIn.crystalloid >= 1000) && f.found;
+      const f = e.flags, ok = e.flags.cpr && e.did('adrenaline') && (e.fluidIn.rbc + (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 1000) && f.found;
       if (ok) { f.rw = (f.rw || 0) + 0.1; if (f.rw > 15) { e.p.vol = Math.max(e.p.vol, 0.72); return true; } }
       return false;
     },
@@ -778,7 +778,7 @@
       { text: 'High-quality CPR', check: (e) => e.did('cpr_on') },
       { text: 'Adrenaline 1 mg ASAP (non-shockable)', check: (e) => e.did('adrenaline') },
       { text: 'Identify cause (POCUS during pulse check — 4 Hs & 4 Ts)', check: (e) => e.flags.found },
-      { text: 'Treat hypovolaemia: blood / fluid', check: (e) => e.fluidIn.rbc > 0 || e.fluidIn.crystalloid >= 1000 },
+      { text: 'Treat hypovolaemia: blood / fluid', check: (e) => e.fluidIn.rbc > 0 || (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 1000 },
       { text: 'Definitive haemorrhage control', check: (e) => e.flags.ctrl },
     ],
     targets: { map: 65, spo2: 94 },

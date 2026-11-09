@@ -9,7 +9,7 @@
   const units = (e, k) => Math.round(e.fluidIn[k] / (k === 'rbc' ? 280 : 270));
   const cxrN = { media: 'cxr_normal', report: 'No acute abnormality.' };
   const bloodGiven = (e) => e.fluidIn.rbc > 0;
-  const crystalHarm = (e, ev, lim = 1000) => (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > lim ? { harm: 'Large-volume crystalloid in haemorrhagic shock — use blood products' } : null);
+  const crystalHarm = (e, ev, lim = 1000) => (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > lim ? { harm: 'Large-volume crystalloid in haemorrhagic shock — use blood products' } : null);
   const TRAUMA_REFS = ['NICE NG39: Major trauma — assessment and initial management (2016)', 'JPAC / BSH: Major haemorrhage guidance (2022)'];
 
   // =====================================================================
@@ -168,7 +168,7 @@
       if (ev.type === 'action' && ev.id === 'fem_block') { f.pain = Math.max(0, (f.pain == null ? 1 : f.pain) - 0.5); f.block = true; return { handled: true, msg: 'Ultrasound-guided fascia iliaca block with levobupivacaine 0.25% (within the maximum dose) — thigh pain much better after ~10 min. Document the neurovascular status before the block.', kind: 'good' }; }
       if (ev.type === 'action' && ev.id === 'fem_ortho') { if (!e.did('inv_ct')) return { handled: true, msg: 'Orthopaedic registrar: “Happy to take him — can you get an X-ray of the whole femur, including hip and knee, first?”' }; f.ortho = true; return { handled: true, msg: 'Orthopaedics: closed mid-shaft femoral fracture — intramedullary nail on the trauma list today. Keep him in the traction splint, nil by mouth, group & save.', kind: 'good' }; }
       if (ev.type === 'drug' && (ev.id === 'morphine' || ev.id === 'fentanyl' || ev.id === 'ketamine')) { f.analgesia = true; return null; }
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 2000) return { harm: 'Large-volume crystalloid for haemorrhage — use blood if still shocked' };
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 2000) return { harm: 'Large-volume crystalloid for haemorrhage — use blood if still shocked' };
       return null;
     },
     exam: ex({ A: 'Talking, distressed with pain.', B: 'Chest clear, equal air entry.', C: (e) => `CRT 3 s, cool hands. Right thigh ${e.flags.splinted === 'traction' ? 'out to length in a traction splint, less tense' : 'tense, swollen, shortened and externally rotated'}.`, D: 'GCS 15. No head injury.', E: (e) => `${e.flags.painNow > 0.5 ? 'Pain 9/10.' : e.flags.painNow > 0.2 ? 'Pain 5/10.' : 'Pain 2/10.'} Closed injury — skin intact. No other injuries on secondary survey.` }),
@@ -370,7 +370,7 @@
       const p = e.p, f = e.flags;
       if (!p.ventilated) { p.narrow = Math.min(1, p.narrow + 0.004 * dt); p.effort = clamp(1 - p.narrow * 0.8, 0.1, 1); if (p.narrow > 0.85) p.airwayPatent = false; }
       if (p.ventilated && !f.escharotomy) p.ventObstruct = 0.4; else p.ventObstruct = 0;
-      if (e.fluidIn.crystalloid > 2500) p.leak = 0.001;
+      if ((e.fluidIn.crystalloid + e.fluidIn.colloid) > 2500) p.leak = 0.001;
     },
     extraActions: [{ id: 'burn_escharotomy', name: 'Chest escharotomies' }, { id: 'burn_refer', name: 'Refer to regional burns centre' }, { id: 'burn_cover', name: 'Cling-film dressings, warming, analgesia' }, { id: 'burn_hydroxo', name: 'Hydroxocobalamin 5 g (suspected cyanide)' }],
     onEvent(e, ev) {
@@ -387,7 +387,7 @@
     critical: [
       { text: 'High-flow oxygen (CO poisoning)', check: (e) => e.p.fio2 >= 0.6 },
       { text: 'Early intubation before airway oedema progresses', check: (e) => e.p.ventilated },
-      { text: 'IV fluid resuscitation (Hartmann’s)', check: (e) => e.fluidIn.crystalloid >= 1000 },
+      { text: 'IV fluid resuscitation (Hartmann’s)', check: (e) => (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 1000 },
       { text: 'Escharotomy for restricted ventilation', check: (e) => e.flags.escharotomy },
       { text: 'Burns centre referral', check: (e) => e.flags.refer },
     ],
@@ -528,7 +528,7 @@
     exam: ex({ C: 'Warm, vasodilated.', D: 'GCS 15.', E: 'Two puncture marks at the ankle; swelling and bruising to the knee; tender groin nodes.' }),
     inv: { bloods: (e) => labs(e, { wcc: 18, extra: [['20-min whole-blood clotting test', 'Normal'], ['CK', '640 U/L']] }), gas: true, ecg: {}, cxr: cxrN, ct: [], pocus: [{ label: 'IVC', media: 'us_ivc_flat', report: 'Collapsing IVC.' }] },
     critical: [
-      { text: 'Fluid resuscitation', check: (e) => e.fluidIn.crystalloid >= 1000 },
+      { text: 'Fluid resuscitation', check: (e) => (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 1000 },
       { text: 'Antivenom (ViperaTAb)', check: (e) => e.flags.av },
       { text: 'TOXBASE / NPIS', check: (e) => e.flags.tox },
       { text: 'IM adrenaline if angioedema/anaphylactoid features', check: (e) => any(e, 'adrenaline_im', 'adrenaline') },

@@ -318,6 +318,8 @@
     // fluids bags
     const bags = [];
     if (eng.fluidIn.crystalloid) bags.push(['#e8f3ff', `Crystalloid ${eng.fluidIn.crystalloid} mL`]);
+    if (eng.fluidIn.colloid) bags.push(['#fff6d6', `Colloid ${eng.fluidIn.colloid} mL`]);
+    if (eng.fluidIn.glucose) bags.push(['#eef7ee', `Glucose ${eng.fluidIn.glucose} mL`]);
     if (eng.fluidIn.rbc) bags.push(['#a3182a', `Red cells ×${Math.round(eng.fluidIn.rbc / 280)}`]);
     if (eng.fluidIn.ffp) bags.push(['#f1d36b', `FFP ×${Math.round(eng.fluidIn.ffp / 270)}`]);
     if (eng.fluidIn.plt) bags.push(['#f3e6a8', 'Platelets']);

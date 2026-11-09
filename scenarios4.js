@@ -311,7 +311,7 @@
         if (e.fluidIn.rbc > 0 && (e.did('inv_ct') || e.did('inv_pocus'))) { e.flags.controlled = true; return { handled: true, msg: 'Paediatric surgeon/IR: grade IV splenic laceration with active bleeding — taken for splenic embolisation/surgery now.', kind: 'good' }; }
         return { handled: true, msg: 'Surgeon: where is the bleeding? Start blood and image the abdomen.' };
       }
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && mlkg(e) > 10) return { harm: 'More than 10 mL/kg crystalloid in haemorrhagic shock — use blood products' };
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && mlkg(e) > 10) return { harm: 'More than 10 mL/kg crystalloid in haemorrhagic shock — use blood products' };
       if (ev.type === 'inv' && ev.id === 'ct' && e.p.map < 45) return { harm: 'CT while haemodynamically unstable' };
     },
     exam: (e) => ({ A: 'Talking.', B: resp(e) + ' Clear, equal chest. Bruising left lower ribs.', C: circ(e) + ' Pale. Abdomen distended, tender left upper quadrant.', D: 'GCS 14, anxious.', E: 'Tyre mark on the left flank. Grazes.' }),

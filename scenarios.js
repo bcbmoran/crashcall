@@ -94,7 +94,7 @@
     critical: [
       { text: 'Blood cultures, bloods & lactate sent', check: (e) => e.did('inv_bloods') && (e.did('inv_gas') || e.did('inv_bloods')) },
       { text: 'IV antibiotics given', check: (e) => e.did('antibiotics') },
-      { text: 'Fluid resuscitation ≥ 1 L crystalloid (with reassessment)', check: (e) => e.fluidIn.crystalloid >= 1000 },
+      { text: 'Fluid resuscitation ≥ 1 L crystalloid (with reassessment)', check: (e) => (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 1000 },
       { text: 'High-flow oxygen / SpO₂ target achieved', check: (e) => e.p.spo2 >= 94 },
     ],
     targets: { map: 65, spo2: 94 },
@@ -143,7 +143,7 @@
         e.flags.ctrlAt = e.t + (e.flags.binder ? 50 : 80);
         return { handled: true, msg: 'Interventional radiology accept — patient to angio suite for embolisation (continue resuscitation en route).', kind: 'good' };
       }
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 1000) { p.coag += 0.25; return { harm: 'Large-volume crystalloid in haemorrhagic shock — dilutional coagulopathy and acidosis' }; }
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 1000) { p.coag += 0.25; return { harm: 'Large-volume crystalloid in haemorrhagic shock — dilutional coagulopathy and acidosis' }; }
       if ((ev.type === 'inf' || ev.type === 'drug') && ['noradrenaline', 'metaraminol', 'phenylephrine', 'vasopressin'].includes(ev.id) && p.bleed > 0) return { harm: 'Vasopressor used as a substitute for blood products in haemorrhage' };
       if (ev.type === 'inv' && ev.id === 'ct' && p.map < 60) return { harm: 'CT with ongoing haemodynamic instability — consider direct to IR/theatre' };
       if (ev.type === 'action' && ev.id === 'warming') e.flags.warmed = true;
@@ -291,7 +291,7 @@
     onEvent(e, ev) {
       const p = e.p;
       if (ev.type === 'drug' && ev.id === 'alteplase' && !e.flags.lysed) { e.flags.lysed = e.t; return { msg: 'Thrombolysis running. Monitor for bleeding.', kind: 'good' }; }
-      if (ev.type === 'fluid' && e.fluidIn.crystalloid > 500) { p.obstruct = Math.min(0.75, p.obstruct + 0.04); return { harm: 'Further fluid in RV failure — RV dilatation worsens septal shift and LV filling' }; }
+      if (ev.type === 'fluid' && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 500) { p.obstruct = Math.min(0.75, p.obstruct + 0.04); return { harm: 'Further fluid in RV failure — RV dilatation worsens septal shift and LV filling' }; }
       if (ev.type === 'inv' && ev.id === 'ct' && p.map < 65) return { harm: 'Transfer of a shocked patient to CT — use bedside echo to support the diagnosis' };
       if (ev.type === 'action' && ev.id === 'cath_lab') return { handled: true, msg: 'Interventional cardiology: catheter-directed therapy not immediately available — give systemic thrombolysis now.' };
       if (ev.type === 'action' && (ev.id === 'rsi_propofol' || ev.id === 'rsi_ketamine') && !e.flags.lysed) return { harm: 'Intubation/positive-pressure ventilation in acute RV failure — high risk of arrest' };
@@ -394,7 +394,7 @@
     critical: [
       { text: 'IM adrenaline 500 mcg (repeat if no improvement at 5 min)', check: (e) => any(e, 'adrenaline_im', 'adrenaline') },
       { text: 'High-flow oxygen', check: oxygen },
-      { text: 'IV fluid bolus (500–1000 mL)', check: (e) => e.fluidIn.crystalloid >= 500 },
+      { text: 'IV fluid bolus (500–1000 mL)', check: (e) => (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 500 },
     ],
     targets: { map: 65, spo2: 94 },
     hint: {
@@ -439,7 +439,7 @@
         e.flags.pciAt = e.t + 70;
         return { handled: true, msg: 'Primary PCI team activated — door-to-balloon clock running. Continue stabilising for transfer.', kind: 'good' };
       }
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 250) return { harm: 'Fluid boluses in cardiogenic shock with pulmonary oedema' };
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 250) return { harm: 'Fluid boluses in cardiogenic shock with pulmonary oedema' };
       if (ev.type === 'inf' && ev.id === 'gtn' && ev.rate > 0 && p.map < 75) return { harm: 'Nitrate in a hypotensive patient' };
       if (ev.type === 'drug' && ev.id === 'furosemide' && p.map < 65) return { msg: 'Diuretics will not work (and may worsen hypotension) until perfusion is restored.', kind: 'warn' };
     },
@@ -510,7 +510,7 @@
         e.flags.bandAt = e.t + 55;
         return { handled: true, msg: 'Endoscopist on the way — emergency OGD with band ligation in resus (airway protection considered).', kind: 'good' };
       }
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 1000) return { harm: 'Excess crystalloid in variceal haemorrhage — raises portal pressure and dilutes clotting' };
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 1000) return { harm: 'Excess crystalloid in variceal haemorrhage — raises portal pressure and dilutes clotting' };
       if (ev.type === 'fluid' && ev.kind === 'rbc' && p.hb > 100) return { harm: 'Over-transfusion (Hb > 100) — restrictive target 70–80 g/L reduces re-bleeding and mortality' };
     },
     exam: (e) => ({

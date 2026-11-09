@@ -240,23 +240,79 @@
       info: '50 mEq. For TCA toxicity / severe acidosis with hyperkalaemia. Generates CO₂ — ensure ventilation.' },
   ];
 
+  // kind: crystalloid | colloid | glucose | hypertonic | rbc | ffp | plt | cryo  (kind drives scoring; sol drives physiology)
   S.FLUIDS = [
-    { id: 'crystalloid250', name: "Hartmann's 250 mL bolus", kind: 'crystalloid', ml: 250 },
-    { id: 'crystalloid500', name: "Hartmann's 500 mL bolus", kind: 'crystalloid', ml: 500 },
-    { id: 'crystalloid1000', name: "Hartmann's 1000 mL", kind: 'crystalloid', ml: 1000 },
-    { id: 'saline500', name: '0.9% sodium chloride 500 mL', kind: 'crystalloid', ml: 500 },
+    { id: 'crystalloid250', name: "Hartmann's 250 mL", kind: 'crystalloid', sol: 'balanced', ml: 250 },
+    { id: 'crystalloid500', name: "Hartmann's 500 mL", kind: 'crystalloid', sol: 'balanced', ml: 500 },
+    { id: 'crystalloid1000', name: "Hartmann's 1000 mL", kind: 'crystalloid', sol: 'balanced', ml: 1000 },
+    { id: 'plasmalyte500', name: 'Plasma-Lyte 148 500 mL', kind: 'crystalloid', sol: 'balanced', ml: 500 },
+    { id: 'plasmalyte1000', name: 'Plasma-Lyte 148 1000 mL', kind: 'crystalloid', sol: 'balanced', ml: 1000 },
+    { id: 'saline250', name: '0.9% sodium chloride 250 mL', kind: 'crystalloid', sol: 'saline', ml: 250 },
+    { id: 'saline500', name: '0.9% sodium chloride 500 mL', kind: 'crystalloid', sol: 'saline', ml: 500 },
+    { id: 'saline1000', name: '0.9% sodium chloride 1000 mL', kind: 'crystalloid', sol: 'saline', ml: 1000 },
+    { id: 'glucose5_500', name: '5% glucose 500 mL', kind: 'glucose', sol: 'glucose5', ml: 500 },
+    { id: 'glucose5_1000', name: '5% glucose 1000 mL', kind: 'glucose', sol: 'glucose5', ml: 1000 },
+    { id: 'dexsal1000', name: '0.18% sodium chloride / 4% glucose 1000 mL', kind: 'glucose', sol: 'dexsal', ml: 1000 },
+    { id: 'salglu1000', name: '0.9% sodium chloride / 5% glucose 1000 mL', kind: 'crystalloid', sol: 'salglu', ml: 1000 },
+    { id: 'albumin45', name: 'Human albumin solution 4.5% 500 mL', kind: 'colloid', sol: 'alb45', ml: 500 },
+    { id: 'albumin20', name: 'Human albumin solution 20% 100 mL', kind: 'colloid', sol: 'alb20', ml: 100 },
+    { id: 'gelo500', name: 'Succinylated gelatin 4% (Gelofusine) 500 mL', kind: 'colloid', sol: 'gelatin', ml: 500 },
+    { id: 'hts3', name: 'Sodium chloride 3% 250 mL (hypertonic)', kind: 'hypertonic', sol: 'hts3', ml: 250, osmo: true },
     { id: 'rbc', name: 'Red cells 1 unit (O neg / group-specific)', kind: 'rbc', ml: 280 },
     { id: 'ffp', name: 'FFP 1 unit', kind: 'ffp', ml: 270 },
     { id: 'platelets', name: 'Platelets 1 pool', kind: 'plt', ml: 250 },
     { id: 'cryo', name: 'Cryoprecipitate 2 pools', kind: 'cryo', ml: 100 },
     // weight-based (shown for children)
-    { id: 'cryst10', name: 'Crystalloid bolus 10 mL/kg', kind: 'crystalloid', perKg: 10, paed: true },
-    { id: 'cryst20', name: 'Crystalloid bolus 20 mL/kg', kind: 'crystalloid', perKg: 20, paed: true },
-    { id: 'salineK', name: '0.9% saline + KCl 40 mmol/L, 10 mL/kg', kind: 'crystalloid', perKg: 10, paed: true },
+    { id: 'cryst10', name: 'Balanced crystalloid bolus 10 mL/kg', kind: 'crystalloid', sol: 'balanced', perKg: 10, paed: true },
+    { id: 'cryst20', name: 'Balanced crystalloid bolus 20 mL/kg', kind: 'crystalloid', sol: 'balanced', perKg: 20, paed: true },
+    { id: 'salinekg10', name: '0.9% sodium chloride 10 mL/kg', kind: 'crystalloid', sol: 'saline', perKg: 10, paed: true },
+    { id: 'salineK', name: '0.9% saline + KCl 40 mmol/L, 10 mL/kg', kind: 'crystalloid', sol: 'saline', perKg: 10, paed: true },
+    { id: 'salglu10', name: '0.9% sodium chloride / 5% glucose 10 mL/kg (maintenance fluid)', kind: 'crystalloid', sol: 'salglu', perKg: 10, paed: true },
+    { id: 'albumin45kg', name: 'Human albumin solution 4.5% 10 mL/kg', kind: 'colloid', sol: 'alb45', perKg: 10, paed: true },
+    { id: 'hts27kg', name: 'Sodium chloride 2.7% 3 mL/kg (hypertonic)', kind: 'hypertonic', sol: 'hts27', perKg: 3, paed: true, osmo: true },
     { id: 'rbc10', name: 'Red cells 10 mL/kg', kind: 'rbc', perKg: 10, paed: true },
     { id: 'ffp10', name: 'FFP 10 mL/kg', kind: 'ffp', perKg: 10, paed: true },
     { id: 'plt10', name: 'Platelets 10 mL/kg', kind: 'plt', perKg: 10, paed: true },
   ];
+  // Physiology per solution: vol = intravascular expansion relative to the volume given (crystalloids are further x0.85 in the engine),
+  // na = net sodium (mmol/L) above plasma-neutral (negative = free water), cl = chloride load (hyperchloraemic acidosis), glu = glucose rise (mmol/L per litre in 70 kg).
+  S.FLUID_SOL = {
+    balanced: { vol: 1 }, saline: { vol: 1, cl: 3 }, salglu: { vol: 1, cl: 3, glu: 4 },
+    glucose5: { vol: 0.12, na: -140, glu: 6 }, dexsal: { vol: 0.25, na: -110, glu: 5 },
+    alb45: { vol: 1.05 }, alb20: { vol: 3.5 }, gelatin: { vol: 0.9 },
+    hts3: { vol: 3, na: 373, cl: 2 }, hts27: { vol: 2.8, na: 322, cl: 2 },
+    rbc: { vol: 1 }, ffp: { vol: 1 }, plt: { vol: 1 }, cryo: { vol: 0.5 },
+  };
+  S.FLUID_INFO = {
+    balanced: 'Balanced crystalloid (Hartmann\'s / Plasma-Lyte 148): first choice for resuscitation (NICE CG174: 500 mL over less than 15 min in adults, then reassess). Children: 10 mL/kg over 5–10 min, reassess (APLS / NICE NG51).',
+    saline: '0.9% sodium chloride: isotonic, but its high chloride causes hyperchloraemic metabolic acidosis in large volumes. Fine for smaller volumes or as a drug diluent; prefer balanced solutions for large volumes.',
+    salglu: '0.9% sodium chloride with 5% glucose: isotonic maintenance fluid with glucose (e.g. children, NICE NG29). Not a resuscitation fluid; run over hours.',
+    glucose5: '5% glucose: effectively free water once the glucose is metabolised. Almost no intravascular expansion. Used for maintenance water and drug infusions, not resuscitation; large volumes cause hyponatraemia.',
+    dexsal: '0.18% sodium chloride / 4% glucose: hypotonic adult maintenance fluid. Never as a bolus; avoid in children (risk of hyponatraemia).',
+    alb45: 'Human albumin solution 4.5%: iso-oncotic colloid. Consider in sepsis when large volumes of crystalloid are needed, or in specific settings (e.g. large-volume paracentesis). Not first line.',
+    alb20: 'Human albumin solution 20%: concentrated, hyper-oncotic. 100 mL expands plasma by roughly 300–400 mL by drawing in tissue fluid. Used in liver disease (paracentesis, SBP, hepatorenal syndrome) and hypoalbuminaemic states. Give slowly.',
+    gelatin: 'Succinylated gelatin 4% (Gelofusine): synthetic colloid with short-lived volume effect and a small risk of anaphylaxis. Not recommended over crystalloid for resuscitation (NICE CG174).',
+    hts3: 'Hypertonic saline 3%: osmotherapy for raised intracranial pressure (e.g. 250 mL over 10–20 min) or severe symptomatic hyponatraemia (150 mL boluses, recheck sodium). Raises sodium by about 2 mmol/L per 250 mL in an adult; watch for overcorrection.',
+    hts27: 'Hypertonic saline 2.7% (children): 3–5 mL/kg over 10–15 min for raised ICP / cerebral oedema (e.g. in DKA, BSPED 2021) or symptomatic hyponatraemia.',
+    rbc: 'Red cells: give through a warmer; in major haemorrhage give with FFP (and platelets/cryo) per the massive haemorrhage protocol, guided by bleeding and tests.',
+    ffp: 'Fresh frozen plasma: replaces clotting factors; ratio with red cells in major haemorrhage (e.g. 1:1 to 1:2).',
+    plt: 'Platelets: one adult dose raises the count by roughly 20–40 × 10⁹/L. Usually over 30 min, faster in major haemorrhage.',
+    cryo: 'Cryoprecipitate: fibrinogen replacement (aim fibrinogen > 1.5 g/L in major haemorrhage, > 2 g/L in obstetric haemorrhage).',
+  };
+  // Speeds (scenario time is compressed: ~1 s per minute, as for urine output).
+  S.FLUID_RATES = [
+    { dur: 5, label: 'Stat (pressure bag)' },
+    { dur: 10, label: 'Over 10 min' },
+    { dur: 15, label: 'Over 15 min' },
+    { dur: 30, label: 'Over 30 min' },
+    { dur: 60, label: 'Over 1 h' },
+    { dur: 120, label: 'Over 2 h' },
+    { dur: 240, label: 'Over 4 h' },
+    { dur: 480, label: 'Over 8 h' },
+  ];
+  S.fluidDefaultDur = (f, paed) => f.defDur || (f.kind === 'crystalloid' ? (/glu/.test(f.sol || '') ? 480 : paed ? 10 : 15)
+    : f.kind === 'glucose' ? 480 : f.kind === 'colloid' ? (f.sol === 'alb20' ? 30 : 15) : f.kind === 'hypertonic' ? 15 : 10);
+  S.fluidRateLabel = (dur, ml) => { const r = S.FLUID_RATES.find((x) => x.dur === dur); return `${r ? r.label.replace(/^Stat \(pressure bag\)/, 'stat via pressure bag').replace(/^Over/, 'over') : 'over ' + dur + ' min'} (${Math.round(ml * 60 / dur)} mL/h)`; };
 
   // Peripheral cannula gauges (ISO 10555 colour code) and approximate free-flow capacity (mL/min) used to scale fluid/blood delivery.
   S.CANNULA = {

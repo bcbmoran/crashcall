@@ -15,7 +15,7 @@
     patient: { age: 40, sex: 'M', weight: 80, vasoplegia: 0.8, venodil: 0.12, baro: 0.08, hrBase: 50, effort: 0.75, rrBase: 22, temp: 36.0, lactate: 2.2, look: { collar: true } },
     init(e) { e.fluidIn.crystalloid = 0; },
     onEvent(e, ev) {
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 1500) return { harm: 'Large-volume fluid in neurogenic shock — risk of pulmonary oedema; use vasopressors' };
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 1500) return { harm: 'Large-volume fluid in neurogenic shock — risk of pulmonary oedema; use vasopressors' };
     },
     exam: (e) => ({
       A: 'Patent, collar in situ. Talking.',
@@ -95,7 +95,7 @@
     },
     critical: [
       { text: 'Hydrocortisone 100 mg IV/IM immediately', check: (e) => e.did('hydrocortisone') },
-      { text: 'Fluid resuscitation ≥ 1 L', check: (e) => e.fluidIn.crystalloid >= 1000 },
+      { text: 'Fluid resuscitation ≥ 1 L', check: (e) => (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 1000 },
       { text: 'Treat hypoglycaemia', check: (e) => e.did('glucose') },
     ],
     targets: { map: 65, spo2: 94 },
@@ -135,7 +135,7 @@
     },
     onEvent(e, ev) {
       if (ev.type === 'inf' && ev.id === 'noradrenaline' && ev.rate > 0.6) return { msg: 'Very high-dose noradrenaline — add a non-catecholamine vasopressor and consider steroids.', kind: 'warn' };
-      if (ev.type === 'fluid' && e.fluidIn.crystalloid > 1000) return { harm: 'Further fluid in a fluid-unresponsive, leaky patient with ARDS' };
+      if (ev.type === 'fluid' && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 1000) return { harm: 'Further fluid in a fluid-unresponsive, leaky patient with ARDS' };
     },
     exam: (e) => ({
       A: 'Size 8.0 ETT at 23 cm, secure.', B: `Ventilated: FiO₂ ${e.p.fio2.toFixed(2)}, PEEP ${e.p.peep}, Ppeak ${Math.round(e.p.paw)}. Bronchial breathing right base, coarse crackles bilaterally. SpO₂ ${e.p.spo2}%.`,
@@ -292,7 +292,7 @@
     critical: [
       { text: 'Call for senior/surgical help', check: (e) => e.did('call_help') },
       { text: 'Echo to confirm tamponade', check: (e) => e.did('inv_pocus') },
-      { text: 'Maintain preload (fluid bolus) while preparing', check: (e) => e.fluidIn.crystalloid + e.fluidIn.rbc >= 250 },
+      { text: 'Maintain preload (fluid bolus) while preparing', check: (e) => (e.fluidIn.crystalloid + e.fluidIn.colloid) + e.fluidIn.rbc >= 250 },
       { text: 'Emergency re-sternotomy (cardiac surgeon)', check: (e) => e.flags.opened },
     ],
     targets: { map: 65, spo2: 94 },
@@ -347,7 +347,7 @@
       { text: 'Remove triggers (stop gelatin / drugs)', check: (e) => e.did('stop_trigger') },
       { text: 'FiO₂ 1.0', check: fio2High },
       { text: 'Adrenaline IV 50 mcg boluses (± infusion)', check: (e) => e.did('adrenaline') },
-      { text: 'Rapid crystalloid bolus 500–1000 mL, repeated as needed', check: (e) => e.fluidIn.crystalloid >= 1000 },
+      { text: 'Rapid crystalloid bolus 500–1000 mL, repeated as needed', check: (e) => (e.fluidIn.crystalloid + e.fluidIn.colloid) >= 1000 },
       { text: 'Mast cell tryptase sample', check: (e) => e.did('inv_bloods') },
     ],
     targets: { map: 65, spo2: 94 },
@@ -776,7 +776,7 @@
       if (ev.type === 'drug' && ev.id === 'txa' && !e.flags.txa) { e.flags.txa = true; p.bleed *= 0.85; }
       if (ev.type === 'action' && ev.id === 'bimanual') { if (p.bleed > 0) { p.bleed *= 0.5; e.flags.biUntil = e.t + 60; } return { handled: true, msg: 'Bimanual compression — temporary control while drugs work.' }; }
       if (ev.type === 'action' && ev.id === 'theatre') { e.flags.ctrlAt = e.t + 50; return { handled: true, msg: 'Obstetric consultant: examination under anaesthesia and Bakri balloon now.', kind: 'good' }; }
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 2000) return { harm: 'Excessive crystalloid (> 2 L) in obstetric haemorrhage — switch to blood products' };
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 2000) return { harm: 'Excessive crystalloid (> 2 L) in obstetric haemorrhage — switch to blood products' };
     },
     exam: (e) => ({
       A: 'Patent, talking.', B: `RR ${e.p.rr}, SpO₂ ${e.p.spo2}%.`,

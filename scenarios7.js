@@ -74,7 +74,7 @@
       }
       if (ev.type === 'drug' && ev.id === 'adrenaline' && p.arrested) return { msg: 'Adrenaline has a limited role in traumatic cardiac arrest — it does not treat the cause. Prioritise HOTT: hypovolaemia, oxygenation, tension, tamponade.', kind: 'warn', noHarm: true };
       if (ev.type === 'drug' && ev.id === 'txa') return { msg: 'TXA 1 g given (CRASH-2).', kind: 'good' };
-      if (ev.type === 'fluid' && ev.kind === 'crystalloid' && e.fluidIn.crystalloid > 1000) return { harm: 'Large-volume crystalloid in traumatic haemorrhage (use blood products)' };
+      if (ev.type === 'fluid' && /^(crystalloid|colloid)$/.test(ev.kind) && (e.fluidIn.crystalloid + e.fluidIn.colloid) > 1000) return { harm: 'Large-volume crystalloid in traumatic haemorrhage (use blood products)' };
     },
     exam: (e) => ({
       A: e.flags.airway ? 'Tracheal tube in situ, capnography trace present.' : 'Unprotected airway, blood in the oropharynx. C-collar on.',

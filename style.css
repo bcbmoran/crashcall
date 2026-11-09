@@ -400,3 +400,5 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .capno-db { display: flex; flex-direction: column; gap: 8px; }
 .capno-db-row { display: flex; gap: 10px; align-items: center; }
 .capno-db-row .capno-svg { flex: 0 0 auto; }
+.fluid-row select, .fluid-running select { max-width: 13.5em; font-size: .82rem; padding: 3px 4px; }
+.fluid-running { border: 1px solid color-mix(in srgb, var(--good) 40%, transparent); border-radius: 8px; padding: 4px 8px; margin-bottom: 8px; }

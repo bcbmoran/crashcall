@@ -135,7 +135,7 @@
     logLine(ev.t, ev.text, ev.kind);
     if (ev.type === 'msg' && ev.kind !== 'act') announce(ev.text, ev.kind);
     // Re-render after the scenario has reacted to the event (the event is emitted before onEvent runs), so newly revealed options appear at once.
-    if (['drug', 'inf', 'fluid', 'action', 'vent'].includes(ev.type)) setTimeout(() => { renderPumps(); if (!(document.activeElement && $('#tabBody').contains(document.activeElement) && document.activeElement.tagName === 'INPUT')) renderTab(); }, 0);
+    if (['drug', 'inf', 'fluid', 'action', 'vent'].includes(ev.type)) setTimeout(() => { renderPumps(); if (!(document.activeElement && $('#tabBody').contains(document.activeElement) && /^(INPUT|SELECT)$/.test(document.activeElement.tagName))) renderTab(); }, 0);
   }
   function logLine(t, text, kind) {
     const li = document.createElement('li');
@@ -192,6 +192,9 @@
     const p = e.p;
     const fl = [];
     if (e.fluidIn.crystalloid) fl.push(`${e.fluidIn.crystalloid} mL crystalloid`);
+    if (e.fluidIn.colloid) fl.push(`${e.fluidIn.colloid} mL colloid`);
+    if (e.fluidIn.glucose) fl.push(`${e.fluidIn.glucose} mL glucose-containing`);
+    if (e.fluidIn.hypertonic) fl.push(`${e.fluidIn.hypertonic} mL hypertonic saline`);
     if (e.fluidIn.rbc) fl.push(`${Math.round(e.fluidIn.rbc / 280)} RBC`);
     if (e.fluidIn.ffp) fl.push(`${Math.round(e.fluidIn.ffp / 270)} FFP`);
     $('#ptMeta').innerHTML = `${p.age < 0.05 ? 'Newborn' : p.age < 1 ? Math.round(p.age * 12) + ' months' : p.age < 2 && p.paed ? p.age + ' yr' : p.age} ${p.sex} · ${p.weight} kg · ${SETTING[state.scn.setting] || ''} · ${p.ventilated ? `Ventilated FiO₂ ${p.fio2.toFixed(2)}` : p.fio2 > 0.21 ? `O₂ FiO₂ ~${p.fio2.toFixed(2)}` : 'Room air'}${fl.length ? ' · In: ' + fl.join(', ') : ''}`;
@@ -207,7 +210,9 @@
     $('#stabTxt').textContent = e.stableTime > 0 ? `${Math.floor(e.stableTime)} / ${need} s stable` : 'Targets not yet held';
     if (!e.L.showTargets && !state.scn.tutorial) { $('#stabBar').style.width = '0%'; $('#stabTxt').textContent = 'Hidden at consultant grade'; }
     const db = $('#declareBtn'); if (db) { db.hidden = e.L.showTargets || !!state.scn.tutorial; db.disabled = !!e.outcome; }
-    const nowS = Math.floor(e.t); if (force || state.outT !== nowS) { state.outT = nowS; renderOutput(e); renderChecklist(e); const vr = $('#tabBody .vent-readouts'); if (vr && e.p.ventilated) vr.innerHTML = ventRO(e); }
+    const nowS = Math.floor(e.t); if (force || state.outT !== nowS) { state.outT = nowS; renderOutput(e); renderChecklist(e); const vr = $('#tabBody .vent-readouts'); if (vr && e.p.ventilated) vr.innerHTML = ventRO(e); const nq = e.fluidQ.length, fr = $('#tabBody .fluid-running');
+      if ((fr || nq !== state.fq) && (state.tab === 'fluids' || state.tab === 'all') && !(document.activeElement && $('#tabBody').contains(document.activeElement) && /^(INPUT|SELECT)$/.test(document.activeElement.tagName))) { if (nq !== state.fq) renderTab(); else fr.querySelectorAll('.dn .muted').forEach((m, i) => { const r = e.fluidQ[i]; if (r) m.firstChild.textContent = `${Math.round(r.left)} of ${r.ml} mL left · set ${Math.round(r.ml * 60 / r.dur)} mL/h${r.limited ? ' · limited by IV access' : ''}`; }); }
+      state.fq = nq; }
   }
   function renderChecklist(e) {
     const card = $('#gaCheck'); if (!card) return;
@@ -233,7 +238,7 @@
     if (o.blood < 5 && !(p.bleed > 0)) bl = `<div class="out-row"><span>Blood loss</span><span class="muted small">No active bleeding</span></div>`;
     else if (seen) { if (vis === 'drain' && o.drain0 == null) o.drain0 = o.blood; const shown = vis === 'drain' ? (scn.drainInitial || 0) + o.blood - o.drain0 : (scn.bloodLossStart || 0) + o.blood; bl = `<div class="out-row"><span>${vis === 'drain' ? 'Chest drain (blood)' : 'Measured blood loss'}</span><b class="${o.bleedNow > 100 ? 'bad' : o.bleedNow > 20 ? 'warn' : 'ok'}">${r(shown / 10) * 10} mL</b><span class="muted small">${o.bleedNow > 2 ? 'now ~' + r(o.bleedNow) + ' mL/min' : 'slowed'}${scn.bloodLossNote ? ' · ' + esc(scn.bloodLossNote) : ''}</span></div>`; }
     else bl = `<div class="out-row"><span>Blood loss</span><span class="muted small">${vis === 'drain' ? 'Into the chest — not measurable until a chest drain is in' : 'Concealed (internal) — not measurable; judge from HR, BP, CRT, lactate and Hb'}</span></div>`;
-    const fin = ['crystalloid', 'rbc', 'ffp', 'plt', 'cryo'].reduce((s, k) => s + (e.fluidIn[k] || 0), 0);
+    const fin = ['crystalloid', 'colloid', 'glucose', 'hypertonic', 'rbc', 'ffp', 'plt', 'cryo'].reduce((s, k) => s + (e.fluidIn[k] || 0), 0);
     const fout = (e.hasCatheter() ? o.urine : 0) + (seen ? (vis === 'drain' ? (scn.drainInitial || 0) + o.blood - (o.drain0 || 0) : (scn.bloodLossStart || 0) + o.blood) : 0);
     const fb = `<div class="out-row"><span>Fluid in / measured out</span><b>${r(fin)} / ${r(fout)} mL</b><span class="muted small">balance ${fin - fout >= 0 ? '+' : ''}${r(fin - fout)} mL</span></div>`;
     box.innerHTML = uo + bl + fb + '<p class="muted small out-note">Time-compressed: each second of the scenario ≈ 1 minute of urine production.</p>';
@@ -332,10 +337,20 @@
     if (state.scn.kit && state.scn.kit.fluids === false) return `<p class="muted">${esc(state.scn.kit.note || 'No IV fluids or blood are available in this setting.')}</p>`;
     const e = state.eng;
     const fl = S.FLUIDS.filter((f) => !!f.paed === !!e.p.paed);
-    return `${e.p.paed ? `<p class="muted small">Weight ${e.p.weight} kg — volumes are calculated per kg.</p>` : ''}<div class="grp"><h4>Crystalloid</h4><div class="act-grid">${fl.filter((f) => f.kind === 'crystalloid').map((f) => `<button class="btn" data-fluid="${f.id}">${esc(f.name)}</button>`).join('')}</div></div>
-      <div class="grp"><h4>Blood products</h4><div class="act-grid">${fl.filter((f) => f.kind !== 'crystalloid').map((f) => `<button class="btn" data-fluid="${f.id}">${esc(f.name)}</button>`).join('')}</div></div>
-      <div class="fluid-sum">Given so far: crystalloid ${e.fluidIn.crystalloid} mL · red cells ${Math.round(e.fluidIn.rbc / 280)} u · FFP ${Math.round(e.fluidIn.ffp / 270)} u · platelets ${Math.round(e.fluidIn.plt / 250)} · cryo ${Math.round(e.fluidIn.cryo / 100)}<br>Tip: a passive leg raise (Airway &amp; procedures) tests fluid responsiveness without giving fluid.</div>`;
+    state.fdur = state.fdur || {};
+    const opts = (sel) => S.FLUID_RATES.map((r) => `<option value="${r.dur}"${r.dur === sel ? ' selected' : ''}>${r.label}</option>`).join('');
+    const vol = (f) => (f.perKg ? Math.round(f.perKg * e.p.weight) : f.ml);
+    const row = (f) => { const d = state.fdur[f.id] || S.fluidDefaultDur(f, e.p.paed); const info = S.FLUID_INFO[f.sol || f.kind] || '';
+      return `<div class="drug fluid-row" data-d="fluid ${f.kind} ${f.sol || ''} ${f.id}"><div class="dn">${esc(f.name)}${info ? ` <button class="info" data-info="f-${f.id}" title="${esc(info)}" aria-label="Info">i</button>` : ''}${f.perKg ? ` <span class="muted small">${vol(f)} mL</span>` : ''}</div><div class="ctl"><select data-fdur="${f.id}" aria-label="Speed for ${esc(f.name)}">${opts(d)}</select><button class="btn sm" data-fluid="${f.id}">Give</button></div>${info ? `<div class="infotext">${esc(info)}</div>` : ''}</div>`; };
+    const grp = (title, list) => (list.length ? `<div class="grp"><h4>${title}</h4>${list.map(row).join('')}</div>` : '');
+    const running = e.fluidQ.length ? `<div class="grp fluid-running"><h4>Running now</h4>${e.fluidQ.map((r) => `<div class="drug running"><div class="dn">${esc(r.name)} <span class="muted small">${Math.round(r.left)} of ${r.ml} mL left · set ${Math.round(r.ml * 60 / r.dur)} mL/h${r.limited ? ' · limited by IV access' : ''}${e.flags.ivDown || !e.lines.length ? ' · <b class="bad">not running — no working IV access</b>' : ''}</span></div><div class="ctl"><select data-frun="${r.n}" aria-label="Change speed">${opts(r.dur)}</select><button class="btn sm danger" data-fstop="${r.n}">Stop</button></div></div>`).join('')}</div>` : '';
+    const sum = Object.entries({ crystalloid: 'crystalloid', colloid: 'colloid', glucose: 'glucose-containing', hypertonic: 'hypertonic saline' }).filter(([k]) => e.fluidIn[k]).map(([k, n]) => `${n} ${Math.round(e.fluidIn[k])} mL`);
+    return `${e.p.paed ? `<p class="muted small">Weight ${e.p.weight} kg — volumes are calculated per kg.</p>` : ''}${running}
+      <p class="muted small">Choose a speed for each bag, then Give. Scenario time is compressed (about 1 second per minute), so "over 1 h" runs for about a minute. Small or few cannulas limit how fast fluid can actually run; "stat" assumes a pressure bag or rapid infuser.</p>
+      ${grp('Crystalloids', fl.filter((f) => f.kind === 'crystalloid'))}${grp('Glucose-containing / maintenance', fl.filter((f) => f.kind === 'glucose'))}${grp('Colloids', fl.filter((f) => f.kind === 'colloid'))}${grp('Hypertonic saline', fl.filter((f) => f.kind === 'hypertonic'))}${grp('Blood products', fl.filter((f) => ['rbc', 'ffp', 'plt', 'cryo'].includes(f.kind)))}
+      <div class="fluid-sum">Given so far: ${sum.length ? sum.join(' · ') + ' · ' : ''}red cells ${Math.round(e.fluidIn.rbc / 280)} u · FFP ${Math.round(e.fluidIn.ffp / 270)} u · platelets ${Math.round(e.fluidIn.plt / 250)} · cryo ${Math.round(e.fluidIn.cryo / 100)}<br>Tip: a passive leg raise (Airway &amp; procedures) tests fluid responsiveness without giving fluid.</div>`;
   }
+
   function actionsHTML() {
     const e = state.eng, p = e.p, scn = state.scn;
     const kit = scn.kit || {};
@@ -472,7 +487,10 @@
     $$('[data-inf]', body).forEach((b) => (b.onclick = () => { if (!guard()) return; const inp = $(`[data-infin="${b.dataset.inf}"]`, body); const d = S.drugById[b.dataset.inf]; const v = Math.max(0, Math.min(d.inf.max, +inp.value || 0)); e.setInfusion(d.id, v); }));
     $$('[data-stop]', body).forEach((b) => (b.onclick = () => guard() && e.setInfusion(b.dataset.stop, 0)));
     $$('[data-info]', body).forEach((b) => (b.onclick = () => b.closest('.drug').classList.toggle('show-info')));
-    $$('[data-fluid]', body).forEach((b) => (b.onclick = () => guard() && e.giveFluid(b.dataset.fluid)));
+    $$('[data-fdur]', body).forEach((x) => (x.onchange = () => { state.fdur = state.fdur || {}; state.fdur[x.dataset.fdur] = +x.value; }));
+    $$('[data-fluid]', body).forEach((b) => (b.onclick = () => { if (!guard()) return; const sel = $(`[data-fdur="${b.dataset.fluid}"]`, body); e.giveFluid(b.dataset.fluid, sel ? +sel.value : undefined); }));
+    $$('[data-frun]', body).forEach((x) => (x.onchange = () => e.setFluidDur(x.dataset.frun, +x.value)));
+    $$('[data-fstop]', body).forEach((b) => (b.onclick = () => e.stopFluid(b.dataset.fstop)));
     $$('[data-act]', body).forEach((b) => (b.onclick = () => guard() && e.doAction(b.dataset.act)));
     $$('[data-line]', body).forEach((b) => (b.onclick = () => guard() && e.siteLine(b.dataset.line)));
     ventWire(body, e, guard);
