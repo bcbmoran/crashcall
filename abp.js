@@ -33,12 +33,12 @@
     const valve = p.valve || null; // 'as' | 'ar' | 'hocm' (scenario-defined)
     let Ts = clamp(0.413 - 0.0017 * hr, 0.17, 0.34); // ejection time (Weissler: LVET ≈ 413 − 1.7 × HR ms)
     let tUp = clamp(0.07 / Math.pow(ce, 0.5), 0.055, 0.15); // radial upstroke is steep; slurs with poor contractility
-    let aR = clamp((p.paed ? 0.05 : 0.1 + 0.28 * stiff) * Math.pow(svrN, 0.5), 0.03, 0.45); // reflected wave size
+    let aR = clamp((p.paed ? 0.03 : 0.04 + 0.2 * stiff) * Math.pow(svrN, 0.5), 0.02, 0.35); // reflected wave size
     let tR = tUp + clamp(0.17 - 0.11 * stiff - 0.03 * (svrN - 1), 0.045, 0.2); // returns earlier in stiff arteries
-    let notchRel = clamp(0.48 * Math.pow(svrN, 0.65), 0.12, 0.82); // dicrotic notch height (fraction of pulse pressure above diastolic)
-    let notchD = clamp(0.06 * Math.pow(svrN, 0.4), 0.025, 0.1); // notch depth (radial: softened)
-    let dicW = clamp(0.07 * Math.pow(svrN, 0.3), 0.03, 0.1); // dicrotic wave
-    let floor = clamp(0.55 - 0.25 * stiff - 0.15 * (1 / svrN - 1), 0.08, 0.8); // run-off asymptote below diastolic (× PP)
+    let notchRel = clamp(0.4 * Math.pow(svrN, 0.65), 0.12, 0.75); // dicrotic notch height (fraction of pulse pressure above diastolic)
+    let notchD = clamp(0.08 * Math.pow(svrN, 0.4), 0.03, 0.12); // notch depth (radial: softened)
+    let dicW = clamp(0.09 * Math.pow(svrN, 0.3), 0.04, 0.12); // dicrotic wave
+    let floor = clamp(0.16 - 0.06 * stiff - 0.05 * (1 / svrN - 1), 0.05, 0.4); // run-off asymptote below diastolic (× PP)
     let dip = 0, dipAt = 0, dipW = 0.03;
     if (valve === 'as') { tUp = clamp(tUp * 2.4, 0.16, 0.22); Ts += 0.04; aR *= 0.4; notchD = 0.008; dicW = 0.01; }
     if (valve === 'ar') { tUp = 0.055; notchRel = 0.22; notchD = 0.01; dicW = 0.015; floor = 0.15; dip = 0.14; dipAt = tUp + 0.055; }
@@ -49,8 +49,10 @@
   // Systolic part in pulse-pressure units (0 at the start of the beat), before normalisation
   function sysRaw(P, t) {
     const rise = smooth(t / P.tUp);
-    const fall = t <= P.tUp ? 0 : Math.pow((t - P.tUp) / (P.Ts - P.tUp), 1.25) * (1 - P.notchRel);
-    let v = rise * (1 - fall) + P.aR * g(t, P.tR, 0.045) * rise;
+    // forward (ejection) wave: sharp peak then an exponential fall that reaches the notch level at end-ejection
+    const nr = clamp(P.notchRel - 0.04, 0.1, 0.9);
+    const fwd = t <= P.tUp ? rise : Math.exp(Math.log(nr) * Math.pow(Math.min(1.2, (t - P.tUp) / (P.Ts - P.tUp)), 0.7));
+    let v = fwd + P.aR * g(t, P.tR, 0.035) * rise;
     if (P.dip) v -= P.dip * g(t, P.dipAt, P.dipW) * rise;
     return v;
   }
@@ -174,7 +176,7 @@
     return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;background:#000;border-radius:6px"><polyline fill="none" stroke="#ff4d4d" stroke-width="2" points="${pts.join(' ')}"/>${opt.labels || ''}</svg>`;
   }
   function guideHTML(e) {
-    const base = { stiff: 0.3, svrN: 1, ce: 1, Ts: 0.3, tUp: 0.07, aR: 0.16, tR: 0.22, notchRel: 0.48, notchD: 0.06, dicW: 0.07, floor: 0.5, dip: 0, dipAt: 0, dipW: 0.03 };
+    const base = { stiff: 0.3, svrN: 1, ce: 1, Ts: 0.3, tUp: 0.07, aR: 0.1, tR: 0.2, notchRel: 0.4, notchD: 0.08, dicW: 0.09, floor: 0.14, dip: 0, dipAt: 0, dipW: 0.03 };
     const mk = (o) => Object.assign({}, base, o);
     const lab = `<text x="2" y="70" fill="#ffd0d0" font-size="10">upstroke</text><text x="34" y="13" fill="#ffd0d0" font-size="10">peak</text><text x="96" y="52" fill="#ffd0d0" font-size="10">dicrotic notch</text><text x="150" y="82" fill="#ffd0d0" font-size="10">diastolic run-off</text>`;
     const card = (title, P, text, o) => `<div class="abp-card"><b>${title}</b>${svgBeat(P, 260, 90, o)}<p class="small">${text}</p></div>`;
@@ -189,8 +191,8 @@
         <li><b>Timing</b>: the upstroke follows the QRS by roughly 160–180 ms at the aortic root, and a little more at the radial artery.</li>
       </ul>
       <h3>Patterns you can see in CrashCall</h3><div class="abp-grid">
-      ${card('Vasodilated (sepsis, anaphylaxis)', mk({ svrN: 0.45, notchRel: 0.28, notchD: 0.04, aR: 0.08, tR: 0.26, floor: 0.25 }), 'Low, late dicrotic notch and a steep diastolic run-off; low diastolic pressure.')}
-      ${card('Vasoconstricted / stiff arteries (elderly, hypertension)', mk({ svrN: 1.8, stiff: 1, notchRel: 0.72, aR: 0.4, tR: 0.13, floor: 0.75 }), 'Early, large reflected wave adds a late-systolic peak (augmentation); high dicrotic notch; slow run-off.')}
+      ${card('Vasodilated (sepsis, anaphylaxis)', mk({ svrN: 0.45, notchRel: 0.22, notchD: 0.05, aR: 0.05, tR: 0.26, floor: 0.05 }), 'Low, late dicrotic notch and a steep diastolic run-off; low diastolic pressure.')}
+      ${card('Vasoconstricted / stiff arteries (elderly, hypertension)', mk({ svrN: 1.8, stiff: 1, notchRel: 0.62, aR: 0.32, tR: 0.15, floor: 0.3 }), 'Early, large reflected wave adds a late-systolic peak (augmentation); high dicrotic notch; slow run-off.')}
       ${card('Pulse pressure variation (ventilated, hypovolaemic)', mk({}), 'Pulse pressure rises and falls with each ventilator breath. PPV &gt; 12–13% suggests fluid responsiveness (sinus rhythm, Vt ≥ 8 mL/kg, closed chest). Shown on the ABP numeric.', { T: 6.4, rr: 0.8, ppv: 0.3 })}
       ${card('Aortic stenosis (pulsus parvus et tardus)', mk({ tUp: 0.19, Ts: 0.34, aR: 0.06, notchD: 0.008, dicW: 0.01 }), 'Slow upstroke, delayed rounded low peak, notch hard to see.')}
       ${card('Aortic regurgitation', mk({ tUp: 0.055, notchRel: 0.22, notchD: 0.01, dicW: 0.015, floor: 0.15, dip: 0.14, dipAt: 0.11 }), 'Sharp upstroke, wide pulse pressure, steep diastolic fall to a low diastolic; may be bisferiens (two systolic peaks).')}

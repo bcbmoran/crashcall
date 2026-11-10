@@ -27,7 +27,8 @@
   }
 
   class Monitor {
-    constructor(canvas, eng) {
+    constructor(canvas, eng, opts) {
+      this.kind = (opts && opts.kind) || 'main'; this.noCo2 = !!(opts && opts.noCo2);
       this.c = canvas; this.ctx = canvas.getContext('2d'); this.eng = eng;
       this.tm = 0; this.x = 0; this.gen = new S.RhythmGen(); this.morph = S.ecgMorph(eng.p); this.morphAt = -1;
       this.breathStart = 0; this.nextBreath = 1;
@@ -55,7 +56,7 @@
       this.c.width = this.W * dpr; this.c.height = this.H * dpr;
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       this.ctx.fillStyle = '#000'; this.ctx.fillRect(0, 0, this.W, this.H);
-      this.x = 0; this.last = {};
+      this.x = 0; this.last = {}; this.cx = {};
       this.waveW = Math.round(this.W * (this.W < 560 ? 0.56 : 0.68));
     }
     measureNibp() {
@@ -66,12 +67,16 @@
       this.nibpAt = this.eng.t;
     }
     channels() {
-      const p = this.eng.p, ch = [{ k: 'ecg', col: '#39ff6a', label: 'II' }];
+      const p = this.eng.p;
+      if (this.kind === 'gas') return [{ k: 'co2', col: '#ffe14d', label: 'CO₂' }, { k: 'paw', col: '#ffb347', label: 'Paw' }, { k: 'flow', col: '#7cffb2', label: 'Flow' }];
+      const ch = [{ k: 'ecg', col: '#39ff6a', label: 'II' }];
       if (p.artLine) ch.push({ k: 'abp', col: '#ff4d4d', label: 'ABP' });
       ch.push({ k: 'pleth', col: '#3ee6ff', label: 'Pleth' });
-      ch.push({ k: 'co2', col: '#ffe14d', label: 'CO₂' });
+      if (!this.noCo2) ch.push({ k: 'co2', col: '#ffe14d', label: 'CO₂' });
       return ch;
     }
+    // seconds of signal across one screen width
+    sweep(k) { return k === 'co2' ? (this.W < 560 ? 16 : 24) : k === 'paw' || k === 'flow' ? (this.W < 560 ? 9 : 12) : (this.W < 560 ? 7 : 10); }
     // ventricular beat (QRS onset) at or before t, and the one after it
     beatAt(t) { const v = this.gen.v; for (let i = v.length - 1; i >= 0; i--) if (v[i].q <= t) return [v[i], v[i + 1] || null]; return [null, null]; }
     rrNow() { const hr = this.eng.p.hrTrue; return hr > 5 ? 60 / hr : 99; }
@@ -123,6 +128,8 @@
         const noise = amp < 0.25 ? (0.25 - amp) * 0.8 * (Math.sin(t * 23) * 0.6 + Math.sin(t * 61) * 0.4) : 0;
         return amp * mod * ect * plethShape(x) + noise;
       }
+      if (this.kind === 'gas' && this.eng.ga && !this.eng.ga.circuit) return 0; // nothing connected to the breathing circuit yet
+      if (k === 'paw' || k === 'flow') return this.vent(k, t);
       if (k === 'co2') {
         if (!S.Capno) return 0;
         let x = Math.min(1, (t - this.breathStart) / this.breathLen);
@@ -131,18 +138,63 @@
       }
       return 0;
     }
+    // Airway pressure (cmH₂O) and flow (L/min) at the Y-piece
+    vent(k, t) {
+      const e = this.eng, p = e.p;
+      const len = this.breathLen || 4;
+      let x = (t - this.breathStart) / len; if (x < 0 || x > 1) x = ((x % 1) + 1) % 1;
+      const tb = x * len; // seconds into this breath
+      const peep = p.peep || 0, auto = p.autoPEEP || 0;
+      if (p.ventilated && !p.ventStopped && p.tubeOK !== false) {
+        const ie = { '1:1': 1, '1:2': 2, '1:3': 3, '1:4': 4 }[p.ventIE || '1:2'] || 2;
+        const Ti = Math.min(len / (1 + ie), 2.5), pc = p.ventMode === 'PCV';
+        const ppk = Math.max(peep + 4, p.paw || 20), ppl = Math.max(peep + 2, Math.min(ppk, p.pplat || ppk - 4));
+        const vt = (p.vtDel || 450) / 1000;
+        const R = Math.max(0.05, (ppk - ppl) / Math.max(0.1, vt / Ti)) / 60; // cmH₂O per L/min
+        const tauE = clamp(0.25 + auto * 0.12 + (ppk - ppl) * 0.02, 0.2, 1.6);
+        if (tb < Ti) {
+          if (pc) { // pressure control: square pressure, decelerating flow
+            const pi = (p.pinsp || 16) + peep;
+            const pr = peep + (pi - peep) * (1 - Math.exp(-tb / 0.05));
+            const tauI = clamp(Ti / 3.5 * (1 + (ppk - ppl) / 20), 0.1, 1.2);
+            const f0 = (vt / (tauI / 60)) / Math.max(0.2, 1 - Math.exp(-Ti / tauI));
+            return k === 'paw' ? pr : Math.min(120, f0 * Math.exp(-tb / tauI));
+          }
+          // volume control: constant flow, pressure ramps to peak then an end-inspiratory pause to plateau
+          const flowI = (vt / (Ti * 0.85)) * 60; // L/min over the flow period (last 15% is the pause)
+          const tf = Ti * 0.85;
+          if (tb < tf) return k === 'paw' ? peep + auto * 0.6 + (ppk - ppl) * (1 - Math.exp(-tb / 0.03)) + (ppl - peep - auto * 0.6) * (tb / tf) : flowI * (1 - Math.exp(-tb / 0.02));
+          return k === 'paw' ? ppl + (ppk - ppl) * Math.exp(-(tb - tf) / 0.04) : flowI * Math.exp(-(tb - tf) / 0.015);
+        }
+        const te = tb - Ti;
+        const pe = peep + auto + (ppl - peep - auto) * Math.exp(-te / (tauE * 0.6));
+        const fe = -(vt * 60 / tauE) * Math.exp(-te / tauE) * 0.9;
+        const endF = auto > 1 ? -(vt * 60 / tauE) * 0.12 * clamp(auto / 6, 0, 1) : 0; // flow still going at the end of expiration = gas trapping
+        return k === 'paw' ? pe : Math.min(fe, endF);
+      }
+      // spontaneous breathing (face mask / SGA / tube on circuit) or apnoea
+      const effort = p.arrested ? 0 : (p.V || 0);
+      const base = p.ventilated ? peep : 0; // spontaneous on the circuit: APL open, ~0 cmH₂O
+      if (effort < 0.05 || !(p.sga || p.assisted || e.ga)) return k === 'paw' ? base : 0;
+      const ti = Math.min(len * 0.4, 1.6);
+      const amp = clamp(effort, 0.2, 1.4);
+      if (tb < ti) { const s = Math.sin(Math.PI * tb / ti); return k === 'paw' ? base - 2.2 * amp * s : 30 * amp * s; }
+      const te = tb - ti, s = Math.sin(Math.PI * Math.min(1, te / Math.max(0.4, (len - ti) * 0.6)));
+      return k === 'paw' ? base + 1.2 * amp * s : -26 * amp * s;
+    }
     respPhase(t) { const len = this.breathLen || 4; const x = ((t - this.breathStart) / len) % 1; return x < 0.35 ? Math.sin((x / 0.35) * Math.PI / 2) : Math.cos(((x - 0.35) / 0.65) * Math.PI / 2); }
 
     frame(dt) {
       const ctx = this.ctx, p = this.eng.p;
-      this.abpScale = this.abpScale === 240 ? (p.sbp < 135 ? 160 : 240) : (p.sbp > 150 ? 240 : 160);
-      if (p.noMonitor) {
+      { const tgt = [80, 120, 160, 200, 240].find((x) => x >= p.sbp * 1.12) || 240; // auto-scale the ABP channel (with hysteresis)
+        if (!this.abpScale || tgt > this.abpScale || p.sbp * 1.3 < this.abpScale) this.abpScale = tgt; }
+      if (p.noMonitor && this.kind !== 'gas') {
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, this.W, this.H);
         ctx.fillStyle = '#9aa'; ctx.font = '700 16px system-ui, sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(p.noMonitor === true ? 'No monitor — you only have your eyes, ears and hands' : String(p.noMonitor), this.W / 2, this.H / 2 - 8);
         ctx.font = '13px system-ui, sans-serif';
         ctx.fillText('Look, listen and feel. Use the Examine tab.', this.W / 2, this.H / 2 + 16);
-        ctx.textAlign = 'left'; this.x = 0; this.last = {}; return;
+        ctx.textAlign = 'left'; this.x = 0; this.last = {}; this.cx = {}; return;
       }
       if (p.monitorOff) {
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, this.W, this.H);
@@ -150,33 +202,36 @@
         ctx.fillText('NO POWER — monitor off', this.W / 2, this.H / 2 - 8);
         ctx.fillStyle = '#9aa'; ctx.font = '13px system-ui, sans-serif';
         ctx.fillText('Feel a pulse, check BP manually, or connect a battery monitor', this.W / 2, this.H / 2 + 16);
-        ctx.textAlign = 'left'; this.x = 0; this.last = {}; return;
+        ctx.textAlign = 'left'; this.x = 0; this.last = {}; this.cx = {}; return;
       }
       dt = Math.min(dt, 0.1);
-      const speed = this.waveW / 6; // 6 s per sweep
       const chs = this.channels();
       const rowH = this.H / chs.length;
-      const nx = this.x + speed * dt;
-      // erase ahead
+      // Each channel sweeps at its own speed (ECG/ABP/pleth ~10 s per screen, capnography slower so several breaths fit)
+      this.cx = this.cx || {};
+      const adv = chs.map((c) => { const x0 = this.cx[c.k] != null ? this.cx[c.k] : 0; return { c, x0, nx: x0 + (this.waveW / this.sweep(c.k)) * dt }; });
       ctx.fillStyle = '#000';
-      const erase = (x0, x1) => ctx.fillRect(x0, 0, x1 - x0, this.H);
-      if (nx + 14 <= this.waveW) erase(this.x + 1, nx + 14);
-      else { erase(this.x + 1, this.waveW); erase(0, (nx + 14) - this.waveW); }
-      const steps = Math.max(1, Math.ceil(nx - this.x));
+      adv.forEach(({ x0, nx }, ci) => {
+        const top = ci * rowH, er = (a, b) => ctx.fillRect(a, top, b - a, rowH);
+        if (nx + 14 <= this.waveW) er(x0 + 1, nx + 14); else { er(x0 + 1, this.waveW); er(0, (nx + 14) - this.waveW); }
+      });
+      const steps = Math.max(1, Math.ceil(Math.max(...adv.map((a) => a.nx - a.x0))));
       for (let i = 1; i <= steps; i++) {
-        const xx = this.x + ((nx - this.x) * i) / steps;
         const tt = this.tm + (dt * i) / steps;
         this.tm2 = tt;
         this.scheduleTo(tt);
-        chs.forEach((c, ci) => {
+        adv.forEach(({ c, x0, nx }, ci) => {
+          const xx = x0 + ((nx - x0) * i) / steps;
           const v = this.value(c.k, tt);
           const top = ci * rowH;
           let y;
           if (c.k === 'ecg') y = top + rowH * 0.62 - v * rowH * 0.42 * (p.ecgGain || 1);
-          else if (c.k === 'abp') y = top + rowH * 0.92 - (clamp(v, 0, this.abpScale * 1.15) / this.abpScale) * rowH * 0.85;
+          else if (c.k === 'abp') y = top + rowH * 0.94 - (clamp(v, 0, this.abpScale * 1.1) / this.abpScale) * rowH * 0.82;
           else if (c.k === 'pleth') y = top + rowH * 0.85 - v * rowH * 0.6;
+          else if (c.k === 'paw') y = top + rowH * 0.9 - (clamp(v, -10, 50) / 40) * rowH * 0.78;
+          else if (c.k === 'flow') y = top + rowH * 0.5 - (clamp(v, -80, 80) / 80) * rowH * 0.42;
           else y = top + rowH * 0.9 - (clamp(v, 0, 10) / 10) * rowH * 0.8; // CO₂ scale 0–10 kPa
-          let px = xx % this.waveW;
+          const px = xx % this.waveW;
           const last = this.last[c.k];
           ctx.strokeStyle = c.col; ctx.lineWidth = 1.6;
           if (last && px > last[0] && px - last[0] < 30) { ctx.beginPath(); ctx.moveTo(last[0], last[1]); ctx.lineTo(px, y); ctx.stroke(); }
@@ -184,7 +239,7 @@
         });
       }
       this.tm += dt;
-      this.x = nx >= this.waveW ? nx - this.waveW : nx;
+      adv.forEach(({ c, nx }) => { this.cx[c.k] = nx >= this.waveW ? nx - this.waveW : nx; });
       // labels / grid lines
       ctx.font = '600 11px system-ui, sans-serif';
       chs.forEach((c, ci) => {
@@ -204,6 +259,7 @@
       const blink = Math.floor(performance.now() / 500) % 2 === 0;
       const arrest = ['vf', 'asystole'].includes(p.rhythm);
       const items = [];
+      if (this.kind === 'gas') { this.gasItems(items); this.drawItems(items, x0, w, blink); return; }
       const hr = arrest ? '---' : p.rhythm === 'pea' ? p.hr : p.hr;
       items.push({ lab: 'HR', val: String(hr), col: '#39ff6a', alarm: p.hr < (p.hrAlarm || [45])[0] || p.hr > (p.hrAlarm || [0, 140])[1] || arrest || p.arrested, unit: 'bpm' });
       if (p.artLine) {
@@ -216,16 +272,20 @@
       const lowPerf = p.map < 40 || ['vf', 'asystole', 'pea'].includes(p.rhythm);
       items.push({ lab: 'SpO₂', val: lowPerf ? '?' : String(p.spo2), col: '#3ee6ff', alarm: p.spo2 < 90 || lowPerf, unit: '%' });
       const fico2 = S.Capno ? S.Capno.params(this.eng).base : 0;
-      items.push({ lab: 'EtCO₂', val: (p.etco2 / 7.5).toFixed(1), sub: fico2 > 0.2 ? `FiCO₂ ${fico2.toFixed(1)} · RR ${p.rr}` : `RR ${p.rr}`, col: '#ffe14d', alarm: p.rr < 6 || p.rr > 30 || fico2 > 0.5, unit: 'kPa' });
+      if (!this.noCo2) items.push({ lab: 'EtCO₂', val: (p.etco2 / 7.5).toFixed(1), sub: fico2 > 0.2 ? `FiCO₂ ${fico2.toFixed(1)} · RR ${p.rr}` : `RR ${p.rr}`, col: '#ffe14d', alarm: p.rr < 6 || p.rr > 30 || fico2 > 0.5, unit: 'kPa' });
       items.push({ lab: 'Temp', val: p.temp.toFixed(1), col: '#e0a3ff', alarm: p.temp > 38.5 || p.temp < 35, unit: '°C', small: true });
       const g = this.eng.ga;
       if (g && S.GA) {
         const mac = S.GA.macAge(p);
-        if (g.dial > 0 || g.et > 0.05) items.push({ lab: 'Sevo', val: g.et.toFixed(1), sub: `Fi ${g.fi.toFixed(1)} · MAC ${(g.et / mac).toFixed(1)}`, col: '#ffffff', unit: '% Et', small: true, alarm: g.et / mac > 2 });
+        if (!this.noCo2 && (g.dial > 0 || g.et > 0.05)) items.push({ lab: 'Sevo', val: g.et.toFixed(1), sub: `Fi ${g.fi.toFixed(1)} · MAC ${(g.et / mac).toFixed(1)}`, col: '#ffffff', unit: '% Et', small: true, alarm: g.et / mac > 2 });
         if (g.monitors.bis) items.push({ lab: 'BIS', val: String(Math.round(g.bis)), col: '#9effd1', small: true, alarm: g.phase === 'maintenance' && g.bis > 60 });
         if (g.monitors.nmt) { const t = S.GA.tof(g); items.push({ lab: 'TOF', val: t.count < 4 ? `${t.count}/4` : `${Math.round(t.ratio * 100)}%`, sub: t.count < 4 ? 'count' : 'ratio', col: '#c9b6ff', small: true }); }
       }
       if (p.cvc) items.push({ lab: 'CVP', val: String(Math.round(p.cvp)), col: '#7aa7ff', unit: 'mmHg', small: true });
+      this.drawItems(items, x0, w, blink);
+    }
+    drawItems(items, x0, w, blink) {
+      const ctx = this.ctx;
       const h = this.H / items.length;
       items.forEach((it, i) => {
         const y = i * h;
@@ -240,6 +300,26 @@
         if (it.sub && h > 36) { ctx.font = '600 11px system-ui, sans-serif'; ctx.fillText(it.sub, this.W - 8, y + h - 5); }
         ctx.textAlign = 'left';
       });
+    }
+    gasItems(items) {
+      const e = this.eng, p = e.p, g = e.ga;
+      if (g && !g.circuit) {
+        items.push({ lab: 'EtCO₂', val: '--', sub: 'not connected to the circuit', col: '#ffe14d', unit: 'kPa' });
+        items.push({ lab: 'Paw', val: '--', col: '#ffb347', unit: 'cmH₂O', small: true }, { lab: 'Vte', val: '--', col: '#7cffb2', unit: 'mL', small: true });
+        items.push({ lab: 'O₂', val: 'air', sub: `FGF ${(g.fgf || 0).toFixed(1)} L/min`, col: '#f5f5f5', unit: 'Fi/Et %', small: true });
+        return;
+      }
+      const fico2 = S.Capno ? S.Capno.params(e).base : 0;
+      items.push({ lab: 'EtCO₂', val: (p.etco2 / 7.5).toFixed(1), sub: `FiCO₂ ${fico2.toFixed(1)} · RR ${p.rr}`, col: '#ffe14d', alarm: p.rr < 6 || fico2 > 0.5 || (p.ventilated && p.etco2 < 7.5), unit: 'kPa' });
+      if (p.ventilated) items.push({ lab: 'Paw', val: `${Math.round(p.paw)}/${Math.round(p.peep + (p.autoPEEP || 0))}`, sub: `Pplat ${p.pplat != null ? p.pplat : '—'} · ${p.ventMode || 'VCV'}`, col: '#ffb347', unit: 'peak/PEEP', alarm: p.paw > 35 || p.pplat > 30 });
+      else items.push({ lab: 'Paw', val: '0', sub: p.V > 0.05 ? 'spontaneous' : 'no breaths', col: '#ffb347', unit: 'cmH₂O', small: true, alarm: !(p.V > 0.05) && !p.arrested });
+      const vt = p.ventilated ? p.vtDel : Math.round((p.V || 0) * 450);
+      items.push({ lab: 'Vte', val: String(vt || 0), sub: `MV ${p.ventilated ? (p.mv || 0).toFixed(1) : ((p.rr * (vt || 0)) / 1000).toFixed(1)} L/min`, col: '#7cffb2', unit: 'mL', small: true });
+      if (!g) items.push({ lab: 'FiO₂', val: String(Math.round(p.fio2 * 100)), col: '#f5f5f5', unit: '%', small: true });
+      if (g) {
+        items.push({ lab: 'O₂', val: g.circuit ? `${Math.round(p.fio2 * 100)}/${Math.round((g.eto2 || 0) * 100)}` : 'air', sub: `FGF ${(g.fgf || 0).toFixed(1)} L/min`, col: '#f5f5f5', unit: 'Fi/Et %', small: true, alarm: g.circuit && p.fio2 < 0.25 });
+        if (S.GA) { const mac = S.GA.macAge(p); items.push({ lab: 'Sevo', val: `${(g.fi || 0).toFixed(1)}/${(g.et || 0).toFixed(1)}`, sub: `MAC ${((g.et || 0) / mac).toFixed(1)}`, col: '#d9b3ff', unit: 'Fi/Et %', small: true, alarm: g.et / mac > 2 }); }
+      }
     }
   }
   S.Monitor = Monitor;

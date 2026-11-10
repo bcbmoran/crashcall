@@ -116,7 +116,10 @@
     $('#briefing').hidden = false;
     $('#log').innerHTML = '';
     $('#toasts').innerHTML = '';
-    state.mon = new S.Monitor($('#monitor'), eng);
+    const gasMon = !!scn.ga || !!(scn.patient && scn.patient.ventilated && /^an-/.test(scn.id)); // theatre cases: separate gas/ventilator monitor
+    $('#gasWrap').hidden = !gasMon;
+    state.mon = new S.Monitor($('#monitor'), eng, { noCo2: gasMon });
+    state.gmon = gasMon ? new S.Monitor($('#gasMonitor'), eng, { kind: 'gas' }) : null;
     state.mon.sound = store.get('sound', false);
     $('#soundBtn').textContent = state.mon.sound ? '🔊' : '🔇';
     state.pv = new S.PatientView($('#patientView'), eng, scn);
@@ -178,6 +181,7 @@
       state.acc += dt;
       while (state.acc >= 0.1) { state.eng.tick(0.1); state.acc -= 0.1; }
       state.mon.frame(dt);
+      if (state.gmon) state.gmon.frame(dt);
     }
     state.uiT += dt;
     if (state.uiT > 0.25) { state.uiT = 0; updateUI(); }
@@ -646,7 +650,7 @@
   $('#soundBtn').onclick = () => { if (!state.mon) return; state.mon.sound = !state.mon.sound; store.set('sound', state.mon.sound); $('#soundBtn').textContent = state.mon.sound ? '🔊' : '🔇'; };
   $('#endBtn').onclick = () => { if (!state.eng) return; if (state.eng.outcome) { finish(state.eng.outcome); return; } state.eng.outcome = 'ended'; finish('ended'); };
   $('#backBtn').onclick = () => { location.hash = ''; };
-  window.addEventListener('resize', () => { if (state.mon && $('#sim').classList.contains('active')) state.mon.resize(); });
+  window.addEventListener('resize', () => { if (state.mon && $('#sim').classList.contains('active')) { state.mon.resize(); if (state.gmon) state.gmon.resize(); } });
 
   // ---------------- tutorial coach ----------------
   function renderCoach() {
