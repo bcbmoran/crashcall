@@ -87,7 +87,7 @@
       airway: 'none', // none | mask | maskHeld | lma | ett
       circuit: false, // patient connected to the breathing system (facemask held on, LMA or tube)
       fgf: 0, o2frac: 1, dial: 0, fi: 0, et: 0, ce: 0, // fresh gas L/min, O₂ fraction, sevo dial %, FiAA, EtAA, brain
-      tciP: { on: false, model: e.p.age < 16 ? (e.p.weight >= 5 ? 'Paedfusor' : 'Eleveld') : 'Schnider', target: 0, cp: 0, ce: 0, mg: 0 },
+      tciP: { on: false, model: e.p.age < 16 ? (e.p.weight >= 5 ? 'Paedfusor' : 'Eleveld') : 'Marsh', target: 0, cp: 0, ce: 0, mg: 0 },
       tciR: { on: false, model: e.p.age < 12 ? 'Eleveld' : 'Minto', target: 0, cp: 0, ce: 0, mcg: 0 },
       pbA: 0, pbCe: 0, // propofol bolus: plasma-equivalent and effect site (µg/mL)
       fA: 0, fCe: 0, mA: 0, mCe: 0, // fentanyl / morphine (fentanyl-equivalent ng/mL)
@@ -131,6 +131,7 @@
     const g = e.ga; if (!g) return;
     // End-of-case high-flow O₂ counts whenever it is in place after surgery ends (not only if the dial is moved during emergence)
     if ((g.phase === 'emergence' || g.phase === 'recovery') && g.fgf >= 6 && g.o2frac >= 0.9 && !e.did('highFlowEnd')) e.mark('highFlowEnd');
+    if ((g.phase === 'emergence' || g.phase === 'recovery') && g.circuit && g.o2frac >= 0.9 && !e.did('o2End')) e.mark('o2End');
     // Prompt about low flows early in maintenance (not at the end) if they haven't been turned down
     if (g.phase === 'maintenance' && !e.flags.lowFlowPrompt && !e.did('lowFlow') && e.level !== 'consultant' && g.dial > 0 && g.fgf > 1.5 && g.surgery && g.surgery.on && e.t - g.surgery.t0 > 20
       && e.allCritical().some((c) => /low flow/i.test(c.text))) {

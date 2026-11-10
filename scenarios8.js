@@ -3,7 +3,7 @@
  * Four complete anaesthetics, each practising induction, maintenance and emergence step by step:
  *   1. LMA + sevoflurane, spontaneous breathing (knee arthroscopy)
  *   2. Tracheal tube + sevoflurane + rocuronium, TOF-guided reversal (laparoscopic cholecystectomy)
- *   3. TIVA: propofol (Schnider) + remifentanil TCI, tracheal tube (laparoscopic gynaecology, high PONV risk)
+ *   3. TIVA: propofol + remifentanil TCI, tracheal tube (laparoscopic gynaecology, high PONV risk)
  *   4. Inhalational induction for a needle-phobic adult, LMA (excision of forearm lipoma)
  * Each runs in "Routine" mode (the procedure only) or "With complications" (one problem per stage).
  * The anaesthetic model lives in ga.js. Guidance follows RCoA IAC / AAGBI–AoA monitoring, NAP5, WHO checklist,
@@ -180,7 +180,7 @@
   }));
 
   // =====================================================================
-  // GA3. TIVA: propofol (Schnider) + remifentanil TCI
+  // GA3. TIVA: propofol + remifentanil TCI
   // =====================================================================
   add(Object.assign(common({
     ga: { tci: true, exposure: 'Supine in Lloyd-Davies, arms tucked; the TIVA cannula is in the right forearm with an anti-reflux valve.' },
@@ -193,7 +193,8 @@
     },
   }), {
     id: 'an-ga-tiva', title: 'Routine GA 3: TIVA with propofol and remifentanil TCI',
-    stem: '28-year-old woman, 62 kg, ASA 1, for a laparoscopic ovarian cystectomy. She had severe post-operative nausea and vomiting after a previous anaesthetic and asks to avoid it. Non-smoker. Plan: total intravenous anaesthesia — propofol (Schnider, effect-site target) and remifentanil (Minto) TCI, rocuronium, tracheal tube, processed-EEG monitoring, double antiemetic prophylaxis.',
+    stem: '28-year-old woman, 62 kg, ASA 1, for a laparoscopic ovarian cystectomy. She had severe post-operative nausea and vomiting after a previous anaesthetic and asks to avoid it. Non-smoker. Plan: total intravenous anaesthesia — propofol and remifentanil TCI, rocuronium, tracheal tube, processed-EEG monitoring, double antiemetic prophylaxis.',
+    stemFor: (level) => level === 'junior' ? '28-year-old woman, 62 kg, ASA 1, for a laparoscopic ovarian cystectomy. She had severe post-operative nausea and vomiting after a previous anaesthetic and asks to avoid it. Non-smoker. Plan: total intravenous anaesthesia — propofol TCI (Marsh model, plasma target) and remifentanil TCI (Minto), rocuronium, tracheal tube, processed-EEG monitoring, double antiemetic prophylaxis.' : null,
     briefHow: 'Routine mode: a TIVA anaesthetic. Set up the TCI pumps on the Anaesthetic tab, use processed-EEG (BIS) and TOF monitoring, keep the vaporiser off, and plan analgesia for when the remifentanil stops.',
     briefComp: 'With complications: a problem will arise at induction, during surgery and on waking — TIVA has its own particular hazards.',
     patient: { age: 28, sex: 'F', weight: 62, hrBase: 70, mapNormal: 84 },
@@ -204,7 +205,7 @@
       { text: 'Check the TIVA cannula is visible and flushing, with an anti-reflux valve', check: d('ivCheck') },
       step('preox'),
       { text: 'Start remifentanil TCI (Ce 3–4 ng/mL)', check: did('tciRemi') },
-      { text: 'Start propofol TCI (e.g. Schnider/Eleveld Ce 4–6 µg/mL, or Marsh Cp), titrate to loss of consciousness', check: (e) => e.did('tciProp') && e.ga.done.phase_induction },
+      { text: 'Start propofol TCI (e.g. Marsh Cp 4–6 µg/mL, or an effect-site model), titrate to loss of consciousness', check: (e) => e.did('tciProp') && e.ga.done.phase_induction },
       compStep('Remifentanil bradycardia: glycopyrronium / atropine (± reduce the remifentanil target)', (e) => anyAfter(e, ['glycopyrronium', 'atropine', 'tciRemi'], e.ga.done.comp_induction) && e.p.hr >= 45),
       step('maskVent'), step('roc'), step('intubate'), step('confirm'), step('vent'), step('eyes'), step('timeout'),
       { text: 'Maintain on TCI with the vaporiser off; depth index 40–60', check: (e) => e.ga.done.surgeryDone && !e.did('sevoOn') || (e.ga.comp && e.ga.done.surgeryDone) },
@@ -213,7 +214,7 @@
       { text: 'Longer-acting opioid (morphine 0.1–0.15 mg/kg) before stopping the remifentanil', check: (e) => e.did('morphine') && (!e.did('tciRemiOff') || first(e, 'morphine') <= first(e, 'tciRemiOff')) },
       { text: 'Paracetamol IV', check: did('paracetamol') },
       { text: 'Double PONV prophylaxis: ondansetron AND dexamethasone (Apfel high risk)', check: (e) => e.did('ondansetron') && e.did('dexamethasone') },
-      { text: 'End of surgery: stop both TCI pumps; 100% O₂', check: (e) => e.did('tciPropOff') && e.did('tciRemiOff') && e.ga.o2frac >= 0.9 },
+      { text: 'End of surgery: stop both TCI pumps (in any order) and give 100% O₂', check: (e) => e.did('tciPropOff') && e.did('tciRemiOff') && (e.did('o2End') || e.ga.o2frac >= 0.9) },
       step('signout'), step('reversal'), step('suction'), step('extubate'),
       compStep('Severe pain on waking: titrate morphine before handing over', (e) => after(e, 'morphine', e.ga.done.phase_emergence) || after(e, 'fentanyl', e.ga.done.phase_emergence) || (e.ga.done.handover && e.ga.pain <= 0.5)),
       step('recovery'), step('handover'),
@@ -221,7 +222,7 @@
     hint: {
       steps: [
         { t: 'TIVA set-up: dedicated visible cannula, anti-reflux valve, BIS and TOF monitoring', rx: 'If the drug isn’t reaching the patient, they are waking up' },
-        { t: 'Remifentanil TCI 3–4 ng/mL, then propofol Schnider Ce 4–6 µg/mL', rx: 'Watch HR (remifentanil bradycardia) and BP' },
+        { t: 'Remifentanil TCI 3–4 ng/mL, then propofol TCI 4–6 µg/mL (Marsh Cp, or Ce with Schnider/Eleveld)', rx: 'Watch HR (remifentanil bradycardia) and BP' },
         { t: 'Rocuronium once asleep → intubate → ventilate; vaporiser stays off', rx: 'Depth index 40–60; adjust the propofol target' },
         { t: 'Remifentanil has no tail of analgesia', rx: 'Give morphine 0.1–0.15 mg/kg ~ 20 min before the end' },
         { t: 'End: double antiemetic, stop pumps, reverse to TOF ratio ≥ 0.9, extubate awake', kind: 'end' },

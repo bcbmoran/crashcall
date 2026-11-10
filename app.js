@@ -100,10 +100,10 @@
     const lvT = $('#scnLevel'); if (lvT) { lvT.textContent = scn.tutorial ? '' : eng.L.name; lvT.className = 'tag lvl ' + eng.level; lvT.hidden = !!scn.tutorial; }
     $('#scnTitle').textContent = state.blind ? 'Unknown case (blind mode)' : scn.title;
     $('#scnField').textContent = FIELD[scn.field]; $('#scnField').className = 'tag ' + scn.field;
-    $('#stem').textContent = scn.stem;
+    $('#stem').textContent = (scn.stemFor && scn.stemFor(eng.level)) || scn.stem;
     $('#briefField').textContent = FIELD[scn.field] + (state.blind ? '' : scn.shock ? ' · ' + scn.shock : scn.category ? ' · ' + scn.category : '');
     $('#briefField').className = 'tag ' + scn.field;
-    $('#briefTitle').textContent = state.blind ? 'Unknown case' : scn.title; $('#briefStem').textContent = scn.stem + (scn.tutorial ? '' : `\n\nGrade: ${eng.L.name} — ${eng.L.blurb}`);
+    $('#briefTitle').textContent = state.blind ? 'Unknown case' : scn.title; $('#briefStem').textContent = ((scn.stemFor && scn.stemFor(eng.level)) || scn.stem) + (scn.tutorial ? '' : `\n\nGrade: ${eng.L.name} — ${eng.L.blurb}`);
     const bm = $('#briefMode');
     if (bm) {
       bm.hidden = !scn.ga;
