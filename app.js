@@ -14,6 +14,12 @@
   };
   const fmt = (ms) => { const s = ms / 1000, m = Math.floor(s / 60); return `${String(m).padStart(2, '0')}:${(s - m * 60).toFixed(1).padStart(4, '0')}`; };
   const shockKey = (s) => (s.shock ? s.shock.split(' ')[0] : 'Other');
+  // { sid: { n, wins } } from this user's attempts (account history when signed in, otherwise this device)
+  function histMap() {
+    const out = {}; const P0 = S.Progress; if (!P0 || !P0.attempts) return out;
+    try { (P0.attempts() || []).forEach((a) => { const h = (out[a.sid] = out[a.sid] || { n: 0, wins: 0 }); h.n++; if (a.outcome === 'win') h.wins++; }); } catch (e) { /* ignore */ }
+    return out;
+  }
 
   // ---------------- theme ----------------
   const savedTheme = store.get('theme', null);
@@ -39,11 +45,19 @@
     // In blind mode only the stem and field are searchable, so titles and diagnoses stay hidden.
     const hay = (s) => (blindOn() && !s.tutorial ? [s.stem, FIELD[s.field]] : [s.title, s.stem, s.shock, s.category, FIELD[s.field], s.id]).join(' ').toLowerCase();
     let list = S.SCENARIOS.filter((s) => (filt.field === 'All' || s.field === filt.field) && (filt.shock === 'All' || shockKey(s) === filt.shock) && words.every((w) => hay(s).includes(w)));
-    // Guests: tutorial, then the free scenarios, then everything that needs an account.
-    if (guest) { const rank = (s) => (s.tutorial ? 0 : isLocked(s) ? 2 : 1); list = list.map((s, i) => [s, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map((x) => x[0]); }
+    // Library order: tutorials, then by field, then grouped by shock type / category, then difficulty
+    const FORD = ['Tutorial', 'EM', 'ICU', 'Anaes', 'Paeds'];
+    const grp = (s) => (s.tutorial ? '0' : s.shock ? '1' + shockKey(s) : '2' + (s.category || 'Other'));
+    list = list.slice().sort((a, b) => (a.tutorial ? 0 : 1) - (b.tutorial ? 0 : 1) || FORD.indexOf(a.field) - FORD.indexOf(b.field) || grp(a).localeCompare(grp(b)) || String(a.category || '').localeCompare(String(b.category || '')) || (a.difficulty || 0) - (b.difficulty || 0) || a.title.localeCompare(b.title));
+    const hist = histMap();
+    // Guests: within each field, the free scenario first, then the ones that need an account.
+    if (guest) { const fk = (s) => (s.tutorial ? -1 : FORD.indexOf(s.field)); const rank = (s) => (isLocked(s) ? 1 : 0); list = list.map((s, i) => [s, i]).sort((a, b) => fk(a[0]) - fk(b[0]) || rank(a[0]) - rank(b[0]) || a[1] - b[1]).map((x) => x[0]); }
     const cnt = $('#libCount'); if (cnt) cnt.textContent = q || filt.field !== 'All' ? `${list.length} scenario${list.length === 1 ? '' : 's'}` : '';
     const gb = $('#guestBanner'); if (gb) { gb.hidden = !guest; gb.innerHTML = guest ? `<span>👋 <b>Guest mode:</b> try the tutorial and one scenario from each field. <a href="#" data-gsign>Sign in or create a free account</a> to unlock all ${S.SCENARIOS.filter((s) => !s.tutorial).length} scenarios and save your progress.</span>` : ''; const a = gb.querySelector('[data-gsign]'); if (a) a.onclick = (ev) => { ev.preventDefault(); if (P) P.pending = null; S.Account && S.Account.open(); }; }
-    $('#scnGrid').innerHTML = list.map((s) => `<button class="scn${isLocked(s) ? ' locked' : ''}" data-id="${s.id}">
+    let lastField = null;
+    const head = (s) => { const f = s.tutorial ? 'Tutorial' : s.field; if (f === lastField || q) return ''; lastField = f; return `<h3 class="lib-sec">${f === 'Tutorial' ? 'Tutorials' : FIELD[f]} <span class="muted small">${list.filter((x) => (x.tutorial ? 'Tutorial' : x.field) === f).length}</span></h3>`; };
+    const badge = (s) => { const h = hist[s.id]; if (!h || s.tutorial) return ''; return h.wins ? `<span class="done-badge win" title="Stabilised ${h.wins} of ${h.n} attempt${h.n === 1 ? '' : 's'}">✓</span>` : `<span class="done-badge tried" title="Attempted ${h.n} time${h.n === 1 ? '' : 's'} — not yet stabilised">✓</span>`; };
+    $('#scnGrid').innerHTML = list.map((s) => `${head(s)}<button class="scn${isLocked(s) ? ' locked' : ''}" data-id="${s.id}">${badge(s)}
         <div class="meta"><span class="tag ${s.field}">${FIELD[s.field]}</span><span>${blindOn() && !s.tutorial ? '' : esc(s.shock || s.category || '')}</span></div>
         <h3>${blindOn() && !s.tutorial ? 'Hidden case ' + caseCode(s.id).toUpperCase() : esc(s.title)}</h3><p>${esc(s.stem)}</p>
         <div class="meta"><span class="diff" title="Difficulty">${'●'.repeat(s.difficulty)}${'○'.repeat(3 - s.difficulty)}</span>${isLocked(s) ? '<span class="lock-tag">🔒 Sign in</span>' : P && P.enabled && !P.user && !s.tutorial ? '<span class="free-tag">Free to try</span>' : ''}${best[s.id] ? `<span>Best ${fmt(best[s.id])}</span>` : ''}</div></button>`).join('') || (q ? `<p class="muted">No scenarios match “${esc(q)}”.</p>` : '<p class="muted">No scenarios match these filters.</p>');
@@ -64,10 +78,28 @@
   renderLevels();
   const bt = $('#blindToggle'); if (bt) { bt.checked = blindOn(); bt.onchange = () => { store.set('blind', bt.checked); renderHome(); }; }
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  $('#randomAll').onclick = () => go(pick(playable(S.SCENARIOS.filter((s) => !s.tutorial))).id);
+  // Random scenario pool: all / not tried yet / tried before (from this user's progress history)
+  const randMode = () => store.get('randMode', 'all');
+  function pool(list) {
+    const h = histMap(), m = randMode();
+    return m === 'new' ? list.filter((s) => !h[s.id]) : m === 'done' ? list.filter((s) => h[s.id]) : list;
+  }
+  function randomFrom(list, field) {
+    const pl = playable(pool(list));
+    if (!pl.length) { toast(randMode() === 'new' ? 'You have tried every scenario here — choose "All" or "Tried before".' : randMode() === 'done' ? 'You have not tried any scenarios here yet — choose "All" or "New to me".' : 'No scenarios available.', 'warn'); return; }
+    go(pick(pl).id, field);
+  }
+  function renderRandMode() {
+    const el = $('#randMode'); if (!el) return;
+    const opts = [['all', 'All'], ['new', 'New to me'], ['done', 'Tried before']];
+    el.innerHTML = opts.map(([k, t]) => `<button class="${randMode() === k ? 'on' : ''}" data-rm="${k}" role="radio" aria-checked="${randMode() === k}">${t}</button>`).join('');
+    $$('[data-rm]', el).forEach((b) => (b.onclick = () => { store.set('randMode', b.dataset.rm); renderRandMode(); }));
+  }
+  renderRandMode();
+  $('#randomAll').onclick = () => randomFrom(S.SCENARIOS.filter((s) => !s.tutorial));
   const tb = $('#tutBtn'); if (tb) tb.onclick = () => go('tutorial');
   const tg = $('#tutGaBtn'); if (tg) tg.onclick = () => go('tutorial-ga');
-  $$('[data-field]').forEach((b) => (b.onclick = () => go(pick(playable(S.SCENARIOS.filter((s) => s.field === b.dataset.field && !s.tutorial))).id, b.dataset.field)));
+  $$('[data-field]').forEach((b) => (b.onclick = () => randomFrom(S.SCENARIOS.filter((s) => s.field === b.dataset.field && !s.tutorial), b.dataset.field)));
   function go(id, field) { const s = S.SCENARIOS.find((x) => x.id === id); location.hash = blindOn() && s && !s.tutorial ? 'case/' + caseCode(id) : 'play/' + id; state.fieldMode = field || null; }
 
   // ---------------- sim state ----------------
