@@ -217,6 +217,9 @@
       info: 'DKA: children 0.05–0.1 units/kg/h started 1–2 h after IV fluids begin (BSPED 2021); adults 0.1 units/kg/h (JBDS).' },
 
     // ---------------- Antiarrhythmics & electrolytes ----------------
+    { id: 'potassium', name: 'Potassium chloride (IV infusion)', cat: 'Antiarrhythmics & electrolytes', catechol: false,
+      inf: { unit: 'mmol/h', max: 40, step: 5, presets: [10, 20], E: 0 }, half: 600, onset: 10, eff: {},
+      info: 'Never as a bolus. Peripheral cannula: usually ≤ 10 mmol/h (max 40 mmol/L concentration). Central line with ECG monitoring: up to 20 mmol/h (higher only in critical care per local policy). Each 20 mmol raises plasma K⁺ by roughly 0.25 mmol/L in an adult. Recheck K⁺ after each 20–40 mmol; give magnesium too if low. Arrhythmia under anaesthesia: aim K⁺ 4–5 mmol/L.' },
     { id: 'adenosine', pd: [0.1, 0.2, 0.3], pdMax: 18, name: 'Adenosine', cat: 'Antiarrhythmics & electrolytes', catechol: false,
       bolus: { unit: 'mg', doses: [6, 12, 18], E: 0.05 }, half: 5, onset: 1, eff: {},
       info: 'Rapid IV bolus + flush. Adult: 6 mg → 12 mg → 18 mg. Child: 100–200 micrograms/kg, then 300 micrograms/kg (max 12–18 mg). Not for pre-excited AF. Unstable: synchronised shock first.' },

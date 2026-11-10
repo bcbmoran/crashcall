@@ -317,9 +317,9 @@
   // =====================================================================
   add({
     id: 'an-qrh-fast-af', title: 'Intra-operative fast AF with hypotension', field: 'Anaes', shock: 'Cardiogenic (arrhythmic)', difficulty: 2, setting: 'theatre',
-    stem: '74-year-old man having an anterior resection. After bowel mobilisation he goes into an irregular narrow-complex tachycardia at 170/min and the BP starts to fall. Pre-op K⁺ was 3.2 after bowel prep.',
+    stem: '74-year-old man having an anterior resection under GA, with a right internal jugular central line and a radial arterial line placed after induction. After bowel mobilisation he goes into an irregular narrow-complex tachycardia at 170/min and the BP starts to fall. Pre-op K⁺ was 3.2 after bowel prep.',
     qrh: ['2-7', '2-4'],
-    patient: { age: 74, sex: 'M', weight: 78, ventilated: true, fio2: 0.5, ventRR: 12, effort: 0, rhythm: 'af', fixedRate: 172, contract: 0.62, vol: 0.88, hrBase: 76, k: 3.1, artLine: true, look: { drapes: true, surgField: 'abdo' } },
+    patient: { age: 74, sex: 'M', weight: 78, ventilated: true, fio2: 0.5, ventRR: 12, effort: 0, rhythm: 'af', fixedRate: 172, contract: 0.62, vol: 0.88, hrBase: 76, k: 3.1, artLine: true, cvc: true, look: { drapes: true, surgField: 'abdo' } },
     init(e) { e.flags.paralysed = true; },
     tick(e, dt) {
       const p = e.p;
@@ -338,7 +338,8 @@
         if (e.flags.dc === 1 && p.k < 3.5 && !e.did('magnesium')) return { handled: true, msg: 'Synchronised shock 120 J: brief sinus rhythm, then AF recurs. Correct electrolytes (K⁺/Mg²⁺) and shock again / give amiodarone.', kind: 'warn' };
         p.rhythm = 'sinus'; p.hrBase = 84; return { handled: true, msg: 'Synchronised shock 150 J — sinus rhythm restored.', kind: 'good' };
       }
-      if (ev.type === 'drug' && ev.id === 'magnesium') { p.k = Math.max(p.k, 3.2); return { msg: 'Magnesium given (QRH: 50 mg/kg, adult 2 g over 10 min). Potassium replacement started via the central line.', kind: 'good' }; }
+      if (ev.type === 'drug' && ev.id === 'magnesium') return { msg: 'Magnesium given (QRH: 50 mg/kg, adult 2 g over 10 min).' + (p.k < 3.5 ? ' K⁺ is still ' + p.k.toFixed(1) + ' — start potassium replacement too (Drugs → Potassium chloride, via the central line).' : ''), kind: 'good' };
+      if (ev.type === 'inf' && ev.id === 'potassium' && ev.rate > 0) return { msg: `Potassium chloride ${ev.rate} mmol/h running via the central line (ECG monitored).`, kind: 'good' };
       if (ev.type === 'drug' && ev.id === 'adenosine') return { msg: 'Transient slowing reveals fibrillatory waves — this is AF, not SVT. Adenosine will not cardiovert AF.', kind: 'warn' };
       if (ev.type === 'drug' && (ev.id === 'labetalol' || ev.id === 'esmolol') && p.map < 65) return { noHarm: false };
     },
@@ -347,7 +348,7 @@
     critical: [
       { text: '12-lead ECG / rhythm identification', check: (e) => e.did('inv_ecg') },
       { text: 'Synchronised DC cardioversion (worsening hypotension)', check: (e) => e.did('sync_dc') },
-      { text: 'Correct electrolytes (magnesium ± potassium)', check: (e) => e.did('magnesium') },
+      { text: 'Correct electrolytes (magnesium and potassium)', check: (e) => e.did('magnesium') && (e.did('potassium') || e.p.k >= 3.5) },
       { text: 'Check K⁺ / Mg²⁺ (blood gas or labs)', check: (e) => e.did('inv_gas') || e.did('inv_bloods') },
     ],
     targets: { map: 65, spo2: 94, hrMax: 110 },

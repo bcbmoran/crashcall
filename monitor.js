@@ -128,7 +128,7 @@
         const noise = amp < 0.25 ? (0.25 - amp) * 0.8 * (Math.sin(t * 23) * 0.6 + Math.sin(t * 61) * 0.4) : 0;
         return amp * mod * ect * plethShape(x) + noise;
       }
-      if (this.kind === 'gas' && this.eng.ga && !this.eng.ga.circuit) return 0; // nothing connected to the breathing circuit yet
+      if (this.kind === 'gas' && ((this.eng.ga && !this.eng.ga.circuit) || (this.eng.mach && !this.eng.mach.circuit))) return 0; // nothing connected to the breathing circuit yet
       if (k === 'paw' || k === 'flow') return this.vent(k, t);
       if (k === 'co2') {
         if (!S.Capno) return 0;
@@ -302,7 +302,7 @@
       });
     }
     gasItems(items) {
-      const e = this.eng, p = e.p, g = e.ga;
+      const e = this.eng, p = e.p, g = e.ga || (e.mach ? { circuit: e.mach.circuit, fgf: e.mach.fgf, eto2: e.mach.eto2, fi: e.mach.fi, et: e.mach.et, agent: e.mach.agent } : null);
       if (g && !g.circuit) {
         items.push({ lab: 'EtCO₂', val: '--', sub: 'not connected to the circuit', col: '#ffe14d', unit: 'kPa' });
         items.push({ lab: 'Paw', val: '--', col: '#ffb347', unit: 'cmH₂O', small: true }, { lab: 'Vte', val: '--', col: '#7cffb2', unit: 'mL', small: true });
@@ -318,7 +318,7 @@
       if (!g) items.push({ lab: 'FiO₂', val: String(Math.round(p.fio2 * 100)), col: '#f5f5f5', unit: '%', small: true });
       if (g) {
         items.push({ lab: 'O₂', val: g.circuit ? `${Math.round(p.fio2 * 100)}/${Math.round((g.eto2 || 0) * 100)}` : 'air', sub: `FGF ${(g.fgf || 0).toFixed(1)} L/min`, col: '#f5f5f5', unit: 'Fi/Et %', small: true, alarm: g.circuit && p.fio2 < 0.25 });
-        if (S.GA) { const mac = S.GA.macAge(p); items.push({ lab: 'Sevo', val: `${(g.fi || 0).toFixed(1)}/${(g.et || 0).toFixed(1)}`, sub: `MAC ${((g.et || 0) / mac).toFixed(1)}`, col: '#d9b3ff', unit: 'Fi/Et %', small: true, alarm: g.et / mac > 2 }); }
+        if (S.GA || S.Theatre) { const mac = g.agent && S.Theatre ? S.Theatre.macOf(g.agent, p.age) : S.GA.macAge(p); items.push({ lab: g.agent === 'des' ? 'Des' : 'Sevo', val: `${(g.fi || 0).toFixed(1)}/${(g.et || 0).toFixed(1)}`, sub: `MAC ${((g.et || 0) / mac).toFixed(1)}`, col: '#d9b3ff', unit: 'Fi/Et %', small: true, alarm: g.et / mac > 2 }); }
       }
     }
   }

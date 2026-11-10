@@ -131,6 +131,7 @@
       this.out = { blood: 0, urine: 0, bleedNow: 0, uoNow: null };
       this.initLines();
       if (scn.init) scn.init(this);
+      if (S.Theatre && S.Theatre.applies(scn)) S.Theatre.setup(this);
       this.settle();
       if (scn.start) scn.start(this);
       if (this.L.complication && !scn.tutorial && !scn.ga && !this.noAutoComplication) this.after(70 + Math.random() * 50, (en) => en.complicate(), 'complication');
@@ -324,6 +325,7 @@
       if (this.flags.o2Off && ['o2_nc', 'o2_nrb', 'hfno', 'jaw_thrust_cpap', 'bvm'].includes(id)) this.flags.o2Off = 0;
       const r = this.react({ type: 'action', id, opts });
       if (!r || !r.handled) this.defaultAction(id, opts);
+      if (this.mach) S.Theatre.onAction(this, id);
     }
     vtRef() { const p = this.p; return 7 * (p.paed ? p.weight : Math.min(p.weight, p.sex === 'F' ? 60 : 70)); } // ~7 mL/kg ideal body weight
     setVent(k, v) {
@@ -637,6 +639,13 @@
       this.temps = this.temps.filter((x) => x.until > this.t);
       this.anaesSuppress *= Math.exp(-dt / 150);
       // fluids
+      // Potassium chloride infusion: ~0.25 mmol/L per 20 mmol in 70 kg (time-compressed like fluids, 1 s ≈ 1 min)
+      const kRate = this.rate('potassium');
+      if (kRate > 0 && !this.flags.ivDown) {
+        p.k += (kRate / 60) * 0.0125 * (70 / p.weight) * dt;
+        if (kRate > 10 && !p.cvc && !this.flags.kPeriph) { this.flags.kPeriph = true; this.harm('Potassium > 10 mmol/h via a peripheral cannula (risk of phlebitis and arrhythmia) — use a central line'); }
+        if (p.k > 5.5 && !this.flags.kHigh) { this.flags.kHigh = true; this.say('K⁺ now above 5.5 mmol/L — the potassium infusion should have been stopped.', 'warn'); }
+      }
       // Each bag runs at its set rate, limited by what the cannulas can carry (a pressure bag / rapid infuser raises the limit).
       const ws = this.p.paed ? Math.max(0.15, Math.min(1, this.p.weight / 70)) : 1;
       const flowF = this.flowFactor() / Math.max(1, this.fluidQ.length / Math.max(1, this.lines.length));
@@ -686,6 +695,7 @@
       p.temp += p.tempRate * dt;
       // scenario dynamics
       if (this.scn.tick) this.scn.tick(this, dt * this.L.prog);
+      if (this.mach) S.Theatre.tick(this, dt);
       if (this.outcome) return;
       this.haemo(dt, false);
       // lactate

@@ -116,7 +116,7 @@
     $('#briefing').hidden = false;
     $('#log').innerHTML = '';
     $('#toasts').innerHTML = '';
-    const gasMon = !!scn.ga || !!(scn.patient && scn.patient.ventilated && /^an-/.test(scn.id)); // theatre cases: separate gas/ventilator monitor
+    const gasMon = !!scn.ga || !!eng.mach; // theatre cases: separate anaesthetic gas / ventilator monitor
     $('#gasWrap').hidden = !gasMon;
     state.mon = new S.Monitor($('#monitor'), eng, { noCo2: gasMon });
     state.gmon = gasMon ? new S.Monitor($('#gasMonitor'), eng, { kind: 'gas' }) : null;
@@ -125,6 +125,7 @@
     state.pv = new S.PatientView($('#patientView'), eng, scn);
     eng.on(onEvent);
     const gaTab = $('#ctlTabs [data-tab="ga"]'); if (gaTab) gaTab.hidden = !scn.ga;
+    const machTab = $('#ctlTabs [data-tab="mach"]'); if (machTab) machTab.hidden = !eng.mach;
     setTab(scn.ga ? 'ga' : 'exam', !scn.ga);
     state.coachI = null; renderCoach();
     renderPumps();
@@ -205,6 +206,7 @@
     const tg = e.targetStatus();
     $('#targets').innerHTML = e.L.showTargets || state.scn.tutorial ? tg.map((t) => `<span class="tgt ${t.ok ? 'ok' : 'no'}">${t.k}</span>`).join('') : '<span class="tgt">Consultant grade: targets hidden — stabilise to the standard you’d expect, then press ✋ Declare stable</span>';
     nudge(e);
+    if (state.tab === 'mach' && e.mach && S.Theatre && !srch()) { state.machT = (state.machT || 0) + 1; if (state.machT % 4 === 0) { const lv = $('#tabBody .mach-live'); if (lv) lv.innerHTML = S.Theatre.liveHTML(e); } }
     if (state.tab === 'ga' && e.ga && S.GA && !srch()) { state.gaT = (state.gaT || 0) + 1; if (state.gaT % 4 === 0 || force) { const lv = $('#tabBody .ga-live'); if (lv) lv.innerHTML = S.GA.liveHTML(e, e.level); } }
     const cs = e.critStatus(), done = cs.filter((c) => c.done).length;
     $('#critCount').textContent = `Critical actions completed: ${done} / ${cs.length} (revealed in the debrief)`;
@@ -308,7 +310,9 @@
     else if (t === 'inv') body.innerHTML = invHTML();
     else if (t === 'exam') body.innerHTML = examHTML();
     else if (t === 'ga' && S.GA && e.ga) body.innerHTML = S.GA.panelHTML(e, e.level);
+    else if (t === 'mach' && S.Theatre && e.mach) body.innerHTML = S.Theatre.panelHTML(e);
     wireTab(body);
+    if (t === 'mach' && S.Theatre && e.mach) { S.Theatre.wire(body, e, () => { if (state.paused || e.outcome) { toast(e.outcome ? 'Scenario has ended.' : 'Press start / resume first.', 'warn'); return false; } return true; }, renderTab); if (S.Vent) S.Vent.wire(body, e, () => !(state.paused || e.outcome)); }
     if (t === 'ga' && S.GA && e.ga) S.GA.wire(body, e, () => { if (state.paused || e.outcome) { toast(e.outcome ? 'Scenario has ended.' : 'Press start / resume first.', 'warn'); return false; } return true; }, renderTab);
   }
   function fmtDose(d) { return d >= 1000 && d % 1000 === 0 ? d / 1000 + ' ' : String(d); }
@@ -367,7 +371,7 @@
     const xstage = scn.actionStage ? `<p class="muted small xstage">${esc(scn.actionStage(e) || '')}</p>` : '';
     const extra = xa.length ? `<div class="grp"><h4>Scenario-specific actions</h4>${xstage}<div class="act-grid">${xa.map((a) => `<button class="btn ${!a.repeat && e.did(a.id) ? 'done' : ''}${a.primary ? ' primary-act' : ''}" data-act="${a.id}">${esc(a.name)}${xlab(a)}</button>`).join('')}</div></div>` : '';
     const alsBar = scn.als ? `<div class="als-bar ${p.arrested ? 'on' : ''}">${p.arrested ? `CARDIAC ARREST · CPR ${e.flags.cpr ? 'IN PROGRESS' : 'NOT RUNNING'} · ${Math.floor(e.arrestT || 0)} s · shocks ${e.shocks || 0}` : 'Pulse present'}</div>` : '';
-    const vent = p.ventilated ? `<div class="grp"><h4>Ventilator</h4>${ventHTML(e, !!scn.ga)}</div>` : '';
+    const vent = p.ventilated ? `<div class="grp"><h4>Ventilator</h4>${ventHTML(e, !!scn.ga || !!e.mach)}${e.mach ? '<p class="small muted">FiO₂ is set on the anaesthetic machine (Anaesthetic machine tab).</p>' : ''}</div>` : '';
     // Vascular access sits straight after the Circulation group (or at the end if that group isn't shown).
     let accessDone = false;
     const body = groups.map((g) => {
@@ -481,7 +485,10 @@
   function examHTML() {
     if (state.examPrompt) return `<div class="exam"><p class="muted small">Start with an ABCDE assessment.</p><div class="row-end"><button class="btn primary" data-reexam>Examine patient (ABCDE)</button></div></div>`;
     const ex = adjustExam(state.scn.exam ? Object.assign({}, state.scn.exam(state.eng)) : {}, state.eng);
-    if (!state.scn.ga && ex.C && !(state.scn.kit && state.scn.kit.fluids === false)) ex.C = String(ex.C).trim() + ' IV access: ' + state.eng.lineText() + '.';
+    if (!state.scn.ga && ex.C && !(state.scn.kit && state.scn.kit.fluids === false)) {
+      const pp = state.eng.p, extra = [pp.cvc ? 'right internal jugular central venous catheter' : '', pp.artLine ? 'radial arterial line' : ''].filter(Boolean);
+      ex.C = String(ex.C).trim() + ' IV access: ' + state.eng.lineText() + (extra.length ? '; also ' + extra.join(' and ') + ' in situ' : '') + '.';
+    }
     state.eng.mark('exam');
     return `<div class="exam"><p class="muted small">Examination findings now (${fmt(state.elapsed).slice(0, 5)}). Re-open this tab to re-examine.</p><dl>${['A', 'B', 'C', 'D', 'E'].map((k) => `<dt>${k}</dt><dd>${esc(ex[k] || '—')}</dd>`).join('')}</dl><div class="row-end"><button class="btn sm" data-reexam>Re-examine</button></div></div>`;
   }
