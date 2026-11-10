@@ -353,6 +353,8 @@
     // Circulation
     { id: 'resite_iv', name: 'Check / re-site IV access (or IO)', grp: 'Circulation' },
     { id: 'art_line', name: 'Insert arterial line', grp: 'Circulation' },
+    { id: 'art_flush', name: 'Arterial line: fast-flush (square-wave) test', grp: 'Circulation' },
+    { id: 'art_fix', name: 'Arterial line: troubleshoot (flush, de-air, check tubing and bag, re-zero)', grp: 'Circulation' },
     { id: 'cvc', name: 'Insert central venous catheter', grp: 'Circulation' },
     { id: 'plr', name: 'Passive leg raise (fluid responsiveness)', grp: 'Circulation' },
     { id: 'pelvic_binder', name: 'Apply pelvic binder', grp: 'Circulation' },

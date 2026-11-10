@@ -717,6 +717,7 @@
       ${tgtHTML}
       ${bloodLossHTML(e, s)}
       ${S.Capno ? S.Capno.debriefHTML(e) : ''}
+      ${S.ABP ? S.ABP.debriefHTML(e) : ''}
       ${e.did('complication') ? `<h3>Second problem (consultant grade)</h3><p>${e.flags.compl === 'iv' ? 'The IV cannula tissued mid-resuscitation — infusions and boluses stopped reaching the patient. Watch pump alarms and the response to drugs; re-site access (IO if needed).' : e.flags.compl === 'tube' ? 'The tracheal tube displaced during a move — loss of capnography is a displaced tube until proven otherwise (DAS / AoA QRH 2-2 and 2-3).' : e.flags.compl === 'o2' ? 'The oxygen supply was disconnected — always re-check the delivery chain when saturations fall.' : esc(e.flags.complText || 'A scenario-specific complication occurred.')} ${e.flags.ivDown || e.flags.tubeDisplaced || e.flags.o2Off ? '<b>It was not resolved.</b>' : 'You resolved it.'}</p>` : ''}
       ${e.harms.length ? `<h3>Potential harm</h3><ul>${e.harms.map((h) => { const fx = (e.harmFx || []).find((x) => x.harm === h); return `<li class="harm">${esc(h)}${fx ? `<br><span class="muted small">Effect on the patient: ${esc(fx.fx)}</span>` : ''}</li>`; }).join('')}</ul>` : ''}
       ${imgRes.length ? `<h3>Investigation reports</h3><div class="db-res">${imgRes.map((r, i) => `<details data-dbres="${i}"><summary>${esc(r.name)} · ${r.at}</summary><div class="db-res-host"></div></details>`).join('')}</div>` : ''}

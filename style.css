@@ -402,3 +402,9 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .capno-db-row .capno-svg { flex: 0 0 auto; }
 .fluid-row select, .fluid-running select { max-width: 13.5em; font-size: .82rem; padding: 3px 4px; }
 .fluid-running { border: 1px solid color-mix(in srgb, var(--good) 40%, transparent); border-radius: 8px; padding: 4px 8px; margin-bottom: 8px; }
+.abp-guide h3 { margin: 14px 0 6px; }
+.abp-guide ul { padding-left: 18px; }
+.abp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.abp-card { border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+.abp-card p { margin: 6px 0 0; }
+.abp-now { background: color-mix(in srgb, #ff4d4d 10%, transparent); border-left: 3px solid #ff4d4d; padding: 8px 10px; border-radius: 6px; margin-bottom: 8px; }

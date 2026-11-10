@@ -40,11 +40,12 @@
         const r = canvas.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
         const chs = this.channels(), rowH = this.H / chs.length, ci = Math.floor(y / rowH);
         if (chs[ci] && chs[ci].k === 'co2' && x < this.waveW && S.Capno && S.ui) S.ui.openModal('Capnography guide', S.Capno.guideHTML());
+        if (chs[ci] && chs[ci].k === 'abp' && x < this.waveW && S.ABP && S.ui) S.ui.openModal('Arterial waveform guide', S.ABP.guideHTML(this.eng));
       });
       canvas.addEventListener('mousemove', (ev) => {
         const r = canvas.getBoundingClientRect(), y = ev.clientY - r.top, x = ev.clientX - r.left;
         const chs = this.channels(), ci = Math.floor(y / (this.H / chs.length));
-        canvas.style.cursor = chs[ci] && chs[ci].k === 'co2' && x < this.waveW ? 'help' : '';
+        canvas.style.cursor = chs[ci] && (chs[ci].k === 'co2' || chs[ci].k === 'abp') && x < this.waveW ? 'help' : '';
       });
     }
     resize() {
@@ -101,6 +102,7 @@
         return S.ecgLead(S.ECG_LEADS.II, t, this.gen, p, { fine, M: this.morph }) + S.ecgArtefact(t, p, this.eng.flags, this.morph);
       }
       const resp = this.respPhase(t);
+      if (k === 'abp' && S.ABP) return S.ABP.value(this, t);
       if (k === 'pleth' || k === 'abp') {
         if (p.arrested && this.eng.flags.cpr) { const c = Math.max(0, Math.sin(t * 2 * Math.PI * 1.85)); return k === 'abp' ? 10 + c * 45 : c * 0.35; }
         if (p.arrested) return k === 'abp' ? 6 : 0;
@@ -133,6 +135,7 @@
 
     frame(dt) {
       const ctx = this.ctx, p = this.eng.p;
+      this.abpScale = this.abpScale === 240 ? (p.sbp < 135 ? 160 : 240) : (p.sbp > 150 ? 240 : 160);
       if (p.noMonitor) {
         ctx.fillStyle = '#000'; ctx.fillRect(0, 0, this.W, this.H);
         ctx.fillStyle = '#9aa'; ctx.font = '700 16px system-ui, sans-serif'; ctx.textAlign = 'center';
@@ -170,7 +173,7 @@
           const top = ci * rowH;
           let y;
           if (c.k === 'ecg') y = top + rowH * 0.62 - v * rowH * 0.42 * (p.ecgGain || 1);
-          else if (c.k === 'abp') y = top + rowH * 0.92 - (clamp(v, 0, 200) / 160) * rowH * 0.85;
+          else if (c.k === 'abp') y = top + rowH * 0.92 - (clamp(v, 0, this.abpScale * 1.15) / this.abpScale) * rowH * 0.85;
           else if (c.k === 'pleth') y = top + rowH * 0.85 - v * rowH * 0.6;
           else y = top + rowH * 0.9 - (clamp(v, 0, 10) / 10) * rowH * 0.8; // CO₂ scale 0–10 kPa
           let px = xx % this.waveW;
@@ -185,9 +188,9 @@
       // labels / grid lines
       ctx.font = '600 11px system-ui, sans-serif';
       chs.forEach((c, ci) => {
-        ctx.fillStyle = '#000'; ctx.fillRect(2, ci * rowH + 2, c.k === 'co2' ? 80 : 46, 14);
-        ctx.fillStyle = c.col; ctx.fillText(c.label + (c.k === 'co2' ? '  ⓘ guide' : ''), 4, ci * rowH + 13);
-        if (c.k === 'abp') { ctx.fillStyle = '#000'; ctx.fillRect(this.waveW - 30, ci * rowH + 2, 28, 12); ctx.fillStyle = '#ff4d4d88'; ctx.fillText('160', this.waveW - 28, ci * rowH + 12); }
+        ctx.fillStyle = '#000'; ctx.fillRect(2, ci * rowH + 2, c.k === 'co2' || c.k === 'abp' ? 80 : 46, 14);
+        ctx.fillStyle = c.col; ctx.fillText(c.label + (c.k === 'co2' || c.k === 'abp' ? '  ⓘ guide' : ''), 4, ci * rowH + 13);
+        if (c.k === 'abp') { ctx.fillStyle = '#000'; ctx.fillRect(this.waveW - 30, ci * rowH + 2, 28, 12); ctx.fillStyle = '#ff4d4d88'; ctx.fillText(String(this.abpScale), this.waveW - 28, ci * rowH + 12); }
       });
       if (this.eng.t - this.nibpAt >= this.nibpCycle && !p.artLine) this.measureNibp();
       this.drawNumerics(chs, rowH);
@@ -204,7 +207,8 @@
       const hr = arrest ? '---' : p.rhythm === 'pea' ? p.hr : p.hr;
       items.push({ lab: 'HR', val: String(hr), col: '#39ff6a', alarm: p.hr < (p.hrAlarm || [45])[0] || p.hr > (p.hrAlarm || [0, 140])[1] || arrest || p.arrested, unit: 'bpm' });
       if (p.artLine) {
-        items.push({ lab: 'ABP', val: p.map < 18 ? '--/--' : `${Math.round(p.sbp)}/${Math.round(p.dbp)}`, sub: `(${Math.round(p.map)})`, col: '#ff4d4d', alarm: p.map < 60 || p.sbp > 180 });
+        const rd = S.ABP ? S.ABP.readings(this) : { s: p.sbp, d: p.dbp, m: p.map }, pv = S.ABP ? S.ABP.ppv(this.eng) : null;
+        items.push({ lab: 'ABP', val: p.map < 18 ? '--/--' : `${Math.round(rd.s)}/${Math.round(rd.d)}`, sub: `(${Math.round(rd.m)})${pv != null ? '  PPV ' + pv + '%' : ''}`, col: '#ff4d4d', alarm: p.map < 60 || p.sbp > 180 });
       }
       const nb = this.nibp;
       const ago = Math.round(this.eng.t - this.nibpAt);

@@ -399,7 +399,23 @@
           msg('No rush of air. You may have created a pneumothorax — SpO₂ dipping.', 'bad'); this.harm('Chest decompression without evidence of tension pneumothorax'); p.shunt = Math.min(0.5, p.shunt + 0.08); if (p.ventilated) p.obstruct = Math.min(0.5, p.obstruct + 0.08); break;
         case 'chest_drain': msg('Chest drain inserted — no air, but fresh blood in the tubing (intercostal vessel injury).', 'bad'); this.harm('Unindicated chest drain'); p.bleed += 0.0002; this.after(60, (en) => { en.p.bleed = Math.max(0, en.p.bleed - 0.0002); }); break;
         case 'pericardiocentesis': msg('No pericardial fluid — the needle provoked runs of ventricular ectopics.', 'bad'); this.harm('Pericardiocentesis without effusion'); p.contract *= 0.92; break;
-        case 'art_line': p.artLine = true; msg('Radial arterial line inserted — continuous invasive BP now displayed.'); break;
+        case 'art_line': {
+          if (p.artLine) { msg('An arterial line is already in place.'); break; }
+          p.artLine = true;
+          // Not every line is perfect: at senior/consultant grade some traces are under- or overdamped until checked with a fast flush.
+          const r = this.level === 'junior' || this.scn.tutorial ? 1 : Math.random();
+          this.flags.abpDamp = this.flags.abpDamp0 = this.scn.abpDamp || (r < 0.15 ? 'over' : r < 0.27 ? 'under' : 'optimal');
+          msg('Radial arterial line inserted and transduced — continuous invasive BP now displayed. Click the ABP trace for the waveform guide.'); break;
+        }
+        case 'art_flush':
+          if (!p.artLine) { msg('There is no arterial line to flush.'); break; }
+          this.flags.abpFlushT = this.t; this.flags.abpFlushed = true;
+          msg('Fast-flush test: flush tab pulled and released — watch how the ABP trace returns to baseline (one or two small oscillations = optimal; many = underdamped; slow return, no oscillation = overdamped).'); break;
+        case 'art_fix':
+          if (!p.artLine) { msg('There is no arterial line in place.'); break; }
+          if ((this.flags.abpDamp || 'optimal') === 'optimal') msg('Line checked: no air or clot, connections tight, pressure bag at 300 mmHg, transducer levelled at the phlebostatic axis and re-zeroed. No fault found.');
+          else { const was = this.flags.abpDamp; this.flags.abpDamp = 'optimal'; this.flags.abpFixed = true; msg(was === 'over' ? 'Air bubble flushed out of the tubing, kinks removed, pressure bag re-inflated to 300 mmHg, wrist repositioned and re-zeroed — the trace is crisp again with a clear dicrotic notch.' : 'Extra extension tubing and three-way taps removed (shorter, stiffer line) — the resonance has gone and the overshooting systolic peaks have settled.', 'good'); }
+          break;
         case 'cvc': p.cvc = true; msg('Right IJ central line inserted under US — CVP now displayed.'); break;
         case 'plr': this.temp('plr', 0.12, 45); msg('Passive leg raise performed — watch the response over the next minute.'); break;
         case 'pelvic_binder': p.look.binder = true; msg('Pelvic binder applied at the level of the greater trochanters.'); break;
