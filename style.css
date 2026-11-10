@@ -413,3 +413,7 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 #gasMonitor { width: 100%; height: 230px; display: block; }
 @media (max-width: 700px) { #gasMonitor { height: 200px; } }
 .ga-mode .btn.on { background: var(--accent, #2563eb); color: #fff; border-color: transparent; }
+.prog-review summary { cursor: pointer; color: var(--accent, #2563eb); font-size: .85rem; }
+.prog-review ul { margin: 6px 0; padding-left: 0; list-style: none; font-size: .82rem; min-width: 220px; }
+.prog-review li.ok { color: var(--good, #15803d); }
+.prog-review li.miss { color: var(--bad, #b91c1c); }

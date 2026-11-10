@@ -656,7 +656,12 @@
   };
   $('#soundBtn').onclick = () => { if (!state.mon) return; state.mon.sound = !state.mon.sound; store.set('sound', state.mon.sound); $('#soundBtn').textContent = state.mon.sound ? '🔊' : '🔇'; };
   $('#endBtn').onclick = () => { if (!state.eng) return; if (state.eng.outcome) { finish(state.eng.outcome); return; } state.eng.outcome = 'ended'; finish('ended'); };
-  $('#backBtn').onclick = () => { location.hash = ''; };
+  $('#backBtn').onclick = () => {
+    const e = state.eng;
+    if (e && !state.ended && !e.outcome && state.elapsed >= 5000 && !state.scn.tutorial) { e.outcome = 'ended'; finish('ended'); toast('Scenario ended early — your progress so far is saved. Press Menu again to leave.', 'good'); return; }
+    location.hash = '';
+  };
+  window.addEventListener('pagehide', saveIncomplete);
   window.addEventListener('resize', () => { if (state.mon && $('#sim').classList.contains('active')) { state.mon.resize(); if (state.gmon) state.gmon.resize(); } });
 
   // ---------------- tutorial coach ----------------
@@ -704,6 +709,19 @@
     </ul>`;
   }
   // ---------------- debrief ----------------
+  function runRecord(outcome) {
+    const e = state.eng, s = state.scn;
+    const cs = e.allCritical().filter((c) => !c.skip || !c.skip(e)).map((c) => ({ t: c.text, d: !!c.check(e) }));
+    return { sid: s.id, level: e.level, outcome, ms: Math.round(state.elapsed), hints: state.hints, harms: e.harms.length, blind: !!state.blind, crit: cs, at: new Date().toISOString() };
+  }
+  // A scenario left part-way through (Menu, browser back, another scenario, closing the tab) is still saved as "ended early"
+  function saveIncomplete() {
+    const e = state.eng, s = state.scn;
+    if (!e || !s || s.tutorial || state.ended || e.outcome || state.elapsed < 5000 || !S.Progress) return false;
+    e.outcome = 'ended'; state.ended = true; state.paused = true;
+    S.Progress.record(runRecord('ended'));
+    return true;
+  }
   function finish(outcome) {
     const e = state.eng, s = state.scn; if (!e) return;
     state.coachI = null; renderCoach();
@@ -712,7 +730,7 @@
     let newBest = false;
     if (outcome === 'win') { const best = store.get('best', {}); if (!best[s.id] || ms < best[s.id]) { best[s.id] = ms; store.set('best', best); newBest = true; } }
     const cs = e.allCritical().filter((c) => !c.skip || !c.skip(e)).map((c) => ({ text: c.text, done: !!c.check(e) }));
-    const saved = !s.tutorial && S.Progress ? S.Progress.record({ sid: s.id, level: e.level, outcome, ms: Math.round(ms), hints: state.hints, harms: e.harms.length, blind: !!state.blind, crit: cs.map((c) => ({ t: c.text, d: c.done })), at: new Date().toISOString() }) : null;
+    const saved = !s.tutorial && S.Progress ? S.Progress.record(runRecord(outcome)) : null;
     const title = outcome === 'win' ? 'Patient stabilised' : outcome === 'arrest' ? 'Cardiac arrest — scenario failed' : outcome === 'complete' ? (e.critStatus().every((c) => c.done) ? 'Case complete — handed over to recovery' : 'Case complete — handed over (some steps missed)') : 'Scenario ended';
     const imgRes = state.results.filter((r) => r.kind === 'img' || r.kind === 'pocus');
     state.ended = true;
@@ -772,9 +790,11 @@
   // ---------------- routing ----------------
   function route() {
     const h = location.hash.replace(/^#/, '');
+    if (h.startsWith('play/') || h.startsWith('case/')) saveIncomplete();
     if (h.startsWith('play/')) start(h.slice(5));
     else if (h.startsWith('case/')) start(fromCode(h.slice(5)));
     else {
+      saveIncomplete();
       closeModal();
       state.paused = true;
       state.coachI = null; renderCoach();
