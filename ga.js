@@ -131,6 +131,12 @@
     const g = e.ga; if (!g) return;
     // End-of-case high-flow O₂ counts whenever it is in place after surgery ends (not only if the dial is moved during emergence)
     if ((g.phase === 'emergence' || g.phase === 'recovery') && g.fgf >= 6 && g.o2frac >= 0.9 && !e.did('highFlowEnd')) e.mark('highFlowEnd');
+    // Prompt about low flows early in maintenance (not at the end) if they haven't been turned down
+    if (g.phase === 'maintenance' && !e.flags.lowFlowPrompt && !e.did('lowFlow') && e.level !== 'consultant' && g.dial > 0 && g.fgf > 1.5 && g.surgery && g.surgery.on && e.t - g.surgery.t0 > 20
+      && e.allCritical().some((c) => /low flow/i.test(c.text))) {
+      e.flags.lowFlowPrompt = true;
+      e.say(`Anaesthetic assistant (ODP): "Surgery's under way and the patient is settled — do you want to turn the flows down for maintenance?"`, 'warn');
+    }
     const p = e.p, w = p.weight, mac = macAge(p);
     const ivOK = g.ivOK && !e.flags.ivDown;
 

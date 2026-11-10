@@ -251,7 +251,8 @@
     if (!every || state.paused || e.outcome || scn.tutorial) return;
     const t = e.t, lastAct = e.log.filter((x) => x.kind === 'act').reduce((m, x) => Math.max(m, x.t), 0);
     if (t - Math.max(lastAct, state.nudgeT || 0) < every) return;
-    const next = e.critStatus().find((c) => !c.done);
+    // don't prompt a step whose moment has passed (e.g. low flows once the patient is waking up)
+    const next = e.critStatus().find((c) => !c.done && (!c.nudgePh || !e.ga || c.nudgePh.includes(e.ga.phase)));
     state.nudgeT = t;
     const who = scn.nudgeWho || 'Senior nurse';
     if (next && scn.nudgeWho) e.say(`${who}: "Next step? ${next.text.replace(/\s*\(.*\)\s*$/, '')}."`, 'warn');

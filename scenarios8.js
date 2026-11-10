@@ -56,7 +56,7 @@
     vent: { text: 'Start mechanical ventilation (6–8 mL/kg, PEEP 5)', check: d('ventOn') },
     eyes: { text: 'Eyes taped, positioning, pressure areas, warming', check: d('eyes') },
     timeout: { text: 'WHO Time Out before knife to skin', check: d('timeout') },
-    lowFlow: { text: 'Turn to low flow for maintenance (≤ 1.5 L/min), keep ~1 MAC', check: did('lowFlow') },
+    lowFlow: { text: 'Turn to low flow for maintenance (≤ 1.5 L/min), keep ~1 MAC', check: did('lowFlow'), nudgePh: ['induction', 'maintenance'] },
     noAware: { text: 'Keep anaesthesia deep enough throughout — no awareness, no movement', check: (e) => e.ga.done.surgeryDone && noHarm(/awareness/)(e) && !e.ga.done.moved },
     analgesia: { text: 'Multimodal analgesia before waking: paracetamol + an opioid', check: (e) => e.did('paracetamol') && (e.did('morphine') || anyAfter(e, ['fentanyl', 'alfentanil'], e.ga.done.timeout)) },
     ponv: { text: 'PONV prophylaxis (ondansetron ± dexamethasone)', check: (e) => e.did('ondansetron') || e.did('dexamethasone') },

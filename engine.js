@@ -772,7 +772,7 @@
     shockable() { return ['vf', 'vt'].includes(this.p.rhythm) && this.p.arrested; }
 
     critStatus() {
-      return this.allCritical().filter((c) => !c.skip || !c.skip(this)).map((c) => ({ text: c.text, done: !!c.check(this), id: c.id }));
+      return this.allCritical().filter((c) => !c.skip || !c.skip(this)).map((c) => ({ text: c.text, done: !!c.check(this), id: c.id, nudgePh: c.nudgePh }));
     }
     targetStatus() {
       const p = this.p, tg = Object.assign({ map: p.paed ? Math.round(p.mapNormal * 0.85) : 65, spo2: 94 }, this.scn.targets || {});
