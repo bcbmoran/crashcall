@@ -762,7 +762,8 @@
     let newBest = false;
     if (outcome === 'win') { const best = store.get('best', {}); if (!best[s.id] || ms < best[s.id]) { best[s.id] = ms; store.set('best', best); newBest = true; } }
     const cs = e.allCritical().filter((c) => !c.skip || !c.skip(e)).map((c) => ({ text: c.text, done: !!c.check(e) }));
-    const saved = !s.tutorial && S.Progress ? S.Progress.record(runRecord(outcome)) : null;
+    const rec = runRecord(outcome);
+    const saved = !s.tutorial && S.Progress ? S.Progress.record(rec) : null;
     const title = outcome === 'win' ? 'Patient stabilised' : outcome === 'arrest' ? 'Cardiac arrest — scenario failed' : outcome === 'complete' ? (e.critStatus().every((c) => c.done) ? 'Case complete — handed over to recovery' : 'Case complete — handed over (some steps missed)') : 'Scenario ended';
     const imgRes = state.results.filter((r) => r.kind === 'img' || r.kind === 'pocus');
     state.ended = true;
@@ -775,6 +776,7 @@
       <div class="stat-row"><div class="stat"><span class="muted small">Time</span><b>${fmt(ms)}</b></div><div class="stat"><span class="muted small">Critical actions</span><b>${cs.filter((c) => c.done).length}/${cs.length}</b></div><div class="stat"><span class="muted small">Harmful actions</span><b>${e.harms.length}</b></div><div class="stat"><span class="muted small">Hints used</span><b>${state.hints}</b></div><div class="stat"><span class="muted small">Final MAP / SpO₂</span><b>${Math.round(e.p.map)} / ${e.p.spo2}%</b></div></div>
       <div id="lbBox" class="lb-box"></div>
       ${saved ? '<p class="muted small" id="saveNote"></p>' : ''}
+      ${outcome === 'win' && !s.tutorial && S.Cert ? `<div class="cert-box"><b>Certificate of completion</b><p class="small muted">Download a PDF certificate for this success (for your portfolio / CPD reflection). You can re-download it any time from My progress.</p>${S.Cert.formHTML('deb')}<button class="btn primary sm" data-cert-deb>Download certificate (PDF)</button></div>` : ''}
       <h3>Critical actions</h3><ul>${cs.map((c) => `<li class="${c.done ? 'ok' : 'miss'}">${esc(c.text)}</li>`).join('')}</ul>
       ${tgtHTML}
       ${bloodLossHTML(e, s)}
@@ -795,6 +797,7 @@
       </details>` : ''}
       <div class="row-end"><button class="btn" id="dbMenu">Menu</button><button class="btn" id="dbHint">Review physiology</button><button class="btn" id="dbNext">${state.fieldMode ? 'Next ' + FIELD[state.fieldMode] + ' scenario' : 'Random scenario'}</button><button class="btn primary" id="dbRetry">Retry</button></div></div>`;
     openModal((state.blind ? 'Debrief — it was: ' : 'Debrief: ') + s.title, html);
+    const cdb = $('[data-cert-deb]'); if (cdb) cdb.onclick = () => S.Cert.download(rec, S.Cert.nameFrom(document, 'deb'));
     if (saved) saved.then((w) => { const n = $('#saveNote'); if (!n) return; const P = S.Progress; n.innerHTML = w === 'cloud' ? `✓ Saved to your progress (${esc(P.user.name || P.user.email)}). <a href="#" data-prog>View progress</a>` : `Saved on this device. ${P.enabled ? '<a href="#" data-acct>Sign in</a> to keep your progress across devices · ' : ''}<a href="#" data-prog>View progress</a>`; const a = n.querySelector('[data-acct]'); if (a) a.onclick = (ev) => { ev.preventDefault(); S.Account.open(); }; n.querySelector('[data-prog]').onclick = (ev) => { ev.preventDefault(); P.open(); }; });
     if (S.LB) S.LB.debrief($('#lbBox'), { scn: s, outcome, ms, hints: state.hints, harms: e.harms.length, blind: state.blind, level: e.level });
     $$('[data-dbres]').forEach((d) => d.addEventListener('toggle', () => { if (d.open && !d.dataset.mounted) { d.dataset.mounted = 1; const stop = resultView(d.querySelector('.db-res-host'), imgRes[+d.dataset.dbres], 'show'); const prev = state.stopAnim; state.stopAnim = () => { if (stop) stop(); if (prev) prev(); }; } }));

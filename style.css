@@ -425,3 +425,10 @@ table.lb tr.me { background: color-mix(in srgb, var(--good) 14%, transparent); f
 .lib-sec { grid-column: 1 / -1; margin: 14px 0 2px; font-size: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
 .lib-sec:first-child { margin-top: 0; }
 .rand-seg { margin: 4px 0 10px; }
+.cert-box { border: 1px solid var(--border); border-left: 4px solid #b8892d; border-radius: 8px; padding: 10px 12px; margin: 10px 0; }
+.cert-box p { margin: 4px 0 8px; }
+.cert-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; flex-wrap: wrap; }
+.cert-row label { display: flex; gap: 8px; align-items: center; font-size: .9rem; flex-wrap: wrap; }
+.cert-row input { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; min-width: 220px; font: inherit; background: var(--surface); color: var(--text); }
+.cert-list { list-style: none; padding: 0; margin: 6px 0; }
+.cert-list li { padding: 4px 0; border-bottom: 1px dashed var(--border); }
